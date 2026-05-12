@@ -13,6 +13,7 @@ export class ProviderManager {
     switch (config.type) {
       case 'openai-compat':
       case 'openai':
+      case 'lmstudio':
         return new OpenAICompatProvider(config);
       case 'ollama':
         return new OllamaProvider(config);

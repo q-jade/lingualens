@@ -30,6 +30,12 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     baseUrl: 'http://localhost:11434',
     model: 'llama3',
   },
+  lmstudio: {
+    type: 'lmstudio',
+    name: 'LM Studio',
+    baseUrl: 'http://localhost:1234/v1',
+    model: '',
+  },
   openai: {
     type: 'openai',
     name: 'OpenAI',

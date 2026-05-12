@@ -6,6 +6,7 @@ const PROVIDER_TYPE_LABELS: Record<ProviderConfig['type'], string> = {
   'openai-compat': 'OpenAI Compatible',
   ollama: 'Ollama',
   openai: 'OpenAI',
+  lmstudio: 'LM Studio',
   deepl: 'DeepL',
   google: 'Google Translate',
   custom: 'Custom',
@@ -99,7 +100,7 @@ export function App() {
     ['openai', 'deepl', 'google'].includes(type);
 
   const needsModel = (type: ProviderConfig['type']) =>
-    ['openai-compat', 'ollama', 'openai'].includes(type);
+    ['openai-compat', 'ollama', 'openai', 'lmstudio'].includes(type);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -217,7 +218,7 @@ export function App() {
                       )}
                       {needsModel(provider.type) && (
                         <Field label="Model">
-                          <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'llama3' : 'gpt-4o-mini'} className="input font-mono text-xs" />
+                          <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'llama3' : provider.type === 'lmstudio' ? 'loaded model' : 'gpt-4o-mini'} className="input font-mono text-xs" />
                         </Field>
                       )}
                       {provider.type === 'ollama' && (

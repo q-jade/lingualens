@@ -14,7 +14,7 @@ export interface TranslateResult {
 
 export interface ProviderConfig {
   id: string;
-  type: 'openai-compat' | 'ollama' | 'openai' | 'deepl' | 'google' | 'custom';
+  type: 'openai-compat' | 'ollama' | 'openai' | 'lmstudio' | 'deepl' | 'google' | 'custom';
   name: string;
   enabled: boolean;
   baseUrl: string;
