@@ -15,10 +15,6 @@ export default defineConfig({
       'https://api.deepl.com/*',
       'https://translation.googleapis.com/*',
     ],
-    options_ui: {
-      page: 'options.html',
-      open_in_tab: true,
-    },
     commands: {
       'translate-selection': {
         suggested_key: { default: 'Alt+T' },
