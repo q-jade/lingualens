@@ -101,7 +101,7 @@ export function App() {
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Smart Translator</h1>
+            <h1 className="text-2xl font-bold text-gray-800">LinguaLens</h1>
             <p className="text-sm text-gray-400">Settings</p>
           </div>
         </div>

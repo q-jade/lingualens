@@ -5,8 +5,8 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     version: '0.1.0',
-    name: 'Smart Translator',
-    description: 'Browser translation extension powered by LLM and online APIs',
+    name: 'LinguaLens',
+    description: 'LinguaLens — translate anything with LLM and online APIs',
     permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus'],
     host_permissions: [
       'http://localhost:*/*',

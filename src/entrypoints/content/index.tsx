@@ -10,7 +10,7 @@ export default defineContentScript({
     let appHandle: ContentAppHandle | null = null;
 
     const ui = await createShadowRootUi(ctx, {
-      name: 'smart-translator',
+      name: 'lingualens',
       position: 'overlay',
       zIndex: 2147483647,
       onMount(container) {
@@ -32,7 +32,7 @@ export default defineContentScript({
 
     // Selection-based translation trigger
     document.addEventListener('mouseup', (e) => {
-      if ((e.target as Element)?.closest?.('smart-translator')) return;
+      if ((e.target as Element)?.closest?.('lingualens')) return;
 
       setTimeout(() => {
         const selection = window.getSelection();
@@ -48,7 +48,7 @@ export default defineContentScript({
     document.addEventListener('mousedown', (e) => {
       const path = e.composedPath();
       const isInsideOurUI = path.some(
-        (el) => el instanceof HTMLElement && el.tagName?.toLowerCase() === 'smart-translator',
+        (el) => el instanceof HTMLElement && el.tagName?.toLowerCase() === 'lingualens',
       );
       if (!isInsideOurUI) {
         appHandle?.hide();

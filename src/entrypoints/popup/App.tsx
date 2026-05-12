@@ -52,7 +52,7 @@ export function App() {
             <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
           </svg>
         </div>
-        <h1 className="text-base font-semibold text-gray-800">Smart Translator</h1>
+        <h1 className="text-base font-semibold text-gray-800">LinguaLens</h1>
       </div>
 
       {/* Target language */}

@@ -44,5 +44,5 @@ export default defineBackground(() => {
     }
   });
 
-  console.log('[Smart Translator] background service worker started');
+  console.log('[LinguaLens] background service worker started');
 });

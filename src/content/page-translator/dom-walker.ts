@@ -1,7 +1,7 @@
 const SKIP_TAGS = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'OBJECT', 'EMBED',
   'SVG', 'CANVAS', 'VIDEO', 'AUDIO', 'MAP', 'CODE', 'PRE',
-  'KBD', 'SAMP', 'VAR', 'SMART-TRANSLATOR',
+  'KBD', 'SAMP', 'VAR', 'LINGUALENS',
 ]);
 
 const BLOCK_TAGS = new Set([
