@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.input {
+  @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
+         focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400
+         transition-colors;
+}
