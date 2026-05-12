@@ -23,6 +23,11 @@ export class OllamaProvider extends BaseProvider {
     });
 
     if (!res.ok) {
+      if (res.status === 403) {
+        throw new Error(
+          'Ollama rejected the request (403 Forbidden). Start Ollama with: OLLAMA_ORIGINS="chrome-extension://*" ollama serve',
+        );
+      }
       const body = await res.text();
       throw new Error(`Ollama error ${res.status}: ${body}`);
     }

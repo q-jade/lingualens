@@ -220,6 +220,11 @@ export function App() {
                           <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'llama3' : 'gpt-4o-mini'} className="input font-mono text-xs" />
                         </Field>
                       )}
+                      {provider.type === 'ollama' && (
+                        <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                          Ollama requires CORS configuration for browser extensions. Start Ollama with: <code className="bg-amber-100 px-1 rounded">OLLAMA_ORIGINS="chrome-extension://*" ollama serve</code>
+                        </p>
+                      )}
                       <div className="flex items-center gap-3 pt-1">
                         <button onClick={() => handleTest(provider)} disabled={testing === provider.id} className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50 transition-colors">
                           {testing === provider.id ? 'Testing…' : 'Test Connection'}
