@@ -1,8 +1,9 @@
 import { handleMessage } from '../background/message-router';
 
 export default defineBackground(() => {
-  browser.runtime.onMessage.addListener((message: Record<string, unknown>) => {
-    return handleMessage(message);
+  browser.runtime.onMessage.addListener((message: Record<string, unknown>, _sender, sendResponse) => {
+    handleMessage(message).then(sendResponse);
+    return true;
   });
 
   browser.commands.onCommand.addListener(async (command) => {

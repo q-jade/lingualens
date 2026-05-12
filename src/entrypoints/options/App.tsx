@@ -69,18 +69,30 @@ export function App() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleTest = async (providerId: string) => {
-    setTesting(providerId);
-    setTestResults((r) => ({ ...r, [providerId]: undefined! }));
-    const res: MessageResponse<boolean> = await browser.runtime.sendMessage({
-      type: 'TEST_CONNECTION',
-      payload: { providerId },
-    });
-    setTesting(null);
-    const result = res.success
-      ? { ok: res.data, msg: res.data ? 'Connected!' : 'Connection failed' }
-      : { ok: false, msg: res.error };
-    setTestResults((r) => ({ ...r, [providerId]: result }));
+  const handleTest = async (provider: ProviderConfig) => {
+    setTesting(provider.id);
+    setTestResults((r) => ({ ...r, [provider.id]: undefined! }));
+    try {
+      const res: MessageResponse<boolean> = await browser.runtime.sendMessage({
+        type: 'TEST_CONNECTION',
+        payload: { providerConfig: provider },
+      });
+      if (!res) {
+        setTestResults((r) => ({ ...r, [provider.id]: { ok: false, msg: 'No response from background' } }));
+        return;
+      }
+      const result = res.success
+        ? { ok: res.data, msg: res.data ? 'Connected!' : 'Connection failed' }
+        : { ok: false, msg: res.error };
+      setTestResults((r) => ({ ...r, [provider.id]: result }));
+    } catch (err) {
+      setTestResults((r) => ({
+        ...r,
+        [provider.id]: { ok: false, msg: err instanceof Error ? err.message : 'Test failed' },
+      }));
+    } finally {
+      setTesting(null);
+    }
   };
 
   const needsApiKey = (type: ProviderConfig['type']) =>
@@ -209,7 +221,7 @@ export function App() {
                         </Field>
                       )}
                       <div className="flex items-center gap-3 pt-1">
-                        <button onClick={() => handleTest(provider.id)} disabled={testing === provider.id} className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                        <button onClick={() => handleTest(provider)} disabled={testing === provider.id} className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50 transition-colors">
                           {testing === provider.id ? 'Testing…' : 'Test Connection'}
                         </button>
                         {settings.defaultProvider !== provider.id && (

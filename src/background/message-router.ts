@@ -1,6 +1,6 @@
 import { ProviderManager } from '../providers/manager';
 import { getCached, setCache, clearCache as clearTranslationCache, getCacheStats } from './cache';
-import type { AppSettings, TranslateRequest, MessageResponse, TranslateResult } from '../shared/types';
+import type { AppSettings, ProviderConfig, TranslateRequest, MessageResponse, TranslateResult } from '../shared/types';
 import { DEFAULT_SETTINGS } from '../shared/constants';
 
 const providerManager = new ProviderManager();
@@ -52,13 +52,9 @@ export async function handleTranslate(
 }
 
 export async function handleTestConnection(
-  providerId: string,
+  providerConfig: ProviderConfig,
 ): Promise<MessageResponse<boolean>> {
   try {
-    const settings = await getSettings();
-    const providerConfig = settings.providers.find((p) => p.id === providerId);
-    if (!providerConfig) return { success: false, error: 'Provider not found' };
-
     const provider = providerManager.getProvider(providerConfig);
     const ok = await provider.testConnection();
     return { success: true, data: ok };
@@ -72,7 +68,7 @@ export async function handleMessage(message: Record<string, unknown>): Promise<M
     case 'TRANSLATE':
       return handleTranslate(message.payload as TranslateRequest);
     case 'TEST_CONNECTION':
-      return handleTestConnection((message.payload as { providerId: string }).providerId);
+      return handleTestConnection((message.payload as { providerConfig: ProviderConfig }).providerConfig);
     case 'GET_SETTINGS':
       return { success: true, data: await getSettings() };
     case 'SAVE_SETTINGS':

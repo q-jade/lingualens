@@ -33,7 +33,7 @@ export interface AppSettings {
 
 export type MessageType =
   | { type: 'TRANSLATE'; payload: TranslateRequest }
-  | { type: 'TEST_CONNECTION'; payload: { providerId: string } }
+  | { type: 'TEST_CONNECTION'; payload: { providerConfig: ProviderConfig } }
   | { type: 'GET_SETTINGS' }
   | { type: 'SAVE_SETTINGS'; payload: Partial<AppSettings> };
 
