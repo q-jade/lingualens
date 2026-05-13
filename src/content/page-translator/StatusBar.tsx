@@ -4,16 +4,32 @@ interface Props {
   progress: TranslateProgress | null;
   running: boolean;
   displayMode: DisplayMode;
+  collapsed: boolean;
   onStop: () => void;
   onRestore: () => void;
   onToggleMode: () => void;
+  onToggleCollapse: () => void;
 }
 
-export function StatusBar({ progress, running, displayMode, onStop, onRestore, onToggleMode }: Props) {
+export function StatusBar({ progress, running, displayMode, collapsed, onStop, onRestore, onToggleMode, onToggleCollapse }: Props) {
   if (!progress) return null;
 
   const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
   const done = !running && progress.done > 0;
+
+  if (collapsed) {
+    return (
+      <button onClick={onToggleCollapse} className="st-status-collapsed" title="Expand translation bar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" />
+          <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
+        </svg>
+        {running && (
+          <span className="st-status-collapsed-badge">{percent}%</span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <div className="st-status-bar">
@@ -53,6 +69,11 @@ export function StatusBar({ progress, running, displayMode, onStop, onRestore, o
         {done && (
           <button onClick={onRestore} className="st-status-btn">Restore</button>
         )}
+        <button onClick={onToggleCollapse} className="st-status-btn-icon" title="Minimize">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m18 15-6-6-6 6" />
+          </svg>
+        </button>
       </div>
     </div>
   );

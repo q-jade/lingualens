@@ -137,3 +137,31 @@
 .st-status-btn-warn {
   @apply text-red-500 border-red-200 hover:bg-red-50;
 }
+
+.st-status-btn-icon {
+  @apply flex items-center justify-center w-7 h-7 rounded-md
+         text-gray-400 hover:text-gray-600 hover:bg-gray-100
+         cursor-pointer transition-colors;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+/* Collapsed floating icon */
+.st-status-collapsed {
+  @apply fixed flex items-center justify-center w-9 h-9 rounded-full
+         bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200
+         text-blue-500 cursor-pointer
+         hover:shadow-xl hover:scale-105 active:scale-95
+         transition-all duration-150;
+  top: 12px;
+  right: 16px;
+  z-index: 2147483646;
+  padding: 0;
+}
+
+.st-status-collapsed-badge {
+  @apply absolute -bottom-1 -right-1 text-[9px] font-bold text-white
+         rounded-full px-1 min-w-[18px] text-center leading-[16px];
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+}

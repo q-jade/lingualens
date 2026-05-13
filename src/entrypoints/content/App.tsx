@@ -30,6 +30,7 @@ export function ContentApp({ onReady }: Props) {
   const [pageProgress, setPageProgress] = useState<TranslateProgress | null>(null);
   const [pageRunning, setPageRunning] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('bilingual');
+  const [statusCollapsed, setStatusCollapsed] = useState(false);
 
   const selectedTextRef = useRef('');
   const settingsRef = useRef<AppSettings | null>(null);
@@ -73,6 +74,16 @@ export function ContentApp({ onReady }: Props) {
     setDisplayMode(newMode);
     engineRef.current.switchMode(newMode);
   }, [displayMode]);
+
+  const STATUS_BAR_HEIGHT = 40;
+  useEffect(() => {
+    const visible = pageProgress !== null && !statusCollapsed;
+    if (visible) {
+      const original = document.documentElement.style.paddingTop;
+      document.documentElement.style.paddingTop = `${STATUS_BAR_HEIGHT}px`;
+      return () => { document.documentElement.style.paddingTop = original; };
+    }
+  }, [pageProgress !== null, statusCollapsed]);
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -143,9 +154,11 @@ export function ContentApp({ onReady }: Props) {
         progress={pageProgress}
         running={pageRunning}
         displayMode={displayMode}
+        collapsed={statusCollapsed}
         onStop={stopPageTranslation}
         onRestore={restorePageTranslation}
         onToggleMode={toggleDisplayMode}
+        onToggleCollapse={() => setStatusCollapsed((c) => !c)}
       />
 
       {/* Selection trigger button */}
