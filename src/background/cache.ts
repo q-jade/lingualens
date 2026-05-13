@@ -7,17 +7,31 @@ interface CacheEntry {
 
 const STORAGE_KEY = 'translationCache';
 const MAX_ENTRIES = 1000;
+const PERSIST_DEBOUNCE_MS = 3000;
 
-async function loadCache(): Promise<Map<string, CacheEntry>> {
+let memoryCache: Map<string, CacheEntry> | null = null;
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let dirty = false;
+
+async function getMemoryCache(): Promise<Map<string, CacheEntry>> {
+  if (memoryCache) return memoryCache;
   const data = await browser.storage.local.get(STORAGE_KEY);
   const raw = data[STORAGE_KEY] as Record<string, CacheEntry> | undefined;
-  return raw ? new Map(Object.entries(raw)) : new Map();
+  memoryCache = raw ? new Map(Object.entries(raw)) : new Map();
+  return memoryCache;
 }
 
-async function persistCache(cache: Map<string, CacheEntry>): Promise<void> {
-  await browser.storage.local.set({
-    [STORAGE_KEY]: Object.fromEntries(cache),
-  });
+function schedulePersist(): void {
+  if (persistTimer) return;
+  dirty = true;
+  persistTimer = setTimeout(async () => {
+    persistTimer = null;
+    if (!dirty || !memoryCache) return;
+    dirty = false;
+    await browser.storage.local.set({
+      [STORAGE_KEY]: Object.fromEntries(memoryCache),
+    });
+  }, PERSIST_DEBOUNCE_MS);
 }
 
 function makeKey(text: string, sourceLang: string, targetLang: string, providerId: string): string {
@@ -47,14 +61,13 @@ export async function getCached(
   targetLang: string,
   providerId: string,
 ): Promise<TranslateResult | null> {
-  const cache = await loadCache();
+  const cache = await getMemoryCache();
   const key = makeKey(text, sourceLang, targetLang, providerId);
   const entry = cache.get(key);
   if (!entry) return null;
 
   entry.accessedAt = Date.now();
-  cache.set(key, entry);
-  await persistCache(cache);
+  schedulePersist();
 
   return { ...entry.result, cached: true };
 }
@@ -66,19 +79,25 @@ export async function setCache(
   providerId: string,
   result: TranslateResult,
 ): Promise<void> {
-  const cache = await loadCache();
+  const cache = await getMemoryCache();
   const key = makeKey(text, sourceLang, targetLang, providerId);
 
   cache.set(key, { result, accessedAt: Date.now() });
   evict(cache);
-  await persistCache(cache);
+  schedulePersist();
 }
 
 export async function clearCache(): Promise<void> {
+  memoryCache = new Map();
+  dirty = false;
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
   await browser.storage.local.remove(STORAGE_KEY);
 }
 
 export async function getCacheStats(): Promise<{ size: number; maxSize: number }> {
-  const cache = await loadCache();
+  const cache = await getMemoryCache();
   return { size: cache.size, maxSize: MAX_ENTRIES };
 }
