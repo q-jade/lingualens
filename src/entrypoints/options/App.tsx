@@ -16,8 +16,6 @@ export function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [testing, setTesting] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, { ok: boolean; msg: string }>>({});
   const [verifying, setVerifying] = useState<string | null>(null);
   const [verifyResults, setVerifyResults] = useState<Record<string, { ok: boolean; msg: string }>>({});
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
@@ -70,32 +68,6 @@ export function App() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  };
-
-  const handleTest = async (provider: ProviderConfig) => {
-    setTesting(provider.id);
-    setTestResults((r) => ({ ...r, [provider.id]: undefined! }));
-    try {
-      const res: MessageResponse<boolean> = await browser.runtime.sendMessage({
-        type: 'TEST_CONNECTION',
-        payload: { providerConfig: provider },
-      });
-      if (!res) {
-        setTestResults((r) => ({ ...r, [provider.id]: { ok: false, msg: 'No response from background' } }));
-        return;
-      }
-      const result = res.success
-        ? { ok: res.data, msg: res.data ? 'Connected!' : 'Connection failed' }
-        : { ok: false, msg: res.error };
-      setTestResults((r) => ({ ...r, [provider.id]: result }));
-    } catch (err) {
-      setTestResults((r) => ({
-        ...r,
-        [provider.id]: { ok: false, msg: err instanceof Error ? err.message : 'Test failed' },
-      }));
-    } finally {
-      setTesting(null);
-    }
   };
 
   const handleVerify = async (provider: ProviderConfig) => {
@@ -204,7 +176,6 @@ export function App() {
           <div className="space-y-3">
             {settings.providers.map((provider) => {
               const expanded = expandedProvider === provider.id;
-              const tr = testResults[provider.id];
               return (
                 <div key={provider.id} className="border border-gray-200 rounded-lg overflow-hidden">
                   {/* Provider header */}
@@ -255,10 +226,7 @@ export function App() {
                         </p>
                       )}
                       <div className="flex items-center gap-3 pt-1 flex-wrap">
-                        <button onClick={() => handleTest(provider)} disabled={testing === provider.id || verifying === provider.id} className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50 transition-colors">
-                          {testing === provider.id ? 'Testing…' : 'Test Connection'}
-                        </button>
-                        <button onClick={() => handleVerify(provider)} disabled={testing === provider.id || verifying === provider.id} className="px-3 py-1.5 border border-blue-200 bg-blue-50 rounded-lg text-xs text-blue-600 hover:bg-blue-100 disabled:opacity-50 transition-colors">
+                        <button onClick={() => handleVerify(provider)} disabled={verifying === provider.id} className="px-3 py-1.5 border border-blue-200 bg-blue-50 rounded-lg text-xs text-blue-600 hover:bg-blue-100 disabled:opacity-50 transition-colors">
                           {verifying === provider.id ? 'Verifying…' : 'Verify Config'}
                         </button>
                         {settings.defaultProvider !== provider.id && (
@@ -266,11 +234,8 @@ export function App() {
                         )}
                         <button onClick={() => removeProvider(provider.id)} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-500 ml-auto">Remove</button>
                       </div>
-                      {(tr || verifyResults[provider.id]) && (
-                        <div className="flex flex-col gap-1 pt-1">
-                          {tr && <span className={`text-xs font-medium ${tr.ok ? 'text-green-600' : 'text-red-500'}`}>{tr.msg}</span>}
-                          {verifyResults[provider.id] && <span className={`text-xs font-medium ${verifyResults[provider.id].ok ? 'text-green-600' : 'text-red-500'}`}>{verifyResults[provider.id].msg}</span>}
-                        </div>
+                      {verifyResults[provider.id] && (
+                        <span className={`text-xs font-medium pt-1 ${verifyResults[provider.id].ok ? 'text-green-600' : 'text-red-500'}`}>{verifyResults[provider.id].msg}</span>
                       )}
                     </div>
                   )}

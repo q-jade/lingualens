@@ -28,10 +28,13 @@ export class ProviderManager {
     }
   }
 
-  getProvider(config: ProviderConfig): BaseProvider {
-    let provider = this.providers.get(config.id);
-    if (!provider) {
-      provider = this.createProvider(config);
+  getProvider(config: ProviderConfig, { useCache = true } = {}): BaseProvider {
+    if (useCache) {
+      const cached = this.providers.get(config.id);
+      if (cached) return cached;
+    }
+    const provider = this.createProvider(config);
+    if (useCache) {
       this.providers.set(config.id, provider);
     }
     return provider;

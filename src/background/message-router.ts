@@ -51,23 +51,11 @@ export async function handleTranslate(
   }
 }
 
-export async function handleTestConnection(
-  providerConfig: ProviderConfig,
-): Promise<MessageResponse<boolean>> {
-  try {
-    const provider = providerManager.getProvider(providerConfig);
-    const ok = await provider.testConnection();
-    return { success: true, data: ok };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Connection test failed' };
-  }
-}
-
 export async function handleVerifyConfig(
   providerConfig: ProviderConfig,
 ): Promise<MessageResponse<string>> {
   try {
-    const provider = providerManager.getProvider(providerConfig);
+    const provider = providerManager.getProvider(providerConfig, { useCache: false });
     const result = await provider.translate({
       text: 'Hello',
       sourceLang: 'en',
@@ -86,8 +74,6 @@ export async function handleMessage(message: Record<string, unknown>): Promise<M
   switch (message.type) {
     case 'TRANSLATE':
       return handleTranslate(message.payload as TranslateRequest);
-    case 'TEST_CONNECTION':
-      return handleTestConnection((message.payload as { providerConfig: ProviderConfig }).providerConfig);
     case 'VERIFY_CONFIG':
       return handleVerifyConfig((message.payload as { providerConfig: ProviderConfig }).providerConfig);
     case 'GET_SETTINGS':
