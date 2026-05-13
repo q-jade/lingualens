@@ -6,6 +6,7 @@ import { StatusBar } from '../../content/page-translator/StatusBar';
 export interface ContentAppHandle {
   showTrigger: (text: string, position: { x: number; y: number }) => void;
   hide: () => void;
+  isPageTranslationActive: () => boolean;
   startPageTranslation: () => void;
   stopPageTranslation: () => void;
   restorePageTranslation: () => void;
@@ -35,27 +36,36 @@ export function ContentApp({ onReady }: Props) {
   const selectedTextRef = useRef('');
   const settingsRef = useRef<AppSettings | null>(null);
   const engineRef = useRef(new PageTranslateEngine());
+  const pageTranslatedRef = useRef(false);
 
   const startPageTranslation = useCallback(async () => {
     const settings = settingsRef.current;
     const engine = engineRef.current;
-    if (engine.running) return;
+    if (engine.running || pageTranslatedRef.current) return;
 
+    pageTranslatedRef.current = true;
+    browser.runtime.sendMessage({
+      type: 'PAGE_TRANSLATE_STATE_CHANGED',
+      payload: { active: true },
+    }).catch(() => {});
+    setMode('hidden');
     setPageRunning(true);
     setPageProgress({ total: 0, done: 0, errors: 0 });
 
-    await engine.start(
-      {
-        targetLang: settings?.defaultTargetLang ?? 'zh',
-        sourceLang: settings?.defaultSourceLang ?? 'auto',
-        displayMode,
-        concurrency: 4,
-        chunkingMode: settings?.chunkingMode ?? 'quality',
-      },
-      (progress) => setPageProgress({ ...progress }),
-    );
-
-    setPageRunning(false);
+    try {
+      await engine.start(
+        {
+          targetLang: settings?.defaultTargetLang ?? 'zh',
+          sourceLang: settings?.defaultSourceLang ?? 'auto',
+          displayMode,
+          concurrency: 4,
+          chunkingMode: settings?.chunkingMode ?? 'quality',
+        },
+        (progress) => setPageProgress({ ...progress }),
+      );
+    } finally {
+      setPageRunning(false);
+    }
   }, [displayMode]);
 
   const stopPageTranslation = useCallback(() => {
@@ -65,6 +75,11 @@ export function ContentApp({ onReady }: Props) {
 
   const restorePageTranslation = useCallback(() => {
     engineRef.current.restore();
+    pageTranslatedRef.current = false;
+    browser.runtime.sendMessage({
+      type: 'PAGE_TRANSLATE_STATE_CHANGED',
+      payload: { active: false },
+    }).catch(() => {});
     setPageProgress(null);
     setPageRunning(false);
   }, []);
@@ -94,6 +109,7 @@ export function ContentApp({ onReady }: Props) {
 
     onReady({
       showTrigger(text, pos) {
+        if (pageTranslatedRef.current) return;
         selectedTextRef.current = text;
         setSelectedText(text);
         setPosition(pos);
@@ -105,6 +121,9 @@ export function ContentApp({ onReady }: Props) {
       hide() {
         setMode('hidden');
       },
+      isPageTranslationActive() {
+        return pageTranslatedRef.current;
+      },
       startPageTranslation,
       stopPageTranslation,
       restorePageTranslation,
@@ -114,7 +133,7 @@ export function ContentApp({ onReady }: Props) {
 
   const handleTranslate = async () => {
     const text = selectedTextRef.current;
-    if (!text) return;
+    if (!text || pageTranslatedRef.current) return;
 
     const targetLang = settingsRef.current?.defaultTargetLang ?? 'zh';
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';

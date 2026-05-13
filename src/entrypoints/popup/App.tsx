@@ -9,6 +9,7 @@ export function App() {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pageTranslateActive, setPageTranslateActive] = useState(false);
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -19,6 +20,18 @@ export function App() {
         }
       },
     );
+
+    browser.tabs.query({ active: true, currentWindow: true })
+      .then(([tab]) => {
+        if (!tab?.id) return;
+        return browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_STATUS' });
+      })
+      .then((res: { active?: boolean } | undefined) => {
+        setPageTranslateActive(Boolean(res?.active));
+      })
+      .catch(() => {
+        setPageTranslateActive(false);
+      });
   }, []);
 
   const handleTranslate = async () => {
@@ -112,6 +125,7 @@ export function App() {
       {/* Page translate */}
       <button
         onClick={async () => {
+          if (pageTranslateActive) return;
           const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
           if (!tab?.id) return;
           try {
@@ -122,16 +136,19 @@ export function App() {
             if (res?.success) {
               window.close();
             } else {
+              if (res?.error === 'Page translation is already active.') setPageTranslateActive(true);
               setError(res?.error || 'Cannot reach this page.');
             }
           } catch {
             setError('Cannot reach this page. Reload the page and try again.');
           }
         }}
+        disabled={pageTranslateActive}
         className="w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium
-                   border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                   border border-gray-200 text-gray-700 hover:bg-gray-50
+                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        Translate This Page
+        {pageTranslateActive ? 'Page Already Translated' : 'Translate This Page'}
       </button>
 
       {/* Footer */}
