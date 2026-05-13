@@ -121,14 +121,6 @@ export class PageTranslateEngine {
       el.remove();
     }
     this.bilingualInserted = [];
-    for (const segment of this.segments) {
-      for (const node of segment.textNodes) {
-        if (node.parentElement) {
-          node.parentElement.style.removeProperty('opacity');
-          node.parentElement.style.removeProperty('font-size');
-        }
-      }
-    }
   }
 
   private applyTranslation(segment: TextSegment, translated: string, mode: DisplayMode): void {
@@ -154,23 +146,44 @@ export class PageTranslateEngine {
         }
       }
     } else {
-      for (const node of textNodes) {
-        if (node.parentElement) {
-          node.parentElement.style.opacity = '0.4';
-          node.parentElement.style.fontSize = '0.85em';
-        }
-      }
-      const marker = document.createElement('span');
+      const marker = document.createElement('div');
       marker.className = 'st-translated';
-      marker.style.cssText = 'display:block;color:#1a73e8;margin:2px 0;opacity:1;font-size:1rem';
+      marker.style.cssText = 'display:block;color:#1a73e8;margin:4px 0 0;font-size:inherit';
       marker.textContent = translated;
       const lastNode = textNodes[textNodes.length - 1];
-      const insertTarget = lastNode.parentElement;
-      if (insertTarget) {
-        insertTarget.insertAdjacentElement('afterend', marker);
+      if (this.insertMarkerAfterText(lastNode, marker)) {
         this.bilingualInserted.push(marker);
       }
     }
+  }
+
+  private static INLINE_TAGS = new Set([
+    'A', 'ABBR', 'ACRONYM', 'B', 'BDO', 'BIG', 'CITE', 'CODE',
+    'DFN', 'EM', 'FONT', 'I', 'IMG', 'KBD', 'LABEL', 'MARK',
+    'Q', 'S', 'SAMP', 'SMALL', 'SPAN', 'STRIKE', 'STRONG',
+    'SUB', 'SUP', 'TIME', 'TT', 'U', 'VAR', 'WBR',
+  ]);
+
+  /**
+   * Keep markers inside the original container. Inline-wrapped text should place
+   * the marker after the highest inline ancestor; direct block text can insert
+   * after the text node itself.
+   */
+  private insertMarkerAfterText(node: Text, marker: HTMLElement): boolean {
+    let current = node.parentElement;
+    if (!current) return false;
+
+    if (!PageTranslateEngine.INLINE_TAGS.has(current.tagName)) {
+      current.insertBefore(marker, node.nextSibling);
+      return true;
+    }
+
+    while (current.parentElement && PageTranslateEngine.INLINE_TAGS.has(current.parentElement.tagName)) {
+      current = current.parentElement;
+    }
+
+    current.insertAdjacentElement('afterend', marker);
+    return true;
   }
 
   /**

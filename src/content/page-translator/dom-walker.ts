@@ -150,6 +150,70 @@ interface NodeGroup {
   nodes: Text[];
 }
 
+function textFromNodes(nodes: Text[]): string {
+  return nodes.map((n) => n.textContent?.trim()).filter(Boolean).join(' ');
+}
+
+function hasLineBreakBetween(previous: Text, next: Text): boolean {
+  const range = document.createRange();
+  try {
+    range.setStartAfter(previous);
+    range.setEndBefore(next);
+    return Boolean(range.cloneContents().querySelector('br'));
+  } catch {
+    return false;
+  } finally {
+    range.detach();
+  }
+}
+
+function splitByLineBreaks(nodes: Text[]): SubSegment[] {
+  const subSegments: SubSegment[] = [];
+  let currentNodes: Text[] = [];
+
+  function flush() {
+    const text = textFromNodes(currentNodes);
+    if (text.length <= 1) {
+      currentNodes = [];
+      return;
+    }
+
+    subSegments.push({
+      textNodes: currentNodes,
+      originalTexts: currentNodes.map((n) => n.textContent ?? ''),
+      textLen: text.length,
+    });
+    currentNodes = [];
+  }
+
+  for (const node of nodes) {
+    if (currentNodes.length > 0 && hasLineBreakBetween(currentNodes[currentNodes.length - 1], node)) {
+      flush();
+    }
+    currentNodes.push(node);
+  }
+  flush();
+
+  return subSegments;
+}
+
+function createSegment(nodes: Text[], idCounter: { value: number }): TextSegment | null {
+  const subSegments = splitByLineBreaks(nodes);
+  const text = subSegments.length > 1
+    ? subSegments.map((s) => textFromNodes(s.textNodes)).join('\n')
+    : textFromNodes(nodes);
+
+  if (text.length <= 1) return null;
+
+  return {
+    id: `seg-${idCounter.value++}`,
+    textNodes: nodes,
+    originalTexts: nodes.map((n) => n.textContent ?? ''),
+    text,
+    ...(subSegments.length > 1 ? { subSegments } : {}),
+  };
+}
+
 /**
  * Given a group of text nodes and a char limit, split them into segments
  * respecting paragraph and sentence boundaries.
@@ -163,12 +227,8 @@ function splitGroup(
   if (fullText.length <= 1) return [];
 
   if (fullText.length <= limit) {
-    return [{
-      id: `seg-${idCounter.value++}`,
-      textNodes: nodes,
-      originalTexts: nodes.map((n) => n.textContent ?? ''),
-      text: fullText,
-    }];
+    const segment = createSegment(nodes, idCounter);
+    return segment ? [segment] : [];
   }
 
   // Build a char-offset map: for each text node, record where it starts in fullText
@@ -226,15 +286,8 @@ function splitGroup(
 
         if (splitNodeIdx > cursor) {
           const segNodes = nodeOffsets.slice(cursor, splitNodeIdx).map((e) => e.node);
-          const text = segNodes.map((n) => n.textContent?.trim()).filter(Boolean).join(' ');
-          if (text.length > 1) {
-            segments.push({
-              id: `seg-${idCounter.value++}`,
-              textNodes: segNodes,
-              originalTexts: segNodes.map((n) => n.textContent ?? ''),
-              text,
-            });
-          }
+          const segment = createSegment(segNodes, idCounter);
+          if (segment) segments.push(segment);
           cursor = splitNodeIdx;
           continue;
         }
@@ -243,15 +296,8 @@ function splitGroup(
 
     // Default: take nodes [cursor..endIdx] as one segment
     const segNodes = nodeOffsets.slice(cursor, endIdx + 1).map((e) => e.node);
-    const text = segNodes.map((n) => n.textContent?.trim()).filter(Boolean).join(' ');
-    if (text.length > 1) {
-      segments.push({
-        id: `seg-${idCounter.value++}`,
-        textNodes: segNodes,
-        originalTexts: segNodes.map((n) => n.textContent ?? ''),
-        text,
-      });
-    }
+    const segment = createSegment(segNodes, idCounter);
+    if (segment) segments.push(segment);
     cursor = endIdx + 1;
   }
 
@@ -270,6 +316,14 @@ function mergeSmallSegments(segments: TextSegment[], limit: number): TextSegment
   let pending: TextSegment | null = null;
   let pendingSubs: SubSegment[] = [];
 
+  function getSubSegments(seg: TextSegment): SubSegment[] {
+    return seg.subSegments ?? [{
+      textNodes: seg.textNodes,
+      originalTexts: seg.originalTexts,
+      textLen: seg.text.length,
+    }];
+  }
+
   function flush() {
     if (!pending) return;
     if (pendingSubs.length > 1) {
@@ -283,7 +337,7 @@ function mergeSmallSegments(segments: TextSegment[], limit: number): TextSegment
   for (const seg of segments) {
     if (!pending) {
       pending = { ...seg };
-      pendingSubs = [{ textNodes: seg.textNodes, originalTexts: seg.originalTexts, textLen: seg.text.length }];
+      pendingSubs = getSubSegments(seg);
       continue;
     }
 
@@ -295,11 +349,11 @@ function mergeSmallSegments(segments: TextSegment[], limit: number): TextSegment
         originalTexts: [...pending.originalTexts, ...seg.originalTexts],
         text: pending.text + '\n' + seg.text,
       };
-      pendingSubs.push({ textNodes: seg.textNodes, originalTexts: seg.originalTexts, textLen: seg.text.length });
+      pendingSubs.push(...getSubSegments(seg));
     } else {
       flush();
       pending = { ...seg };
-      pendingSubs = [{ textNodes: seg.textNodes, originalTexts: seg.originalTexts, textLen: seg.text.length }];
+      pendingSubs = getSubSegments(seg);
     }
   }
   flush();
