@@ -20,6 +20,46 @@ const SAFETY_LIMIT = 4000;
 const MAX_SEGMENT_CHARS = 800;
 const MIN_SEGMENT_CHARS = 100;
 
+const SKIP_WORDS = new Set([
+  'github', 'huggingface', 'google', 'facebook', 'twitter', 'youtube',
+  'instagram', 'linkedin', 'reddit', 'discord', 'slack', 'notion',
+  'figma', 'vercel', 'netlify', 'heroku', 'aws', 'azure', 'docker',
+  'kubernetes', 'nginx', 'apache', 'linux', 'windows', 'macos',
+  'chrome', 'firefox', 'safari', 'edge', 'opera',
+  'javascript', 'typescript', 'python', 'rust', 'golang',
+  'react', 'vue', 'angular', 'svelte', 'nextjs', 'nuxt',
+  'npm', 'yarn', 'pnpm', 'webpack', 'vite', 'eslint',
+  'openai', 'anthropic', 'meta', 'microsoft', 'apple', 'amazon',
+  'ok', 'n/a', 'todo', 'null', 'undefined', 'true', 'false',
+]);
+
+/**
+ * Returns true if the text doesn't need translation:
+ * - Pure numbers (with optional commas, dots, percent, currency symbols)
+ * - A single word that is a well-known brand/tech term
+ * - Pure punctuation or symbols
+ * - Very short content (single character)
+ * - URLs, emails, file paths
+ */
+function shouldSkipTranslation(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length <= 1) return true;
+
+  if (/^[\d,.\s%$€¥£+\-*/=()]+$/.test(trimmed)) return true;
+
+  if (/^[^\w\s]+$/.test(trimmed)) return true;
+
+  if (/^(https?:\/\/|www\.|\/[\w/.-]+|\S+@\S+\.\S+)/.test(trimmed)) return true;
+
+  const words = trimmed.split(/\s+/);
+  if (words.length === 1) {
+    const lower = trimmed.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (SKIP_WORDS.has(lower)) return true;
+  }
+
+  return false;
+}
+
 export interface SubSegment {
   textNodes: Text[];
   originalTexts: string[];
@@ -305,6 +345,7 @@ export function extractSegments(
     segments.push(...groupSegments);
   }
 
+  segments = segments.filter((seg) => !shouldSkipTranslation(seg.text));
   segments = mergeSmallSegments(segments, limit);
 
   return segments;
