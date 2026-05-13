@@ -63,12 +63,33 @@ export async function handleTestConnection(
   }
 }
 
+export async function handleVerifyConfig(
+  providerConfig: ProviderConfig,
+): Promise<MessageResponse<string>> {
+  try {
+    const provider = providerManager.getProvider(providerConfig);
+    const result = await provider.translate({
+      text: 'Hello',
+      sourceLang: 'en',
+      targetLang: 'zh',
+    });
+    if (!result.translated.trim()) {
+      return { success: false, error: 'Provider returned empty translation' };
+    }
+    return { success: true, data: result.translated };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Verification failed' };
+  }
+}
+
 export async function handleMessage(message: Record<string, unknown>): Promise<MessageResponse> {
   switch (message.type) {
     case 'TRANSLATE':
       return handleTranslate(message.payload as TranslateRequest);
     case 'TEST_CONNECTION':
       return handleTestConnection((message.payload as { providerConfig: ProviderConfig }).providerConfig);
+    case 'VERIFY_CONFIG':
+      return handleVerifyConfig((message.payload as { providerConfig: ProviderConfig }).providerConfig);
     case 'GET_SETTINGS':
       return { success: true, data: await getSettings() };
     case 'SAVE_SETTINGS':
