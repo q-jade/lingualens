@@ -113,8 +113,20 @@ export function App() {
       <button
         onClick={async () => {
           const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-          if (tab?.id) browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' });
-          window.close();
+          if (!tab?.id) return;
+          try {
+            const res = await browser.runtime.sendMessage({
+              type: 'PAGE_TRANSLATE_PAGE',
+              payload: { tabId: tab.id },
+            });
+            if (res?.success) {
+              window.close();
+            } else {
+              setError(res?.error || 'Cannot reach this page.');
+            }
+          } catch {
+            setError('Cannot reach this page. Reload the page and try again.');
+          }
         }}
         className="w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium
                    border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"

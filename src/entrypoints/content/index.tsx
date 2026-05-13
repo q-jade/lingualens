@@ -10,7 +10,7 @@ export default defineContentScript({
     let appHandle: ContentAppHandle | null = null;
 
     const ui = await createShadowRootUi(ctx, {
-      name: 'lingualens',
+      name: 'lingua-lens',
       position: 'overlay',
       zIndex: 2147483647,
       onMount(container) {
@@ -32,7 +32,7 @@ export default defineContentScript({
 
     // Selection-based translation trigger
     document.addEventListener('mouseup', (e) => {
-      if ((e.target as Element)?.closest?.('lingualens')) return;
+      if ((e.target as Element)?.closest?.('lingua-lens')) return;
 
       setTimeout(() => {
         const selection = window.getSelection();
@@ -48,7 +48,7 @@ export default defineContentScript({
     document.addEventListener('mousedown', (e) => {
       const path = e.composedPath();
       const isInsideOurUI = path.some(
-        (el) => el instanceof HTMLElement && el.tagName?.toLowerCase() === 'lingualens',
+        (el) => el instanceof HTMLElement && el.tagName?.toLowerCase() === 'lingua-lens',
       );
       if (!isInsideOurUI) {
         appHandle?.hide();
@@ -56,16 +56,22 @@ export default defineContentScript({
     });
 
     // Listen for commands from popup / background / keyboard shortcuts
-    browser.runtime.onMessage.addListener((message: Record<string, unknown>) => {
+    browser.runtime.onMessage.addListener((message: Record<string, unknown>, _sender, sendResponse) => {
       switch (message.type) {
+        case 'PING':
+          sendResponse({ ok: true });
+          break;
         case 'PAGE_TRANSLATE_START':
           appHandle?.startPageTranslation();
+          sendResponse({ ok: true });
           break;
         case 'PAGE_TRANSLATE_STOP':
           appHandle?.stopPageTranslation();
+          sendResponse({ ok: true });
           break;
         case 'PAGE_TRANSLATE_RESTORE':
           appHandle?.restorePageTranslation();
+          sendResponse({ ok: true });
           break;
         case 'TRANSLATE_SELECTION': {
           const selection = window.getSelection();

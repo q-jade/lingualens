@@ -22,6 +22,7 @@ export class PageTranslateEngine {
   private segments: TextSegment[] = [];
   private abortController: AbortController | null = null;
   private translatedSegments = new Map<string, string>();
+  private bilingualInserted: HTMLElement[] = [];
   private isRunning = false;
 
   get running(): boolean {
@@ -84,14 +85,27 @@ export class PageTranslateEngine {
   restore(): void {
     this.stop();
     for (const segment of this.segments) {
-      segment.element.innerHTML = segment.originalHTML;
-      segment.element.removeAttribute('data-st-translated');
+      for (let i = 0; i < segment.textNodes.length; i++) {
+        if (segment.textNodes[i].parentNode) {
+          segment.textNodes[i].textContent = segment.originalTexts[i];
+        }
+      }
     }
+    this.removeBilingualMarkers();
     this.translatedSegments.clear();
     this.segments = [];
   }
 
   switchMode(mode: DisplayMode): void {
+    for (const segment of this.segments) {
+      for (let i = 0; i < segment.textNodes.length; i++) {
+        if (segment.textNodes[i].parentNode) {
+          segment.textNodes[i].textContent = segment.originalTexts[i];
+        }
+      }
+    }
+    this.removeBilingualMarkers();
+
     for (const segment of this.segments) {
       const translated = this.translatedSegments.get(segment.id);
       if (translated) {
@@ -100,22 +114,46 @@ export class PageTranslateEngine {
     }
   }
 
-  private applyTranslation(segment: TextSegment, translated: string, mode: DisplayMode): void {
-    segment.element.setAttribute('data-st-translated', 'true');
-
-    if (mode === 'replace') {
-      segment.element.innerHTML = `<span class="st-translated">${this.escapeHtml(translated)}</span>`;
-    } else {
-      segment.element.innerHTML =
-        `<span class="st-original" style="opacity:0.4;font-size:0.85em;display:block">${segment.originalHTML}</span>` +
-        `<span class="st-translated" style="display:block">${this.escapeHtml(translated)}</span>`;
+  private removeBilingualMarkers(): void {
+    for (const el of this.bilingualInserted) {
+      el.remove();
+    }
+    this.bilingualInserted = [];
+    for (const segment of this.segments) {
+      for (const node of segment.textNodes) {
+        if (node.parentElement) {
+          node.parentElement.style.removeProperty('opacity');
+          node.parentElement.style.removeProperty('font-size');
+        }
+      }
     }
   }
 
-  private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+  private applyTranslation(segment: TextSegment, translated: string, mode: DisplayMode): void {
+    if (mode === 'replace') {
+      if (segment.textNodes.length > 0) {
+        segment.textNodes[0].textContent = translated;
+        for (let i = 1; i < segment.textNodes.length; i++) {
+          segment.textNodes[i].textContent = '';
+        }
+      }
+    } else {
+      for (const node of segment.textNodes) {
+        if (node.parentElement) {
+          node.parentElement.style.opacity = '0.4';
+          node.parentElement.style.fontSize = '0.85em';
+        }
+      }
+      const marker = document.createElement('span');
+      marker.className = 'st-translated';
+      marker.style.cssText = 'display:block;color:#1a73e8;margin:2px 0;opacity:1;font-size:1rem';
+      marker.textContent = translated;
+      const lastNode = segment.textNodes[segment.textNodes.length - 1];
+      const insertTarget = lastNode.parentElement;
+      if (insertTarget) {
+        insertTarget.insertAdjacentElement('afterend', marker);
+        this.bilingualInserted.push(marker);
+      }
+    }
   }
 }

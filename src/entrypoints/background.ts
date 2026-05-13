@@ -2,6 +2,14 @@ import { handleMessage } from '../background/message-router';
 
 export default defineBackground(() => {
   browser.runtime.onMessage.addListener((message: Record<string, unknown>, _sender, sendResponse) => {
+    if (message.type === 'PAGE_TRANSLATE_PAGE') {
+      const payload = message.payload as { tabId: number };
+      browser.tabs.sendMessage(payload.tabId, { type: 'PAGE_TRANSLATE_START' })
+        .then(() => sendResponse({ success: true }))
+        .catch((err) => sendResponse({ success: false, error: err instanceof Error ? err.message : 'Failed to reach page' }));
+      return true;
+    }
+
     handleMessage(message).then(sendResponse);
     return true;
   });
