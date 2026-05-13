@@ -49,6 +49,7 @@ export function ContentApp({ onReady }: Props) {
         sourceLang: settings?.defaultSourceLang ?? 'auto',
         displayMode,
         concurrency: 4,
+        chunkingMode: settings?.chunkingMode ?? 'quality',
       },
       (progress) => setPageProgress({ ...progress }),
     );

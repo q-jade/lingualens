@@ -23,12 +23,15 @@ export interface ProviderConfig {
   systemPrompt?: string;
 }
 
+export type ChunkingMode = 'quality' | 'speed';
+
 export interface AppSettings {
   defaultProvider: string;
   defaultTargetLang: string;
   defaultSourceLang: string;
   providers: ProviderConfig[];
   promptTemplate?: string;
+  chunkingMode: ChunkingMode;
 }
 
 export type MessageType =

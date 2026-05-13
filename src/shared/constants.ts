@@ -73,4 +73,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
       model: '',
     },
   ],
+  chunkingMode: 'quality',
 };

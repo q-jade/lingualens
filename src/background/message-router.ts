@@ -7,7 +7,8 @@ const providerManager = new ProviderManager();
 
 export async function getSettings(): Promise<AppSettings> {
   const result = await browser.storage.local.get('settings');
-  return (result.settings as AppSettings) || DEFAULT_SETTINGS;
+  if (!result.settings) return DEFAULT_SETTINGS;
+  return { ...DEFAULT_SETTINGS, ...(result.settings as AppSettings) };
 }
 
 export async function saveSettings(partial: Partial<AppSettings>): Promise<AppSettings> {

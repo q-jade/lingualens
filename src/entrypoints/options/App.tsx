@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { AppSettings, ProviderConfig, MessageResponse } from '../../shared/types';
+import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode } from '../../shared/types';
 import { DEFAULT_SETTINGS, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
 
 const PROVIDER_TYPE_LABELS: Record<ProviderConfig['type'], string> = {
@@ -149,6 +149,32 @@ export function App() {
             </select>
           </Section>
         )}
+
+        {/* Page Translation */}
+        <Section title="Page Translation">
+          <Field label="Translation Strategy">
+            <div className="space-y-2 mt-1">
+              {([
+                { value: 'quality' as ChunkingMode, label: 'Quality', desc: 'Translate larger blocks for better context and quality' },
+                { value: 'speed' as ChunkingMode, label: 'Speed', desc: 'Translate smaller chunks for faster progressive results' },
+              ]).map((opt) => (
+                <label key={opt.value} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="chunkingMode"
+                    checked={settings.chunkingMode === opt.value}
+                    onChange={() => { setSettings((s) => ({ ...s, chunkingMode: opt.value })); setSaved(false); }}
+                    className="mt-0.5 w-4 h-4 text-blue-500 focus:ring-blue-500/40"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                    <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </Field>
+        </Section>
 
         {/* Providers */}
         <Section

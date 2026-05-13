@@ -1,3 +1,5 @@
+import type { ChunkingMode } from '../../shared/types';
+
 const SKIP_TAGS = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'OBJECT', 'EMBED',
   'SVG', 'CANVAS', 'VIDEO', 'AUDIO', 'MAP', 'CODE', 'PRE',
@@ -14,13 +16,22 @@ const BLOCK_TAGS = new Set([
   'FIGURE', 'ADDRESS', 'FIELDSET', 'LEGEND',
 ]);
 
+const SAFETY_LIMIT = 4000;
 const MAX_SEGMENT_CHARS = 800;
+const MIN_SEGMENT_CHARS = 100;
+
+export interface SubSegment {
+  textNodes: Text[];
+  originalTexts: string[];
+  textLen: number;
+}
 
 export interface TextSegment {
   id: string;
   textNodes: Text[];
   originalTexts: string[];
   text: string;
+  subSegments?: SubSegment[];
 }
 
 function isVisible(el: Element): boolean {
@@ -50,7 +61,216 @@ function findBlockAncestor(node: Node, root: Element): Element {
   return root;
 }
 
-export function extractSegments(root: Element = document.body): TextSegment[] {
+/**
+ * Bidirectional search for the best split point near `target` within
+ * [toleranceLow, toleranceHigh]. Prefers paragraph breaks (\n\n) over
+ * sentence endings, and picks the candidate closest to `target`.
+ * Returns the char index immediately after the boundary, or null.
+ */
+function findBestSplitPoint(
+  text: string,
+  target: number,
+  toleranceLow: number,
+  toleranceHigh: number,
+): number | null {
+  const high = Math.min(toleranceHigh, text.length);
+  const low = Math.max(toleranceLow, 0);
+  const region = text.slice(low, high);
+
+  let bestPara: number | null = null;
+  let bestParaDist = Infinity;
+  const paraRe = /\n\s*\n/g;
+  let m: RegExpExecArray | null;
+  while ((m = paraRe.exec(region)) !== null) {
+    const absPos = low + m.index + m[0].length;
+    const dist = Math.abs(absPos - target);
+    if (dist < bestParaDist) {
+      bestParaDist = dist;
+      bestPara = absPos;
+    }
+  }
+  if (bestPara !== null) return bestPara;
+
+  let bestSentence: number | null = null;
+  let bestSentDist = Infinity;
+  const sentRe = /[.!?;。！？；]\s/g;
+  while ((m = sentRe.exec(region)) !== null) {
+    const absPos = low + m.index + m[0].length;
+    const dist = Math.abs(absPos - target);
+    if (dist < bestSentDist) {
+      bestSentDist = dist;
+      bestSentence = absPos;
+    }
+  }
+  return bestSentence;
+}
+
+interface NodeGroup {
+  ancestor: Element;
+  nodes: Text[];
+}
+
+/**
+ * Given a group of text nodes and a char limit, split them into segments
+ * respecting paragraph and sentence boundaries.
+ */
+function splitGroup(
+  nodes: Text[],
+  limit: number,
+  idCounter: { value: number },
+): TextSegment[] {
+  const fullText = nodes.map((n) => n.textContent?.trim()).filter(Boolean).join(' ');
+  if (fullText.length <= 1) return [];
+
+  if (fullText.length <= limit) {
+    return [{
+      id: `seg-${idCounter.value++}`,
+      textNodes: nodes,
+      originalTexts: nodes.map((n) => n.textContent ?? ''),
+      text: fullText,
+    }];
+  }
+
+  // Build a char-offset map: for each text node, record where it starts in fullText
+  const nodeOffsets: { node: Text; start: number; end: number; trimmed: string }[] = [];
+  let offset = 0;
+  for (const node of nodes) {
+    const trimmed = node.textContent?.trim() ?? '';
+    if (!trimmed) continue;
+    const start = offset;
+    const end = offset + trimmed.length;
+    nodeOffsets.push({ node, start, end, trimmed });
+    offset = end + 1; // +1 for the space join
+  }
+
+  const segments: TextSegment[] = [];
+  let cursor = 0;
+
+  while (cursor < nodeOffsets.length) {
+    // Find how many nodes fit within `limit` chars from the current position
+    const startOffset = nodeOffsets[cursor].start;
+    let endIdx = cursor;
+    for (let i = cursor; i < nodeOffsets.length; i++) {
+      if (nodeOffsets[i].end - startOffset > limit && i > cursor) break;
+      endIdx = i;
+    }
+
+    // The text covered by nodes [cursor..endIdx]
+    const coveredEnd = nodeOffsets[endIdx].end;
+    const coveredLen = coveredEnd - startOffset;
+
+    if (coveredLen > limit && endIdx > cursor) {
+      // Try to find a better split within these nodes
+      const textSlice = fullText.slice(startOffset, coveredEnd);
+      const splitAt = findBestSplitPoint(
+        textSlice,
+        limit,
+        Math.floor(limit * 0.6),
+        Math.ceil(limit * 1.25),
+      );
+
+      if (splitAt !== null) {
+        const absSplit = startOffset + splitAt;
+        // Find the text node boundary closest to absSplit
+        let splitNodeIdx = cursor;
+        for (let i = cursor; i <= endIdx; i++) {
+          if (nodeOffsets[i].end >= absSplit) {
+            splitNodeIdx = i;
+            break;
+          }
+        }
+        // Include the node at splitNodeIdx if the split is past its midpoint
+        const nodeEntry = nodeOffsets[splitNodeIdx];
+        const midpoint = (nodeEntry.start + nodeEntry.end) / 2;
+        if (absSplit >= midpoint) splitNodeIdx++;
+
+        if (splitNodeIdx > cursor) {
+          const segNodes = nodeOffsets.slice(cursor, splitNodeIdx).map((e) => e.node);
+          const text = segNodes.map((n) => n.textContent?.trim()).filter(Boolean).join(' ');
+          if (text.length > 1) {
+            segments.push({
+              id: `seg-${idCounter.value++}`,
+              textNodes: segNodes,
+              originalTexts: segNodes.map((n) => n.textContent ?? ''),
+              text,
+            });
+          }
+          cursor = splitNodeIdx;
+          continue;
+        }
+      }
+    }
+
+    // Default: take nodes [cursor..endIdx] as one segment
+    const segNodes = nodeOffsets.slice(cursor, endIdx + 1).map((e) => e.node);
+    const text = segNodes.map((n) => n.textContent?.trim()).filter(Boolean).join(' ');
+    if (text.length > 1) {
+      segments.push({
+        id: `seg-${idCounter.value++}`,
+        textNodes: segNodes,
+        originalTexts: segNodes.map((n) => n.textContent ?? ''),
+        text,
+      });
+    }
+    cursor = endIdx + 1;
+  }
+
+  return segments;
+}
+
+/**
+ * Merge adjacent small segments (under MIN_SEGMENT_CHARS) into larger ones,
+ * keeping the combined text under `limit`. Stores original segments as
+ * subSegments so the engine can map translations back.
+ */
+function mergeSmallSegments(segments: TextSegment[], limit: number): TextSegment[] {
+  if (segments.length <= 1) return segments;
+
+  const merged: TextSegment[] = [];
+  let pending: TextSegment | null = null;
+  let pendingSubs: SubSegment[] = [];
+
+  function flush() {
+    if (!pending) return;
+    if (pendingSubs.length > 1) {
+      pending.subSegments = pendingSubs;
+    }
+    merged.push(pending);
+    pending = null;
+    pendingSubs = [];
+  }
+
+  for (const seg of segments) {
+    if (!pending) {
+      pending = { ...seg };
+      pendingSubs = [{ textNodes: seg.textNodes, originalTexts: seg.originalTexts, textLen: seg.text.length }];
+      continue;
+    }
+
+    const combinedLen = pending.text.length + 1 + seg.text.length;
+    if (pending.text.length < MIN_SEGMENT_CHARS && combinedLen <= limit) {
+      pending = {
+        id: pending.id,
+        textNodes: [...pending.textNodes, ...seg.textNodes],
+        originalTexts: [...pending.originalTexts, ...seg.originalTexts],
+        text: pending.text + '\n' + seg.text,
+      };
+      pendingSubs.push({ textNodes: seg.textNodes, originalTexts: seg.originalTexts, textLen: seg.text.length });
+    } else {
+      flush();
+      pending = { ...seg };
+      pendingSubs = [{ textNodes: seg.textNodes, originalTexts: seg.originalTexts, textLen: seg.text.length }];
+    }
+  }
+  flush();
+
+  return merged;
+}
+
+export function extractSegments(
+  root: Element = document.body,
+  chunkingMode: ChunkingMode = 'quality',
+): TextSegment[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       if (!node.textContent?.trim()) return NodeFilter.FILTER_REJECT;
@@ -61,7 +281,7 @@ export function extractSegments(root: Element = document.body): TextSegment[] {
     },
   });
 
-  const groups: { ancestor: Element; nodes: Text[] }[] = [];
+  const groups: NodeGroup[] = [];
   const ancestorIndex = new Map<Element, number>();
 
   let textNode: Text | null;
@@ -76,41 +296,16 @@ export function extractSegments(root: Element = document.body): TextSegment[] {
     groups[idx].nodes.push(textNode);
   }
 
-  const segments: TextSegment[] = [];
-  let idCounter = 0;
+  const limit = chunkingMode === 'quality' ? SAFETY_LIMIT : MAX_SEGMENT_CHARS;
+  const idCounter = { value: 0 };
+  let segments: TextSegment[] = [];
 
   for (const group of groups) {
-    let currentNodes: Text[] = [];
-    let currentLen = 0;
-
-    for (const node of group.nodes) {
-      const trimmed = node.textContent?.trim() ?? '';
-      if (!trimmed) continue;
-
-      if (currentLen + trimmed.length > MAX_SEGMENT_CHARS && currentNodes.length > 0) {
-        pushSegment(currentNodes);
-        currentNodes = [];
-        currentLen = 0;
-      }
-      currentNodes.push(node);
-      currentLen += trimmed.length;
-    }
-    if (currentNodes.length > 0) {
-      pushSegment(currentNodes);
-    }
+    const groupSegments = splitGroup(group.nodes, limit, idCounter);
+    segments.push(...groupSegments);
   }
 
-  function pushSegment(nodes: Text[]) {
-    const text = nodes.map((n) => n.textContent?.trim()).filter(Boolean).join(' ');
-    if (text.length > 1) {
-      segments.push({
-        id: `seg-${idCounter++}`,
-        textNodes: nodes,
-        originalTexts: nodes.map((n) => n.textContent ?? ''),
-        text,
-      });
-    }
-  }
+  segments = mergeSmallSegments(segments, limit);
 
   return segments;
 }
