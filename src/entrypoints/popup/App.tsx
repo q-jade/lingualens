@@ -2,6 +2,26 @@ import { useState, useEffect } from 'react';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 
+/** Chrome 114+ only; must run from a user gesture (e.g. click). */
+async function openExtensionSidePanel(): Promise<string | null> {
+  type ChromeSidePanel = {
+    windows: { getCurrent: () => Promise<{ id?: number }> };
+    sidePanel: { open: (opts: { windowId: number }) => Promise<void> };
+  };
+  const chromeApi = (globalThis as typeof globalThis & { chrome?: ChromeSidePanel }).chrome;
+  if (!chromeApi?.sidePanel?.open) {
+    return 'Side panel is not available in this browser. Try recent Chrome or Edge (Chromium).';
+  }
+  const win = await chromeApi.windows.getCurrent();
+  if (win.id == null) return 'Could not detect the browser window.';
+  try {
+    await chromeApi.sidePanel.open({ windowId: win.id });
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : 'Could not open side panel.';
+  }
+}
+
 export function App() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [text, setText] = useState('');
@@ -57,15 +77,32 @@ export function App() {
 
   return (
     <div className="p-4 bg-white min-h-[200px]">
-      {/* Header */}
+      {/* Header — side panel control here so it stays visible without scrolling the popup */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shrink-0">
           <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" />
             <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
           </svg>
         </div>
-        <h1 className="text-base font-semibold text-gray-800">LinguaLens</h1>
+        <h1 className="text-base font-semibold text-gray-800 flex-1 min-w-0 truncate">LinguaLens</h1>
+        <button
+          type="button"
+          onClick={async () => {
+            const errMsg = await openExtensionSidePanel();
+            if (errMsg) {
+              setError(errMsg);
+              return;
+            }
+            window.close();
+          }}
+          className="shrink-0 px-2 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide
+                     border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100
+                     focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+          title="Opens the full translator in Chrome’s side panel (Chrome 114+)"
+        >
+          Side panel
+        </button>
       </div>
 
       {/* Target language */}
@@ -155,8 +192,9 @@ export function App() {
       <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
         <span className="text-[11px] text-gray-400 truncate max-w-[180px]">{providerName}</span>
         <button
+          type="button"
           onClick={() => browser.runtime.openOptionsPage()}
-          className="text-xs text-blue-500 hover:text-blue-600 font-medium"
+          className="text-xs text-blue-500 hover:text-blue-600 font-medium shrink-0"
         >
           Settings
         </button>
