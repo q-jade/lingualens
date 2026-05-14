@@ -5,6 +5,8 @@ import { StatusBar } from '../../content/page-translator/StatusBar';
 
 export interface ContentAppHandle {
   showTrigger: (text: string, position: { x: number; y: number }) => void;
+  /** Open panel and translate immediately (e.g. context menu — no floating trigger step). */
+  translateNow: (text: string) => void;
   hide: () => void;
   isPageTranslationActive: () => boolean;
   startPageTranslation: () => void;
@@ -37,6 +39,7 @@ export function ContentApp({ onReady }: Props) {
   const settingsRef = useRef<AppSettings | null>(null);
   const engineRef = useRef(new PageTranslateEngine());
   const pageTranslatedRef = useRef(false);
+  const handleTranslateRef = useRef<() => Promise<void>>(async () => {});
 
   const startPageTranslation = useCallback(async () => {
     const settings = settingsRef.current;
@@ -118,6 +121,19 @@ export function ContentApp({ onReady }: Props) {
         setError(null);
         setCopied(false);
       },
+      translateNow(text) {
+        if (pageTranslatedRef.current) return;
+        const t = text.trim();
+        if (!t) return;
+        selectedTextRef.current = t;
+        setSelectedText(t);
+        setPosition({ x: window.innerWidth / 2, y: window.innerHeight / 3 });
+        setTranslation('');
+        setError(null);
+        setCopied(false);
+        setMode('panel');
+        queueMicrotask(() => void handleTranslateRef.current());
+      },
       hide() {
         setMode('hidden');
       },
@@ -159,6 +175,8 @@ export function ContentApp({ onReady }: Props) {
       setLoading(false);
     }
   };
+
+  handleTranslateRef.current = handleTranslate;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(translation);

@@ -8,6 +8,21 @@ export default defineContentScript({
 
   async main(ctx) {
     let appHandle: ContentAppHandle | null = null;
+    type PendingSelection = { text: string; position: { x: number; y: number } };
+    const pendingSelection: PendingSelection[] = [];
+    const pendingTranslateNow: string[] = [];
+
+    const flushPendingSelection = () => {
+      if (!appHandle) return;
+      while (pendingSelection.length > 0) {
+        const p = pendingSelection.shift()!;
+        appHandle.showTrigger(p.text, p.position);
+      }
+      while (pendingTranslateNow.length > 0) {
+        const t = pendingTranslateNow.shift()!;
+        appHandle.translateNow(t);
+      }
+    };
 
     const ui = await createShadowRootUi(ctx, {
       name: 'lingua-lens',
@@ -18,7 +33,12 @@ export default defineContentScript({
         container.append(wrapper);
         const root = ReactDOM.createRoot(wrapper);
         root.render(
-          <ContentApp onReady={(handle) => { appHandle = handle; }} />,
+          <ContentApp
+            onReady={(handle) => {
+              appHandle = handle;
+              flushPendingSelection();
+            }}
+          />,
         );
         return { root, wrapper };
       },
@@ -79,20 +99,25 @@ export default defineContentScript({
         case 'TRANSLATE_SELECTION': {
           const selection = window.getSelection();
           const text = selection?.toString().trim();
-          if (text && text.length > 1) {
-            const range = selection!.getRangeAt(0);
-            const rect = range.getBoundingClientRect();
-            appHandle?.showTrigger(text, { x: rect.right, y: rect.top });
+          if (!text || text.length <= 1) break;
+          const range = selection!.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          const position = { x: rect.right, y: rect.top };
+          if (appHandle) {
+            appHandle.showTrigger(text, position);
+          } else {
+            pendingSelection.push({ text, position });
           }
           break;
         }
         case 'TRANSLATE_SELECTION_TEXT': {
           const payload = message.payload as { text: string };
-          if (payload?.text) {
-            appHandle?.showTrigger(payload.text, {
-              x: window.innerWidth / 2,
-              y: window.innerHeight / 3,
-            });
+          const text = (payload?.text ?? '').trim();
+          if (!text) break;
+          if (appHandle) {
+            appHandle.translateNow(text);
+          } else {
+            pendingTranslateNow.push(text);
           }
           break;
         }

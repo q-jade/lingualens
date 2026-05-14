@@ -7,7 +7,7 @@ export default defineConfig({
     version: '0.1.0',
     name: 'LinguaLens',
     description: 'LinguaLens — translate anything with LLM and online APIs',
-    permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus'],
+    permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus', 'scripting'],
     host_permissions: [
       'http://localhost:*/*',
       'https://api.openai.com/*',

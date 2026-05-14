@@ -15,8 +15,32 @@ export default defineBackground(() => {
   }
 
   async function updatePageContextMenu(tabId?: number): Promise<void> {
-    const active = await isPageTranslationActive(tabId);
-    await browser.contextMenus.update('translate-page', { enabled: !active });
+    try {
+      const active = await isPageTranslationActive(tabId);
+      await browser.contextMenus.update('translate-page', { enabled: !active });
+    } catch {
+      // Menu may not exist yet (e.g. first SW tick) or update unsupported
+    }
+  }
+
+  /** When `selectionText` is empty (some sites / frames), read the live selection in the page. */
+  async function readSelectedTextFromTab(tabId: number, frameId?: number): Promise<string> {
+    const scripting = browser.scripting;
+    if (!scripting?.executeScript) return '';
+    try {
+      const target =
+        typeof frameId === 'number'
+          ? { tabId, frameIds: [frameId] }
+          : { tabId };
+      const results = await scripting.executeScript({
+        target,
+        func: () => window.getSelection()?.toString()?.trim() ?? '',
+      });
+      const r = results[0]?.result;
+      return typeof r === 'string' ? r.trim() : '';
+    } catch {
+      return '';
+    }
   }
 
   browser.runtime.onMessage.addListener((message: Record<string, unknown>, sender, sendResponse) => {
@@ -58,10 +82,10 @@ export default defineBackground(() => {
 
     switch (command) {
       case 'translate-selection':
-        browser.tabs.sendMessage(tab.id, { type: 'TRANSLATE_SELECTION' });
+        await browser.tabs.sendMessage(tab.id, { type: 'TRANSLATE_SELECTION' }).catch(() => {});
         break;
       case 'translate-page':
-        browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' });
+        await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' }).catch(() => {});
         break;
     }
   });
@@ -96,13 +120,23 @@ export default defineBackground(() => {
   browser.contextMenus.onClicked.addListener(async (info, tab) => {
     if (!tab?.id) return;
 
-    if (info.menuItemId === 'translate-selection' && info.selectionText) {
-      browser.tabs.sendMessage(tab.id, {
-        type: 'TRANSLATE_SELECTION_TEXT',
-        payload: { text: info.selectionText },
-      });
-    } else if (info.menuItemId === 'translate-page' && !(await isPageTranslationActive(tab.id))) {
-      browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' });
+    const menuId = String(info.menuItemId);
+
+    if (menuId === 'translate-selection') {
+      let text = (info.selectionText ?? '').trim();
+      if (!text) {
+        text = await readSelectedTextFromTab(
+          tab.id,
+          typeof info.frameId === 'number' ? info.frameId : undefined,
+        );
+      }
+      if (!text) return;
+      // MV3: await keeps the service worker alive until the message is sent; fire-and-forget can drop the message.
+      await browser.tabs
+        .sendMessage(tab.id, { type: 'TRANSLATE_SELECTION_TEXT', payload: { text } })
+        .catch(() => {});
+    } else if (menuId === 'translate-page' && !(await isPageTranslationActive(tab.id))) {
+      await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' }).catch(() => {});
     }
   });
 
