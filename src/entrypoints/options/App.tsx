@@ -290,6 +290,23 @@ export function App() {
           </Field>
         </Section>
 
+        {/* Keyboard shortcuts */}
+        <Section title="Keyboard shortcuts">
+          <p className="text-sm text-gray-600 leading-relaxed mb-3">
+            Default shortcuts (if Chrome assigns them): <kbd className="px-1 py-0.5 rounded bg-gray-200 text-xs">Alt+T</kbd>
+            {' '}translate selection (starts translation in the panel whenever the selection can be read — in the page or from the background),{' '}
+            <kbd className="px-1 py-0.5 rounded bg-gray-200 text-xs">Alt+Shift+T</kbd>
+            {' '}translate page. Selecting text with the mouse already shows the floating trigger — the shortcut is mainly for keyboard-first use or when you want one-step translate without clicking the trigger. If a shortcut does nothing, open shortcut settings and bind LinguaLens to a free combination. Content scripts do not run on restricted pages (for example <code className="text-xs bg-gray-100 px-1 rounded">chrome://</code> URLs or the Chrome Web Store).
+          </p>
+          <button
+            type="button"
+            onClick={() => browser.tabs.create({ url: 'chrome://extensions/shortcuts' })}
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
+            Open extension shortcut settings
+          </button>
+        </Section>
+
         {/* Save */}
         <div className="flex items-center gap-3 mt-6">
           <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 transition-all shadow-sm">

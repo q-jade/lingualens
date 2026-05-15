@@ -97,16 +97,24 @@ export default defineContentScript({
           sendResponse({ ok: true });
           break;
         case 'TRANSLATE_SELECTION': {
-          const selection = window.getSelection();
-          const text = selection?.toString().trim();
-          if (!text || text.length <= 1) break;
-          const range = selection!.getRangeAt(0);
-          const rect = range.getBoundingClientRect();
-          const position = { x: rect.right, y: rect.top };
-          if (appHandle) {
-            appHandle.showTrigger(text, position);
-          } else {
-            pendingSelection.push({ text, position });
+          // Sent when the shortcut could not read the selection from the background (e.g. shadow DOM).
+          // If the page still has a live selection, translate immediately — same as TRANSLATE_SELECTION_TEXT.
+          const tryTranslateFromSelection = (): boolean => {
+            const selection = window.getSelection();
+            const text = selection?.toString().trim() ?? '';
+            if (!text || text.length <= 1) return false;
+            if (!selection?.rangeCount) return false;
+            if (appHandle) {
+              appHandle.translateNow(text);
+            } else {
+              pendingTranslateNow.push(text);
+            }
+            return true;
+          };
+          if (!tryTranslateFromSelection()) {
+            requestAnimationFrame(() => {
+              if (!tryTranslateFromSelection()) setTimeout(() => tryTranslateFromSelection(), 50);
+            });
           }
           break;
         }

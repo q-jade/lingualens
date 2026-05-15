@@ -81,11 +81,34 @@ export default defineBackground(() => {
     if (!tab?.id) return;
 
     switch (command) {
-      case 'translate-selection':
-        await browser.tabs.sendMessage(tab.id, { type: 'TRANSLATE_SELECTION' }).catch(() => {});
+      case 'translate-selection': {
+        let text = (await readSelectedTextFromTab(tab.id)).trim();
+        if (text.length > 1) {
+          await browser.tabs
+            .sendMessage(tab.id, { type: 'TRANSLATE_SELECTION_TEXT', payload: { text } })
+            .catch((err) => {
+              console.warn(
+                '[LinguaLens] translate-selection: could not reach this tab (reload the page, use a normal https page, or set a shortcut in chrome://extensions/shortcuts).',
+                err,
+              );
+            });
+        } else {
+          await browser.tabs.sendMessage(tab.id, { type: 'TRANSLATE_SELECTION' }).catch((err) => {
+            console.warn(
+              '[LinguaLens] translate-selection: could not reach this tab (reload the page, use a normal https page, or set a shortcut in chrome://extensions/shortcuts).',
+              err,
+            );
+          });
+        }
         break;
+      }
       case 'translate-page':
-        await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' }).catch(() => {});
+        await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' }).catch((err) => {
+          console.warn(
+            '[LinguaLens] translate-page: could not reach this tab (reload the page or use a normal https page).',
+            err,
+          );
+        });
         break;
     }
   });
