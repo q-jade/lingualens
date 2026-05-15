@@ -97,7 +97,7 @@ export function App() {
   };
 
   const needsApiKey = (type: ProviderConfig['type']) =>
-    type !== 'ollama';
+    type !== 'ollama' && type !== 'lmstudio';
 
   const needsModel = (type: ProviderConfig['type']) =>
     ['openai-compat', 'ollama', 'openai', 'lmstudio'].includes(type);

@@ -42,6 +42,12 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-4o-mini',
   },
+  deepseek: {
+    type: 'openai-compat',
+    name: 'DeepSeek',
+    baseUrl: 'https://api.deepseek.com',
+    model: 'deepseek-v4-flash',
+  },
   deepl: {
     type: 'deepl',
     name: 'DeepL',
@@ -60,16 +66,24 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  defaultProvider: 'openai-compat',
+  defaultProvider: 'ollama',
   defaultTargetLang: 'zh',
   defaultSourceLang: 'auto',
   providers: [
     {
-      id: 'openai-compat',
-      type: 'openai-compat',
-      name: 'OpenAI Compatible (Local)',
+      id: 'ollama',
+      type: 'ollama',
+      name: 'Ollama',
       enabled: true,
-      baseUrl: 'http://localhost:11434/v1',
+      baseUrl: 'http://localhost:11434',
+      model: 'llama3',
+    },
+    {
+      id: 'lmstudio',
+      type: 'lmstudio',
+      name: 'LM Studio',
+      enabled: true,
+      baseUrl: 'http://localhost:1234/v1',
       model: '',
     },
   ],

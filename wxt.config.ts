@@ -10,6 +10,7 @@ export default defineConfig({
     permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus', 'scripting'],
     host_permissions: [
       'http://localhost:*/*',
+      'https://api.deepseek.com/*',
       'https://api.openai.com/*',
       'https://api-free.deepl.com/*',
       'https://api.deepl.com/*',
