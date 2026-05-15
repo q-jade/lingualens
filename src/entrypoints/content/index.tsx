@@ -2,6 +2,53 @@ import ReactDOM from 'react-dom/client';
 import { ContentApp, type ContentAppHandle } from './App';
 import './style.css';
 
+const OVERLAY_Z = '2147483647';
+
+/**
+ * Block page compositing from affecting the host, and force top stacking.
+ * WXT's `:host { all: initial !important }` resets z-index; inline z-index from WXT
+ * cannot beat it without !important — page rails (huggingface.co) then paint on top.
+ */
+function shieldOverlayHost(host: HTMLElement) {
+  for (const [prop, value] of [
+    ['z-index', OVERLAY_Z],
+    ['position', 'fixed'],
+    ['top', '0'],
+    ['left', '0'],
+    ['width', '0'],
+    ['height', '0'],
+    ['overflow', 'visible'],
+    ['pointer-events', 'none'],
+    ['opacity', '1'],
+    ['mix-blend-mode', 'normal'],
+    ['filter', 'none'],
+    ['backdrop-filter', 'none'],
+    ['-webkit-backdrop-filter', 'none'],
+    ['isolation', 'isolate'],
+  ] as const) {
+    host.style.setProperty(prop, value, 'important');
+  }
+}
+
+/** Full-viewport portal inside shadow so `position:fixed` UI is not trapped under page layers. */
+function shieldShadowPortal(shadow: ShadowRoot, container: HTMLElement) {
+  const innerHtml = shadow.querySelector('html');
+  if (innerHtml instanceof HTMLElement) {
+    for (const [prop, value] of [
+      ['position', 'fixed'],
+      ['inset', '0'],
+      ['width', '100vw'],
+      ['height', '100vh'],
+      ['overflow', 'visible'],
+      ['pointer-events', 'none'],
+      ['z-index', OVERLAY_Z],
+    ] as const) {
+      innerHtml.style.setProperty(prop, value, 'important');
+    }
+  }
+  container.style.setProperty('pointer-events', 'none', 'important');
+}
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   cssInjectionMode: 'ui',
@@ -26,10 +73,16 @@ export default defineContentScript({
 
     const ui = await createShadowRootUi(ctx, {
       name: 'lingua-lens',
-      position: 'overlay',
+      // `modal` makes the inner <html> a full-viewport fixed layer (better than `overlay`).
+      position: 'modal',
       zIndex: 2147483647,
-      onMount(container) {
+      anchor: () => document.documentElement,
+      append: 'last',
+      onMount(container, shadow, shadowHost) {
+        shieldOverlayHost(shadowHost);
+        shieldShadowPortal(shadow, container);
         const wrapper = document.createElement('div');
+        wrapper.style.setProperty('pointer-events', 'auto', 'important');
         container.append(wrapper);
         const root = ReactDOM.createRoot(wrapper);
         root.render(

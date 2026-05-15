@@ -6,23 +6,34 @@
   @apply flex items-center justify-center w-8 h-8 rounded-full
          bg-blue-500 text-white shadow-lg cursor-pointer
          hover:bg-blue-600 active:scale-95 transition-all duration-150;
+  /* Stay above aggressive site overlays (e.g. huggingface right rail). */
+  z-index: 2147483647;
   border: none;
   outline: none;
   padding: 0;
 }
 
 .st-panel {
-  @apply bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden;
+  @apply rounded-xl shadow-2xl border border-gray-200 overflow-hidden;
+  position: fixed;
+  isolation: isolate;
+  pointer-events: auto;
+  /* Stay above aggressive site overlays (e.g. huggingface right rail). */
+  z-index: 2147483647;
   width: 320px;
-  max-height: 400px;
+  max-height: min(400px, calc(100dvh - 16px));
+  display: flex;
+  flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   font-size: 14px;
   line-height: 1.6;
   color: #1f2937;
+  /* Solid fill so page content never shows through the floating panel */
+  background-color: #ffffff;
 }
 
 .st-panel-header {
-  @apply flex items-center justify-between px-3 py-2;
+  @apply flex flex-none items-center justify-between px-3 py-2;
   background: linear-gradient(135deg, #3b82f6, #6366f1);
   color: white;
 }
@@ -41,15 +52,8 @@
 }
 
 .st-panel-body {
-  @apply p-3;
-}
-
-.st-source {
-  @apply text-xs text-gray-400 leading-relaxed max-h-16 overflow-y-auto;
-}
-
-.st-divider {
-  @apply border-t border-gray-100 my-2;
+  @apply p-3 min-h-0 flex-1 overflow-y-auto;
+  background-color: #ffffff;
 }
 
 .st-loading {
@@ -86,14 +90,65 @@
   @apply absolute top-0 right-0 flex items-center justify-center w-6 h-6
          text-gray-300 hover:text-blue-500 cursor-pointer rounded transition-colors;
   border: none;
-  background: none;
+  background-color: #ffffff;
   padding: 0;
+}
+
+/*
+ * Shield overlay UI from page compositing (e.g. huggingface.co global opacity / mix-blend).
+ * :host targets the lingua-lens custom element; inner rules cover the translation panel.
+ */
+:host {
+  z-index: 2147483647 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: isolate !important;
+}
+
+.st-panel,
+.st-panel-body,
+.st-panel-header,
+.st-translation,
+.st-error,
+.st-loading {
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.st-panel,
+.st-panel-body {
+  background-color: #ffffff !important;
+}
+
+/* Opaque underlay so page text cannot show through even if a site tampers with backgrounds */
+.st-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: #ffffff;
+  pointer-events: none;
 }
 
 /* Page translation status bar */
 .st-status-bar {
   @apply fixed top-0 left-0 right-0 flex items-center gap-3 px-4 py-2
-         bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm;
+         border-b border-gray-200 shadow-sm;
+  background-color: #ffffff;
   z-index: 2147483646;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
@@ -150,10 +205,10 @@
 /* Collapsed floating icon */
 .st-status-collapsed {
   @apply fixed flex items-center justify-center w-9 h-9 rounded-full
-         bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200
-         text-blue-500 cursor-pointer
+         shadow-lg border border-gray-200 text-blue-500 cursor-pointer
          hover:shadow-xl hover:scale-105 active:scale-95
          transition-all duration-150;
+  background-color: #ffffff;
   top: 12px;
   right: 16px;
   z-index: 2147483646;

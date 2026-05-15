@@ -20,6 +20,21 @@ interface Props {
 
 type Mode = 'hidden' | 'trigger' | 'panel';
 
+/** Matches `.st-panel` width + horizontal gutter used in `innerWidth - outerWidth`. */
+const SELECTION_PANEL_OUTER_W = 340;
+const SELECTION_PANEL_MAX_H = 400;
+const SELECTION_PANEL_VIEW_MARGIN = 8;
+
+/** `top` is the bottom edge of the panel (`translateY(-100%)`); keep the full box inside the viewport. */
+function clampSelectionPanelTop(anchorY: number, innerHeight: number): number {
+  const m = SELECTION_PANEL_VIEW_MARGIN;
+  const maxPanelH = Math.min(SELECTION_PANEL_MAX_H, Math.max(0, innerHeight - 2 * m));
+  const preferredTop = Math.max(anchorY - 4, m);
+  const minTop = m + maxPanelH;
+  const maxTop = innerHeight - m;
+  return Math.min(Math.max(preferredTop, minTop), maxTop);
+}
+
 export function ContentApp({ onReady }: Props) {
   const [mode, setMode] = useState<Mode>('hidden');
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -34,6 +49,10 @@ export function ContentApp({ onReady }: Props) {
   const [pageRunning, setPageRunning] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('bilingual');
   const [statusCollapsed, setStatusCollapsed] = useState(false);
+  const [viewport, setViewport] = useState(() => ({
+    w: typeof window !== 'undefined' ? window.innerWidth : 0,
+    h: typeof window !== 'undefined' ? window.innerHeight : 0,
+  }));
 
   const selectedTextRef = useRef('');
   const settingsRef = useRef<AppSettings | null>(null);
@@ -102,6 +121,15 @@ export function ContentApp({ onReady }: Props) {
       return () => { document.documentElement.style.paddingTop = original; };
     }
   }, [pageProgress !== null, statusCollapsed]);
+
+  useEffect(() => {
+    if (mode !== 'panel') return;
+    const sync = () =>
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
+    sync();
+    window.addEventListener('resize', sync);
+    return () => window.removeEventListener('resize', sync);
+  }, [mode]);
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -207,6 +235,8 @@ export function ContentApp({ onReady }: Props) {
             left: position.x + 6,
             top: position.y - 4,
             transform: 'translateY(-100%)',
+            zIndex: 2147483647,
+            pointerEvents: 'auto',
           }}
           className="st-trigger-btn"
           title="Translate"
@@ -223,9 +253,13 @@ export function ContentApp({ onReady }: Props) {
         <div
           style={{
             position: 'fixed',
-            left: Math.min(position.x + 6, window.innerWidth - 340),
-            top: Math.max(position.y - 4, 10),
+            left: Math.min(position.x + 6, viewport.w - SELECTION_PANEL_OUTER_W),
+            top: clampSelectionPanelTop(position.y, viewport.h),
             transform: 'translateY(-100%)',
+            zIndex: 2147483647,
+            pointerEvents: 'auto',
+            backgroundColor: '#ffffff',
+            isolation: 'isolate',
           }}
           className="st-panel"
         >
@@ -238,8 +272,6 @@ export function ContentApp({ onReady }: Props) {
             </button>
           </div>
           <div className="st-panel-body">
-            <div className="st-source">{selectedText.length > 200 ? selectedText.slice(0, 200) + '…' : selectedText}</div>
-            <div className="st-divider" />
             {loading && (
               <div className="st-loading">
                 <span className="st-dot" /><span className="st-dot" /><span className="st-dot" />
