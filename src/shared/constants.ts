@@ -67,6 +67,7 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
 
 export const DEFAULT_SETTINGS: AppSettings = {
   defaultProvider: 'ollama',
+  fallbackProviders: [],
   defaultTargetLang: 'zh',
   defaultSourceLang: 'auto',
   providers: [

@@ -52,16 +52,65 @@ export function App() {
     setSaved(false);
   };
 
+  const setDefaultProvider = (id: string) => {
+    setSettings((s) => ({
+      ...s,
+      defaultProvider: id,
+      fallbackProviders: s.fallbackProviders.filter((fid) => fid !== id),
+    }));
+    setSaved(false);
+  };
+
   const removeProvider = (id: string) => {
     setSettings((s) => {
       const providers = s.providers.filter((p) => p.id !== id);
-      const defaultProvider = s.defaultProvider === id
-        ? (providers[0]?.id ?? '')
-        : s.defaultProvider;
-      return { ...s, providers, defaultProvider };
+      let defaultProvider = s.defaultProvider;
+      let fallbackProviders = s.fallbackProviders.filter((fid) => fid !== id);
+      if (s.defaultProvider === id) {
+        defaultProvider = providers[0]?.id ?? '';
+        if (defaultProvider) {
+          fallbackProviders = fallbackProviders.filter((fid) => fid !== defaultProvider);
+        }
+      }
+      return { ...s, providers, defaultProvider, fallbackProviders };
     });
     setSaved(false);
   };
+
+  const addFallbackProvider = (id: string) => {
+    setSettings((s) => ({
+      ...s,
+      fallbackProviders: [...s.fallbackProviders, id],
+    }));
+    setSaved(false);
+  };
+
+  const removeFallbackProvider = (id: string) => {
+    setSettings((s) => ({
+      ...s,
+      fallbackProviders: s.fallbackProviders.filter((fid) => fid !== id),
+    }));
+    setSaved(false);
+  };
+
+  const moveFallbackProvider = (index: number, direction: -1 | 1) => {
+    setSettings((s) => {
+      const next = index + direction;
+      if (next < 0 || next >= s.fallbackProviders.length) return s;
+      const fallbackProviders = [...s.fallbackProviders];
+      [fallbackProviders[index], fallbackProviders[next]] =
+        [fallbackProviders[next], fallbackProviders[index]];
+      return { ...s, fallbackProviders };
+    });
+    setSaved(false);
+  };
+
+  const availableFallbackProviders = settings.providers.filter(
+    (p) =>
+      p.enabled &&
+      p.id !== settings.defaultProvider &&
+      !settings.fallbackProviders.includes(p.id),
+  );
 
   const handleSave = async () => {
     setSaving(true);
@@ -136,13 +185,87 @@ export function App() {
           <Section title="Default Provider">
             <select
               value={settings.defaultProvider}
-              onChange={(e) => { setSettings((s) => ({ ...s, defaultProvider: e.target.value })); setSaved(false); }}
+              onChange={(e) => setDefaultProvider(e.target.value)}
               className="input"
             >
               {settings.providers.map((p) => (
                 <option key={p.id} value={p.id}>{p.name} ({PROVIDER_TYPE_LABELS[p.type]})</option>
               ))}
             </select>
+          </Section>
+        )}
+
+        {/* Fallback Providers */}
+        {settings.providers.length > 1 && (
+          <Section title="Fallback Providers">
+            <p className="text-xs text-gray-400 mb-3">
+              When the default provider fails, LinguaLens tries these providers in order. Leave empty to disable fallback.
+            </p>
+            {settings.fallbackProviders.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-3">No fallback providers configured.</p>
+            ) : (
+              <ol className="space-y-2 mb-3">
+                {settings.fallbackProviders.map((id, index) => {
+                  const provider = settings.providers.find((p) => p.id === id);
+                  if (!provider) return null;
+                  return (
+                    <li
+                      key={id}
+                      className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50"
+                    >
+                      <span className="text-xs text-gray-400 w-5 shrink-0">{index + 1}.</span>
+                      <span className="flex-1 text-sm text-gray-800 truncate">
+                        {provider.name}
+                        <span className="ml-2 text-xs text-gray-400">{PROVIDER_TYPE_LABELS[provider.type]}</span>
+                      </span>
+                      {!provider.enabled && (
+                        <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">DISABLED</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => moveFallbackProvider(index, -1)}
+                        disabled={index === 0}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                        aria-label="Move up"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 15-6-6-6 6" /></svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveFallbackProvider(index, 1)}
+                        disabled={index === settings.fallbackProviders.length - 1}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                        aria-label="Move down"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeFallbackProvider(id)}
+                        className="p-1 text-red-400 hover:text-red-500"
+                        aria-label="Remove"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            {availableFallbackProviders.length > 0 && (
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) addFallbackProvider(e.target.value);
+                }}
+                className="input"
+              >
+                <option value="">+ Add fallback provider…</option>
+                {availableFallbackProviders.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} ({PROVIDER_TYPE_LABELS[p.type]})</option>
+                ))}
+              </select>
+            )}
           </Section>
         )}
 
@@ -226,7 +349,7 @@ export function App() {
                           {verifying === provider.id ? 'Verifying…' : 'Verify Config'}
                         </button>
                         {settings.defaultProvider !== provider.id && (
-                          <button onClick={() => { setSettings((s) => ({ ...s, defaultProvider: provider.id })); setSaved(false); }} className="px-3 py-1.5 text-xs text-blue-500 hover:text-blue-600">Set as Default</button>
+                          <button onClick={() => setDefaultProvider(provider.id)} className="px-3 py-1.5 text-xs text-blue-500 hover:text-blue-600">Set as Default</button>
                         )}
                         <button onClick={() => removeProvider(provider.id)} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-500 ml-auto">Remove</button>
                       </div>

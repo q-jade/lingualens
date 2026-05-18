@@ -5,51 +5,104 @@ import { DEFAULT_SETTINGS } from '../shared/constants';
 
 const providerManager = new ProviderManager();
 
+function normalizeSettings(settings: AppSettings): AppSettings {
+  if (!settings.defaultProvider) return settings;
+  return {
+    ...settings,
+    fallbackProviders: (settings.fallbackProviders ?? []).filter(
+      (id) => id !== settings.defaultProvider,
+    ),
+  };
+}
+
 export async function getSettings(): Promise<AppSettings> {
   const result = await browser.storage.local.get('settings');
   if (!result.settings) return DEFAULT_SETTINGS;
-  return { ...DEFAULT_SETTINGS, ...(result.settings as AppSettings) };
+  return normalizeSettings({ ...DEFAULT_SETTINGS, ...(result.settings as AppSettings) });
 }
 
 export async function saveSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
   const current = await getSettings();
   const updated = { ...current, ...partial };
   if (partial.providers) updated.providers = partial.providers;
-  await browser.storage.local.set({ settings: updated });
+  if (partial.fallbackProviders) updated.fallbackProviders = partial.fallbackProviders;
+  const normalized = normalizeSettings(updated);
+  await browser.storage.local.set({ settings: normalized });
   providerManager.clearCache();
-  return updated;
+  return normalized;
+}
+
+function getEnabledProvider(settings: AppSettings, id: string): ProviderConfig | undefined {
+  return settings.providers.find((p) => p.id === id && p.enabled);
+}
+
+function buildProviderChain(settings: AppSettings): ProviderConfig[] {
+  const chain: ProviderConfig[] = [];
+  const seen = new Set<string>();
+
+  const defaultConfig = getEnabledProvider(settings, settings.defaultProvider);
+  if (defaultConfig) {
+    chain.push(defaultConfig);
+    seen.add(defaultConfig.id);
+  }
+
+  for (const id of settings.fallbackProviders ?? []) {
+    if (seen.has(id)) continue;
+    const config = getEnabledProvider(settings, id);
+    if (config) {
+      chain.push(config);
+      seen.add(config.id);
+    }
+  }
+
+  return chain;
+}
+
+async function translateWithProvider(
+  request: TranslateRequest,
+  providerConfig: ProviderConfig,
+  promptTemplate?: string,
+): Promise<TranslateResult> {
+  const cached = await getCached(
+    request.text, request.sourceLang, request.targetLang, providerConfig.id,
+  );
+  if (cached) return cached;
+
+  let config = providerConfig;
+  if (promptTemplate && !config.systemPrompt) {
+    config = { ...config, systemPrompt: promptTemplate };
+  }
+
+  const provider = providerManager.getProvider(config);
+  const result = await provider.translate(request);
+
+  await setCache(request.text, request.sourceLang, request.targetLang, config.id, result);
+
+  return result;
 }
 
 export async function handleTranslate(
   request: TranslateRequest,
 ): Promise<MessageResponse<TranslateResult>> {
-  try {
-    const settings = await getSettings();
-    let providerConfig = settings.providers.find(
-      (p) => p.id === settings.defaultProvider && p.enabled,
-    );
-    if (!providerConfig) {
-      return { success: false, error: 'No active provider configured. Open Settings to add one.' };
-    }
+  const settings = await getSettings();
+  const chain = buildProviderChain(settings);
 
-    const cached = await getCached(
-      request.text, request.sourceLang, request.targetLang, providerConfig.id,
-    );
-    if (cached) return { success: true, data: cached };
-
-    if (settings.promptTemplate && !providerConfig.systemPrompt) {
-      providerConfig = { ...providerConfig, systemPrompt: settings.promptTemplate };
-    }
-
-    const provider = providerManager.getProvider(providerConfig);
-    const result = await provider.translate(request);
-
-    await setCache(request.text, request.sourceLang, request.targetLang, providerConfig.id, result);
-
-    return { success: true, data: result };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Translation failed' };
+  if (chain.length === 0) {
+    return { success: false, error: 'No active provider configured. Open Settings to add one.' };
   }
+
+  let lastError = 'Translation failed';
+
+  for (const providerConfig of chain) {
+    try {
+      const result = await translateWithProvider(request, providerConfig, settings.promptTemplate);
+      return { success: true, data: result };
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : 'Translation failed';
+    }
+  }
+
+  return { success: false, error: lastError };
 }
 
 export async function handleVerifyConfig(

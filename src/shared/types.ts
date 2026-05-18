@@ -27,6 +27,8 @@ export type ChunkingMode = 'quality' | 'speed';
 
 export interface AppSettings {
   defaultProvider: string;
+  /** Ordered provider IDs to try when the default provider fails. May be empty. */
+  fallbackProviders: string[];
   defaultTargetLang: string;
   defaultSourceLang: string;
   providers: ProviderConfig[];
