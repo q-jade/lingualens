@@ -1,4 +1,5 @@
 import { BaseProvider } from './base';
+import { getThinkingDisableRequestFields } from './thinking';
 import type { TranslateRequest, TranslateResult } from '../shared/types';
 
 export class OllamaProvider extends BaseProvider {
@@ -19,6 +20,7 @@ export class OllamaProvider extends BaseProvider {
           { role: 'user', content: user },
         ],
         stream: false,
+        ...getThinkingDisableRequestFields(this.config),
       }),
     });
 
@@ -54,6 +56,7 @@ export class OllamaProvider extends BaseProvider {
           { role: 'user', content: user },
         ],
         stream: true,
+        ...getThinkingDisableRequestFields(this.config),
       }),
     });
 

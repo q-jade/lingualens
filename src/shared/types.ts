@@ -21,6 +21,8 @@ export interface ProviderConfig {
   apiKey?: string;
   model?: string;
   systemPrompt?: string;
+  /** LLM providers only. Default true — skip chain-of-thought for faster translation. */
+  disableThinking?: boolean;
 }
 
 export type ChunkingMode = 'quality' | 'speed';

@@ -78,6 +78,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
       enabled: true,
       baseUrl: 'http://localhost:11434',
       model: 'llama3',
+      disableThinking: true,
     },
     {
       id: 'lmstudio',
@@ -86,6 +87,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
       enabled: true,
       baseUrl: 'http://localhost:1234/v1',
       model: '',
+      disableThinking: true,
     },
   ],
   chunkingMode: 'quality',

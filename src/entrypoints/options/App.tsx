@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode } from '../../shared/types';
 import { DEFAULT_SETTINGS, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
+import { isLlmProvider } from '../../providers/thinking';
 import { AppLogo } from '../../shared/AppLogo';
 
 const PROVIDER_TYPE_LABELS: Record<ProviderConfig['type'], string> = {
@@ -46,7 +47,12 @@ export function App() {
     const preset = PROVIDER_PRESETS[type];
     if (!preset) return;
     const id = `${type}-${Date.now()}`;
-    const newProvider: ProviderConfig = { ...preset, id, enabled: true };
+    const newProvider: ProviderConfig = {
+      ...preset,
+      id,
+      enabled: true,
+      ...(isLlmProvider(type) ? { disableThinking: true } : {}),
+    };
     setSettings((s) => ({ ...s, providers: [...s.providers, newProvider] }));
     setExpandedProvider(id);
     setSaved(false);
@@ -338,6 +344,22 @@ export function App() {
                         <Field label="Model">
                           <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'llama3' : provider.type === 'lmstudio' ? 'loaded model' : 'gpt-4o-mini'} className="input font-mono text-xs" />
                         </Field>
+                      )}
+                      {isLlmProvider(provider.type) && (
+                        <label className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={provider.disableThinking !== false}
+                            onChange={(e) => updateProvider(provider.id, { disableThinking: e.target.checked })}
+                            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500/40"
+                          />
+                          <div>
+                            <span className="text-sm font-medium text-gray-700">Disable thinking chain</span>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              Skip model reasoning for faster translation
+                            </p>
+                          </div>
+                        </label>
                       )}
                       {provider.type === 'ollama' && (
                         <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">

@@ -1,4 +1,5 @@
 import { BaseProvider } from './base';
+import { getOpenAICompatExtraBody } from './thinking';
 import type { TranslateRequest, TranslateResult } from '../shared/types';
 
 export class OpenAICompatProvider extends BaseProvider {
@@ -12,21 +13,35 @@ export class OpenAICompatProvider extends BaseProvider {
     return h;
   }
 
+  private buildChatCompletionBody(
+    messages: { role: string; content: string }[],
+    stream: boolean,
+  ): Record<string, unknown> {
+    return {
+      model: this.config.model || 'gpt-3.5-turbo',
+      messages,
+      temperature: 0.3,
+      stream,
+      // Same as OpenAI SDK extra_body: merged into the request JSON root.
+      ...getOpenAICompatExtraBody(this.config),
+    };
+  }
+
   async translate(request: TranslateRequest): Promise<TranslateResult> {
     const { system, user } = this.buildPrompt(request);
 
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify({
-        model: this.config.model || 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        temperature: 0.3,
-        stream: false,
-      }),
+      body: JSON.stringify(
+        this.buildChatCompletionBody(
+          [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+          ],
+          false,
+        ),
+      ),
     });
 
     if (!res.ok) {
@@ -49,15 +64,15 @@ export class OpenAICompatProvider extends BaseProvider {
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify({
-        model: this.config.model || 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        temperature: 0.3,
-        stream: true,
-      }),
+      body: JSON.stringify(
+        this.buildChatCompletionBody(
+          [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+          ],
+          true,
+        ),
+      ),
     });
 
     if (!res.ok) throw new Error(`API error ${res.status}`);
