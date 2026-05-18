@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AppSettings, MessageResponse } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
 import { StatusBar } from '../../content/page-translator/StatusBar';
+import { AppLogo } from '../../shared/AppLogo';
 
 export interface ContentAppHandle {
   showTrigger: (text: string, position: { x: number; y: number }) => void;
@@ -241,10 +242,7 @@ export function ContentApp({ onReady }: Props) {
           className="st-trigger-btn"
           title="Translate"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" />
-            <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
-          </svg>
+          <AppLogo className="st-trigger-icon" />
         </button>
       )}
 

@@ -3,14 +3,31 @@
 @tailwind utilities;
 
 .st-trigger-btn {
-  @apply flex items-center justify-center w-8 h-8 rounded-full
-         bg-blue-500 text-white shadow-lg cursor-pointer
-         hover:bg-blue-600 active:scale-95 transition-all duration-150;
-  /* Stay above aggressive site overlays (e.g. huggingface right rail). */
-  z-index: 2147483647;
+  display: block;
+  cursor: pointer;
+  background: transparent;
   border: none;
   outline: none;
   padding: 0;
+  line-height: 0;
+  transition: transform 150ms ease;
+  /* Stay above aggressive site overlays (e.g. huggingface right rail). */
+  z-index: 2147483647;
+}
+
+.st-trigger-btn:hover {
+  transform: scale(1.06);
+}
+
+.st-trigger-btn:active {
+  transform: scale(0.96);
+}
+
+.st-trigger-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .st-panel {

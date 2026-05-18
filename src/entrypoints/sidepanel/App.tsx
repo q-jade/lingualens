@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
+import { AppLogo } from '../../shared/AppLogo';
 
 interface HistoryEntry {
   id: number;
@@ -92,10 +93,7 @@ export function App() {
     <div className="flex flex-col h-screen bg-white">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-500 to-indigo-500">
-        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" />
-          <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
-        </svg>
+        <AppLogo className="w-6 h-6 shrink-0" />
         <h1 className="text-sm font-semibold text-white flex-1">LinguaLens</h1>
         <button onClick={() => setShowHistory(!showHistory)} className="text-white/80 hover:text-white" title="History">
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

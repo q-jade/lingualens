@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
+import { AppLogo } from '../../shared/AppLogo';
 
 /** Chrome 114+ only; must run from a user gesture (e.g. click). */
 async function openExtensionSidePanel(): Promise<string | null> {
@@ -79,12 +80,7 @@ export function App() {
     <div className="p-4 bg-white min-h-[200px]">
       {/* Header — side panel control here so it stays visible without scrolling the popup */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shrink-0">
-          <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" />
-            <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
-          </svg>
-        </div>
+        <AppLogo className="w-7 h-7 shrink-0" />
         <h1 className="text-base font-semibold text-gray-800 flex-1 min-w-0 truncate">LinguaLens</h1>
         <button
           type="button"

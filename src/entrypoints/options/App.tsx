@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode } from '../../shared/types';
 import { DEFAULT_SETTINGS, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
+import { AppLogo } from '../../shared/AppLogo';
 
 const PROVIDER_TYPE_LABELS: Record<ProviderConfig['type'], string> = {
   'openai-compat': 'OpenAI Compatible',
@@ -107,12 +108,7 @@ export function App() {
       <div className="max-w-2xl mx-auto py-10 px-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" />
-              <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
-            </svg>
-          </div>
+          <AppLogo className="w-10 h-10 shrink-0" />
           <div>
             <h1 className="text-2xl font-bold text-gray-800">LinguaLens</h1>
             <p className="text-sm text-gray-400">Settings</p>
