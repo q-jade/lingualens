@@ -1,18 +1,6 @@
 import { BaseProvider } from './base';
+import { toGoogleLang } from '../shared/languages';
 import type { TranslateRequest, TranslateResult } from '../shared/types';
-
-const LANG_MAP: Record<string, string> = {
-  zh: 'zh-CN',
-  en: 'en',
-  ja: 'ja',
-  ko: 'ko',
-  fr: 'fr',
-  de: 'de',
-  es: 'es',
-  pt: 'pt',
-  ru: 'ru',
-  ar: 'ar',
-};
 
 export class GoogleTranslateProvider extends BaseProvider {
   private get apiUrl(): string {
@@ -20,19 +8,15 @@ export class GoogleTranslateProvider extends BaseProvider {
     return `${base}/language/translate/v2`;
   }
 
-  private mapLang(code: string): string {
-    return LANG_MAP[code] || code;
-  }
-
   async translate(request: TranslateRequest): Promise<TranslateResult> {
     const params = new URLSearchParams({
       q: request.text,
-      target: this.mapLang(request.targetLang),
+      target: toGoogleLang(request.targetLang),
       format: 'text',
       key: this.config.apiKey || '',
     });
     if (request.sourceLang !== 'auto') {
-      params.set('source', this.mapLang(request.sourceLang));
+      params.set('source', toGoogleLang(request.sourceLang));
     }
 
     const res = await fetch(`${this.apiUrl}?${params}`, { method: 'POST' });

@@ -1,18 +1,6 @@
 import { BaseProvider } from './base';
+import { toDeepLLang } from '../shared/languages';
 import type { TranslateRequest, TranslateResult } from '../shared/types';
-
-const LANG_MAP: Record<string, string> = {
-  en: 'EN',
-  zh: 'ZH',
-  ja: 'JA',
-  ko: 'KO',
-  fr: 'FR',
-  de: 'DE',
-  es: 'ES',
-  pt: 'PT',
-  ru: 'RU',
-  ar: 'AR',
-};
 
 export class DeepLProvider extends BaseProvider {
   private get apiUrl(): string {
@@ -27,17 +15,13 @@ export class DeepLProvider extends BaseProvider {
     };
   }
 
-  private mapLang(code: string): string {
-    return LANG_MAP[code] || code.toUpperCase();
-  }
-
   async translate(request: TranslateRequest): Promise<TranslateResult> {
     const body: Record<string, unknown> = {
       text: [request.text],
-      target_lang: this.mapLang(request.targetLang),
+      target_lang: toDeepLLang(request.targetLang),
     };
     if (request.sourceLang !== 'auto') {
-      body.source_lang = this.mapLang(request.sourceLang);
+      body.source_lang = toDeepLLang(request.sourceLang);
     }
 
     const res = await fetch(this.apiUrl, {
