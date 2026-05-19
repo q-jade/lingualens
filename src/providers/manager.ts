@@ -1,5 +1,6 @@
 import { OpenAICompatProvider } from './openai-compat';
 import { OllamaProvider } from './ollama';
+import { LmStudioProvider } from './lmstudio';
 import { DeepLProvider } from './deepl';
 import { GoogleTranslateProvider } from './google-translate';
 import { CustomProvider } from './custom';
@@ -13,8 +14,9 @@ export class ProviderManager {
     switch (config.type) {
       case 'openai-compat':
       case 'openai':
-      case 'lmstudio':
         return new OpenAICompatProvider(config);
+      case 'lmstudio':
+        return new LmStudioProvider(config);
       case 'ollama':
         return new OllamaProvider(config);
       case 'deepl':

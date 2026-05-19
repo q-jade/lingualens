@@ -33,7 +33,7 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
   lmstudio: {
     type: 'lmstudio',
     name: 'LM Studio',
-    baseUrl: 'http://localhost:1234/v1',
+    baseUrl: 'http://localhost:1234',
     model: '',
   },
   openai: {
@@ -85,7 +85,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
       type: 'lmstudio',
       name: 'LM Studio',
       enabled: true,
-      baseUrl: 'http://localhost:1234/v1',
+      baseUrl: 'http://localhost:1234',
       model: '',
       disableThinking: true,
     },

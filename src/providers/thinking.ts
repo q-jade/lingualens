@@ -44,6 +44,18 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
   };
 }
 
+/** LM Studio native `/api/v1/chat` — see capabilities.reasoning on GET /api/v1/models. */
+export function getLmStudioServerOrigin(baseUrl: string): string {
+  return baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
+}
+
+export function getLmStudioThinkingFields(config: ProviderConfig): Record<string, unknown> {
+  if (!isThinkingDisabled(config)) {
+    return {};
+  }
+  return { reasoning: 'off' };
+}
+
 /** Extra JSON fields merged into LLM chat request bodies when thinking is disabled. */
 export function getThinkingDisableRequestFields(
   config: ProviderConfig,
@@ -57,8 +69,9 @@ export function getThinkingDisableRequestFields(
       return { think: false };
     case 'openai-compat':
     case 'openai':
-    case 'lmstudio':
       return getOpenAICompatExtraBody(config);
+    case 'lmstudio':
+      return getLmStudioThinkingFields(config);
     default:
       return {};
   }

@@ -153,7 +153,7 @@ export function App() {
   };
 
   const needsApiKey = (type: ProviderConfig['type']) =>
-    type !== 'ollama' && type !== 'lmstudio';
+    type !== 'ollama';
 
   const needsModel = (type: ProviderConfig['type']) =>
     ['openai-compat', 'ollama', 'openai', 'lmstudio'].includes(type);
@@ -332,9 +332,20 @@ export function App() {
                       <Field label="Provider Name">
                         <input type="text" value={provider.name} onChange={(e) => updateProvider(provider.id, { name: e.target.value })} className="input" />
                       </Field>
-                      <Field label="API Base URL">
-                        <input type="text" value={provider.baseUrl} onChange={(e) => updateProvider(provider.id, { baseUrl: e.target.value })} className="input font-mono text-xs" />
+                      <Field label={provider.type === 'lmstudio' ? 'Server URL' : 'API Base URL'}>
+                        <input
+                          type="text"
+                          value={provider.baseUrl}
+                          onChange={(e) => updateProvider(provider.id, { baseUrl: e.target.value })}
+                          placeholder={provider.type === 'lmstudio' ? 'http://localhost:1234' : undefined}
+                          className="input font-mono text-xs"
+                        />
                       </Field>
+                      {provider.type === 'lmstudio' && (
+                        <p className="text-xs text-gray-400 -mt-1">
+                          Uses LM Studio native <code className="bg-gray-100 px-1 rounded">/api/v1/chat</code> (not OpenAI <code className="bg-gray-100 px-1 rounded">/v1</code>).
+                        </p>
+                      )}
                       {needsApiKey(provider.type) && (
                         <Field label="API Key">
                           <input type="password" value={provider.apiKey || ''} onChange={(e) => updateProvider(provider.id, { apiKey: e.target.value })} placeholder="sk-…" className="input font-mono text-xs" />
