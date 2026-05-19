@@ -18,7 +18,7 @@ export class OpenAICompatProvider extends BaseProvider {
     stream: boolean,
   ): Record<string, unknown> {
     return {
-      model: this.config.model || 'gpt-3.5-turbo',
+      model: this.config.model,
       messages,
       temperature: 0.3,
       stream,

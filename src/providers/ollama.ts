@@ -14,7 +14,7 @@ export class OllamaProvider extends BaseProvider {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: this.config.model || 'llama3',
+        model: this.config.model,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
@@ -50,7 +50,7 @@ export class OllamaProvider extends BaseProvider {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: this.config.model || 'llama3',
+        model: this.config.model,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
