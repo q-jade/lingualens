@@ -1,6 +1,8 @@
 import { handleMessage } from '../background/message-router';
+import { registerInstallOnboarding } from '../background/onboarding';
 
 export default defineBackground(() => {
+  registerInstallOnboarding();
   const pageTranslatedTabs = new Set<number>();
 
   async function isPageTranslationActive(tabId?: number): Promise<boolean> {

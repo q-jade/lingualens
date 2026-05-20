@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode } from '../../shared/types';
 import { DEFAULT_SETTINGS, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
+import { clearOnboardingPending, isOnboardingPending } from '../../shared/onboarding';
 import { isLlmProvider } from '../../providers/thinking';
 import { AppLogo } from '../../shared/AppLogo';
 
@@ -21,6 +22,18 @@ export function App() {
   const [verifying, setVerifying] = useState<string | null>(null);
   const [verifyResults, setVerifyResults] = useState<Record<string, { ok: boolean; msg: string }>>({});
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const welcomeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    isOnboardingPending().then(setShowWelcome);
+  }, []);
+
+  useEffect(() => {
+    if (showWelcome) {
+      welcomeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [showWelcome]);
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -118,11 +131,18 @@ export function App() {
       !settings.fallbackProviders.includes(p.id),
   );
 
+  const dismissWelcome = () => {
+    setShowWelcome(false);
+    void clearOnboardingPending();
+  };
+
   const handleSave = async () => {
     setSaving(true);
     await browser.runtime.sendMessage({ type: 'SAVE_SETTINGS', payload: settings });
     setSaving(false);
     setSaved(true);
+    setShowWelcome(false);
+    void clearOnboardingPending();
     setTimeout(() => setSaved(false), 2000);
   };
 
@@ -273,6 +293,32 @@ export function App() {
               </select>
             )}
           </Section>
+        )}
+
+        {showWelcome && (
+          <div
+            ref={welcomeRef}
+            className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5"
+            role="status"
+          >
+            <h2 className="text-base font-semibold text-blue-900">Welcome to LinguaLens</h2>
+            <p className="mt-2 text-sm text-blue-800/90 leading-relaxed">
+              Before translating, set up at least one provider below. Ollama and LM Studio work locally;
+              cloud APIs need a base URL, model, and API key where required.
+            </p>
+            <ol className="mt-3 space-y-1.5 text-sm text-blue-900/90 list-decimal list-inside">
+              <li>Enable a provider and check its URL and model</li>
+              <li>Click <strong>Verify</strong> to test the connection</li>
+              <li>Click <strong>Save Settings</strong> at the bottom</li>
+            </ol>
+            <button
+              type="button"
+              onClick={dismissWelcome}
+              className="mt-4 text-sm font-medium text-blue-700 hover:text-blue-900"
+            >
+              Dismiss
+            </button>
+          </div>
         )}
 
         {/* Providers */}

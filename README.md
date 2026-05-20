@@ -57,7 +57,9 @@ npm run build:firefox  # Firefox MV2 → .output/firefox-mv2
 
 ### First-time configuration
 
-1. Open the extension **Settings** (right-click the toolbar icon → Options, or **Settings** in the popup).
+On first install, LinguaLens opens **Settings** automatically. You can also open it anytime via the popup or by right-clicking the toolbar icon → **Options**.
+
+1. In **Settings**, scroll to **Translation Providers** (or use the welcome steps shown on first run).
 2. Under **Providers**, ensure at least one provider is **enabled** (Ollama and LM Studio are added by default).
 3. Set **Base URL** and **Model** if needed, then click **Verify** on that provider.
 4. Choose a **Default provider** and optional **Fallback** order if you use multiple backends.
