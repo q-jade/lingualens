@@ -146,7 +146,13 @@ Stack: WXT, React 19, TypeScript, Tailwind CSS.
 
 ## Privacy
 
-LinguaLens sends text you choose to translate (selection, popup input, or page content) **only to the translation providers you configure**. It does not operate a backend service. Review the privacy policies of any third-party API you use (OpenAI, DeepL, Google, etc.).
+See [docs/privacy.md](docs/privacy.md) for the full privacy policy.
+
+For Chrome Web Store and Edge Add-ons, use this public URL after enabling [GitHub Pages](https://docs.github.com/en/pages) for this repository (source: `main`, folder `/docs`):
+
+`https://q-jade.github.io/lingualens/privacy`
+
+LinguaLens does not run its own translation servers; text is sent only to providers you configure. API keys and settings stay in local browser storage.
 
 ## Known limitations
 
