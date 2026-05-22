@@ -86,6 +86,12 @@ export function ContentApp({ onReady }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const pendingAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const panelDragRef = useRef<{ startX: number; startY: number; origin: PanelPosition } | null>(null);
+  const modeRef = useRef(mode);
+  const loadingRef = useRef(loading);
+  const translationRef = useRef(translation);
+  modeRef.current = mode;
+  loadingRef.current = loading;
+  translationRef.current = translation;
 
   const startPageTranslation = useCallback(async () => {
     const settings = settingsRef.current;
@@ -234,6 +240,13 @@ export function ContentApp({ onReady }: Props) {
         if (pageTranslatedRef.current) return;
         const t = text.trim();
         if (!t) return;
+        if (
+          modeRef.current === 'panel' &&
+          t === selectedTextRef.current &&
+          (loadingRef.current || translationRef.current)
+        ) {
+          return;
+        }
         selectedTextRef.current = t;
         setSelectedText(t);
         anchorRef.current = { x: window.innerWidth / 2, y: window.innerHeight / 3 };
