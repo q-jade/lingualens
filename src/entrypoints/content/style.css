@@ -53,6 +53,12 @@
   @apply flex flex-none items-center justify-between px-3 py-2;
   background: linear-gradient(135deg, #3b82f6, #6366f1);
   color: white;
+  cursor: grab;
+  user-select: none;
+}
+
+.st-panel-header:active {
+  cursor: grabbing;
 }
 
 .st-panel-title {

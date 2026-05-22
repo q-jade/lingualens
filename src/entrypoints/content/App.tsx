@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import type { AppSettings, MessageResponse } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
 import { StatusBar } from '../../content/page-translator/StatusBar';
@@ -21,24 +21,50 @@ interface Props {
 
 type Mode = 'hidden' | 'trigger' | 'panel';
 
-/** Matches `.st-panel` width + horizontal gutter used in `innerWidth - outerWidth`. */
-const SELECTION_PANEL_OUTER_W = 340;
-const SELECTION_PANEL_MAX_H = 400;
 const SELECTION_PANEL_VIEW_MARGIN = 8;
 
-/** `top` is the bottom edge of the panel (`translateY(-100%)`); keep the full box inside the viewport. */
-function clampSelectionPanelTop(anchorY: number, innerHeight: number): number {
+type PanelPosition = { left: number; top: number };
+type PanelSize = { w: number; h: number };
+
+function getViewport() {
+  return { w: window.innerWidth, h: window.innerHeight };
+}
+
+function readPanelSize(panel: HTMLDivElement | null): PanelSize {
+  const rect = panel?.getBoundingClientRect();
+  return rect ? { w: rect.width, h: rect.height } : { w: 320, h: 80 };
+}
+
+function clampPanelPosition(
+  pos: PanelPosition,
+  viewport: { w: number; h: number },
+  panelSize: PanelSize,
+): PanelPosition {
   const m = SELECTION_PANEL_VIEW_MARGIN;
-  const maxPanelH = Math.min(SELECTION_PANEL_MAX_H, Math.max(0, innerHeight - 2 * m));
-  const preferredTop = Math.max(anchorY - 4, m);
-  const minTop = m + maxPanelH;
-  const maxTop = innerHeight - m;
-  return Math.min(Math.max(preferredTop, minTop), maxTop);
+  return {
+    left: Math.min(Math.max(pos.left, m), Math.max(m, viewport.w - panelSize.w - m)),
+    top: Math.min(Math.max(pos.top, m), Math.max(m, viewport.h - panelSize.h - m)),
+  };
+}
+
+/** Place the panel above the selection when possible; falls back to below. */
+function panelPositionFromAnchor(
+  anchor: { x: number; y: number },
+  viewport: { w: number; h: number },
+  panelSize: PanelSize,
+): PanelPosition {
+  const gap = 4;
+  let top = anchor.y - gap - panelSize.h;
+  if (top < SELECTION_PANEL_VIEW_MARGIN) {
+    top = anchor.y + gap;
+  }
+  return clampPanelPosition({ left: anchor.x + 6, top }, viewport, panelSize);
 }
 
 export function ContentApp({ onReady }: Props) {
   const [mode, setMode] = useState<Mode>('hidden');
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [panelPosition, setPanelPosition] = useState<PanelPosition>({ left: 0, top: 0 });
   const [selectedText, setSelectedText] = useState('');
   const [translation, setTranslation] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,16 +76,16 @@ export function ContentApp({ onReady }: Props) {
   const [pageRunning, setPageRunning] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('bilingual');
   const [statusCollapsed, setStatusCollapsed] = useState(false);
-  const [viewport, setViewport] = useState(() => ({
-    w: typeof window !== 'undefined' ? window.innerWidth : 0,
-    h: typeof window !== 'undefined' ? window.innerHeight : 0,
-  }));
 
   const selectedTextRef = useRef('');
+  const anchorRef = useRef({ x: 0, y: 0 });
   const settingsRef = useRef<AppSettings | null>(null);
   const engineRef = useRef(new PageTranslateEngine());
   const pageTranslatedRef = useRef(false);
   const handleTranslateRef = useRef<() => Promise<void>>(async () => {});
+  const panelRef = useRef<HTMLDivElement>(null);
+  const pendingAnchorRef = useRef<{ x: number; y: number } | null>(null);
+  const panelDragRef = useRef<{ startX: number; startY: number; origin: PanelPosition } | null>(null);
 
   const startPageTranslation = useCallback(async () => {
     const settings = settingsRef.current;
@@ -123,14 +149,67 @@ export function ContentApp({ onReady }: Props) {
     }
   }, [pageProgress !== null, statusCollapsed]);
 
+  useLayoutEffect(() => {
+    if (mode !== 'panel') return;
+    const panelSize = readPanelSize(panelRef.current);
+    const viewport = getViewport();
+    if (pendingAnchorRef.current) {
+      const anchor = pendingAnchorRef.current;
+      pendingAnchorRef.current = null;
+      setPanelPosition(panelPositionFromAnchor(anchor, viewport, panelSize));
+    } else {
+      setPanelPosition((prev) => clampPanelPosition(prev, viewport, panelSize));
+    }
+  }, [mode, loading, translation, error]);
+
   useEffect(() => {
     if (mode !== 'panel') return;
-    const sync = () =>
-      setViewport({ w: window.innerWidth, h: window.innerHeight });
-    sync();
+    const sync = () => {
+      setPanelPosition((prev) =>
+        clampPanelPosition(prev, getViewport(), readPanelSize(panelRef.current)),
+      );
+    };
     window.addEventListener('resize', sync);
     return () => window.removeEventListener('resize', sync);
   }, [mode]);
+
+  const openPanelAt = useCallback((anchor: { x: number; y: number }) => {
+    pendingAnchorRef.current = anchor;
+    setMode('panel');
+  }, []);
+
+  const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close')) return;
+    event.preventDefault();
+    const rect = panelRef.current?.getBoundingClientRect();
+    const origin = rect
+      ? { left: rect.left, top: rect.top }
+      : panelPosition;
+    panelDragRef.current = { startX: event.clientX, startY: event.clientY, origin };
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const drag = panelDragRef.current;
+      if (!drag) return;
+      const dx = moveEvent.clientX - drag.startX;
+      const dy = moveEvent.clientY - drag.startY;
+      setPanelPosition(
+        clampPanelPosition(
+          { left: drag.origin.left + dx, top: drag.origin.top + dy },
+          getViewport(),
+          readPanelSize(panelRef.current),
+        ),
+      );
+    };
+
+    const onMouseUp = () => {
+      panelDragRef.current = null;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [panelPosition]);
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -143,6 +222,7 @@ export function ContentApp({ onReady }: Props) {
       showTrigger(text, pos) {
         if (pageTranslatedRef.current) return;
         selectedTextRef.current = text;
+        anchorRef.current = pos;
         setSelectedText(text);
         setPosition(pos);
         setMode('trigger');
@@ -156,11 +236,11 @@ export function ContentApp({ onReady }: Props) {
         if (!t) return;
         selectedTextRef.current = t;
         setSelectedText(t);
-        setPosition({ x: window.innerWidth / 2, y: window.innerHeight / 3 });
+        anchorRef.current = { x: window.innerWidth / 2, y: window.innerHeight / 3 };
+        setPosition(anchorRef.current);
         setTranslation('');
         setError(null);
         setCopied(false);
-        setMode('panel');
         queueMicrotask(() => void handleTranslateRef.current());
       },
       hide() {
@@ -183,7 +263,7 @@ export function ContentApp({ onReady }: Props) {
     const targetLang = settingsRef.current?.defaultTargetLang ?? 'zh';
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
-    setMode('panel');
+    openPanelAt(anchorRef.current);
     setLoading(true);
     setError(null);
 
@@ -249,11 +329,11 @@ export function ContentApp({ onReady }: Props) {
       {/* Floating translation panel */}
       {mode === 'panel' && (
         <div
+          ref={panelRef}
           style={{
             position: 'fixed',
-            left: Math.min(position.x + 6, viewport.w - SELECTION_PANEL_OUTER_W),
-            top: clampSelectionPanelTop(position.y, viewport.h),
-            transform: 'translateY(-100%)',
+            left: panelPosition.left,
+            top: panelPosition.top,
             zIndex: 2147483647,
             pointerEvents: 'auto',
             backgroundColor: '#ffffff',
@@ -261,7 +341,10 @@ export function ContentApp({ onReady }: Props) {
           }}
           className="st-panel"
         >
-          <div className="st-panel-header">
+          <div
+            className="st-panel-header"
+            onMouseDown={handlePanelHeaderMouseDown}
+          >
             <span className="st-panel-title">LinguaLens</span>
             <button onClick={() => setMode('hidden')} className="st-panel-close">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
