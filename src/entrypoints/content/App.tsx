@@ -22,6 +22,8 @@ interface Props {
 type Mode = 'hidden' | 'trigger' | 'panel';
 
 const SELECTION_PANEL_VIEW_MARGIN = 8;
+const PANEL_WIDTH_RATIO = 0.35;
+const PANEL_MAX_HEIGHT_RATIO = 0.5;
 
 type PanelPosition = { left: number; top: number };
 type PanelSize = { w: number; h: number };
@@ -30,9 +32,16 @@ function getViewport() {
   return { w: window.innerWidth, h: window.innerHeight };
 }
 
+function estimatePanelSize(viewport = getViewport()): PanelSize {
+  return {
+    w: viewport.w * PANEL_WIDTH_RATIO,
+    h: viewport.h * PANEL_MAX_HEIGHT_RATIO,
+  };
+}
+
 function readPanelSize(panel: HTMLDivElement | null): PanelSize {
   const rect = panel?.getBoundingClientRect();
-  return rect ? { w: rect.width, h: rect.height } : { w: 320, h: 80 };
+  return rect ? { w: rect.width, h: rect.height } : estimatePanelSize();
 }
 
 function clampPanelPosition(
@@ -376,16 +385,20 @@ export function ContentApp({ onReady }: Props) {
             {!loading && !error && translation && (
               <div className="st-translation">
                 <p>{translation}</p>
-                <button onClick={handleCopy} className="st-copy-btn" title="Copy translation">
-                  {copied ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                  )}
-                </button>
               </div>
             )}
           </div>
+          {!loading && !error && translation && (
+            <div className="st-panel-footer">
+              <button onClick={handleCopy} className="st-copy-btn" title="Copy translation">
+                {copied ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </>

@@ -37,8 +37,8 @@
   pointer-events: auto;
   /* Stay above aggressive site overlays (e.g. huggingface right rail). */
   z-index: 2147483647;
-  width: 320px;
-  max-height: min(400px, calc(100dvh - 16px));
+  width: 35vw;
+  max-height: min(50dvh, calc(100dvh - 16px));
   display: flex;
   flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
@@ -101,19 +101,20 @@
   @apply text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2;
 }
 
-.st-translation {
-  @apply relative;
+.st-translation p {
+  @apply text-sm text-gray-800 leading-relaxed whitespace-pre-wrap;
 }
 
-.st-translation p {
-  @apply text-sm text-gray-800 leading-relaxed pr-6 whitespace-pre-wrap;
+.st-panel-footer {
+  @apply flex flex-none items-center justify-start px-3 py-2 border-t border-gray-100;
+  background-color: #ffffff;
 }
 
 .st-copy-btn {
-  @apply absolute top-0 right-0 flex items-center justify-center w-6 h-6
-         text-gray-300 hover:text-blue-500 cursor-pointer rounded transition-colors;
+  @apply flex items-center justify-center w-7 h-7
+         text-gray-400 hover:text-blue-500 cursor-pointer rounded transition-colors;
   border: none;
-  background-color: #ffffff;
+  background: none;
   padding: 0;
 }
 
@@ -141,6 +142,7 @@
 .st-panel,
 .st-panel-body,
 .st-panel-header,
+.st-panel-footer,
 .st-translation,
 .st-error,
 .st-loading {
@@ -152,7 +154,8 @@
 }
 
 .st-panel,
-.st-panel-body {
+.st-panel-body,
+.st-panel-footer {
   background-color: #ffffff !important;
 }
 
