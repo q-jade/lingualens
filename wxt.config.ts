@@ -9,7 +9,9 @@ export default defineConfig({
     description: 'LinguaLens — translate anything with LLM and online APIs',
     permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus', 'scripting'],
     host_permissions: [
-      'http://localhost:*/*',
+      // Chrome Web Store rejects `http://localhost:*/*`; omit port to match all local ports.
+      'http://localhost/*',
+      'http://127.0.0.1/*',
       'https://api.deepseek.com/*',
       'https://api.openai.com/*',
       'https://api-free.deepl.com/*',
