@@ -37,7 +37,7 @@
   pointer-events: auto;
   /* Stay above aggressive site overlays (e.g. huggingface right rail). */
   z-index: 2147483647;
-  width: 35vw;
+  width: max(280px, 30vw);
   max-height: min(50dvh, calc(100dvh - 16px));
   display: flex;
   flex-direction: column;

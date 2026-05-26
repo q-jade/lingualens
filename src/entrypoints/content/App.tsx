@@ -22,7 +22,8 @@ interface Props {
 type Mode = 'hidden' | 'trigger' | 'panel';
 
 const SELECTION_PANEL_VIEW_MARGIN = 8;
-const PANEL_WIDTH_RATIO = 0.35;
+const PANEL_MIN_WIDTH = 280;
+const PANEL_WIDTH_RATIO = 0.3;
 const PANEL_MAX_HEIGHT_RATIO = 0.5;
 
 type PanelPosition = { left: number; top: number };
@@ -34,7 +35,7 @@ function getViewport() {
 
 function estimatePanelSize(viewport = getViewport()): PanelSize {
   return {
-    w: viewport.w * PANEL_WIDTH_RATIO,
+    w: Math.max(PANEL_MIN_WIDTH, viewport.w * PANEL_WIDTH_RATIO),
     h: viewport.h * PANEL_MAX_HEIGHT_RATIO,
   };
 }
