@@ -45,6 +45,47 @@ export default defineBackground(() => {
     }
   }
 
+  async function isSelectionInExtensionUIFromTab(tabId: number, frameId?: number): Promise<boolean> {
+    const scripting = browser.scripting;
+    if (!scripting?.executeScript) return false;
+    try {
+      const target =
+        typeof frameId === 'number' ? { tabId, frameIds: [frameId] } : { tabId };
+      const results = await scripting.executeScript({
+        target,
+        func: () => {
+          const shadow = document.querySelector('lingua-lens')?.shadowRoot;
+          if (!shadow) return false;
+          if (typeof shadow.getSelection === 'function') {
+            const sel = shadow.getSelection();
+            return Boolean(sel?.rangeCount && !sel.isCollapsed);
+          }
+          const docSel = window.getSelection();
+          if (!docSel?.rangeCount || docSel.isCollapsed) return false;
+          const inShadow = (node: Node | null) => node !== null && shadow.contains(node);
+          return inShadow(docSel.anchorNode) || inShadow(docSel.focusNode);
+        },
+      });
+      return Boolean(results[0]?.result);
+    } catch {
+      return false;
+    }
+  }
+
+  async function shouldBlockSelectionTranslate(
+    tabId: number,
+    frameId?: number,
+  ): Promise<boolean> {
+    try {
+      const res = await browser.tabs.sendMessage(tabId, {
+        type: 'SHOULD_BLOCK_SELECTION_TRANSLATE',
+      });
+      return Boolean((res as { block?: boolean })?.block);
+    } catch {
+      return isSelectionInExtensionUIFromTab(tabId, frameId);
+    }
+  }
+
   browser.runtime.onMessage.addListener((message: Record<string, unknown>, sender, sendResponse) => {
     if (message.type === 'PAGE_TRANSLATE_STATE_CHANGED') {
       const tabId = sender.tab?.id;
@@ -84,6 +125,7 @@ export default defineBackground(() => {
 
     switch (command) {
       case 'translate-selection': {
+        if (await shouldBlockSelectionTranslate(tab.id)) break;
         let text = (await readSelectedTextFromTab(tab.id)).trim();
         if (text.length > 1) {
           await browser.tabs
@@ -156,6 +198,14 @@ export default defineBackground(() => {
         );
       }
       if (!text) return;
+      if (
+        await shouldBlockSelectionTranslate(
+          tab.id,
+          typeof info.frameId === 'number' ? info.frameId : undefined,
+        )
+      ) {
+        return;
+      }
       // MV3: await keeps the service worker alive until the message is sent; fire-and-forget can drop the message.
       await browser.tabs
         .sendMessage(tab.id, { type: 'TRANSLATE_SELECTION_TEXT', payload: { text } })

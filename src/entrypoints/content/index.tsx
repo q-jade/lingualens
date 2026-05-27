@@ -1,5 +1,11 @@
 import ReactDOM from 'react-dom/client';
 import { ContentApp, type ContentAppHandle } from './App';
+import {
+  checkSelectionTranslateBlock,
+  clearContextMenuSelectionBlock,
+  isInsideOurUI,
+  markContextMenuInExtensionUI,
+} from './selection-ui-guard';
 import './style.css';
 
 const OVERLAY_Z = '2147483647';
@@ -130,13 +136,6 @@ function computeTriggerPosition(range: Range, mouseX: number, mouseY: number): {
   return computePositionByCorners(corners, mouseX, mouseY);
 }
 
-/** True when the event originated inside the extension shadow UI host. */
-function isInsideOurUI(e: Event): boolean {
-  return e.composedPath().some(
-    (el) => el instanceof HTMLElement && el.tagName?.toLowerCase() === 'lingua-lens',
-  );
-}
-
 export default defineContentScript({
   matches: ['<all_urls>'],
   cssInjectionMode: 'ui',
@@ -169,6 +168,10 @@ export default defineContentScript({
       onMount(container, shadow, shadowHost) {
         shieldOverlayHost(shadowHost);
         shieldShadowPortal(shadow, container);
+        container.addEventListener('contextmenu', markContextMenuInExtensionUI, true);
+        document.addEventListener('contextmenu', (e) => {
+          if (!isInsideOurUI(e)) clearContextMenuSelectionBlock();
+        }, true);
         const wrapper = document.createElement('div');
         wrapper.style.setProperty('pointer-events', 'auto', 'important');
         container.append(wrapper);
@@ -210,6 +213,7 @@ export default defineContentScript({
 
     document.addEventListener('mousedown', (e) => {
       if (!isInsideOurUI(e)) {
+        clearContextMenuSelectionBlock();
         appHandle?.hide();
       }
     });
@@ -235,9 +239,13 @@ export default defineContentScript({
           appHandle?.restorePageTranslation();
           sendResponse({ ok: true });
           break;
+        case 'SHOULD_BLOCK_SELECTION_TRANSLATE':
+          sendResponse({ block: checkSelectionTranslateBlock() });
+          break;
         case 'TRANSLATE_SELECTION': {
           // Sent when the shortcut could not read the selection from the background (e.g. shadow DOM).
           // If the page still has a live selection, translate immediately — same as TRANSLATE_SELECTION_TEXT.
+          if (checkSelectionTranslateBlock()) break;
           const tryTranslateFromSelection = (): boolean => {
             const selection = window.getSelection();
             const text = selection?.toString().trim() ?? '';
@@ -260,7 +268,7 @@ export default defineContentScript({
         case 'TRANSLATE_SELECTION_TEXT': {
           const payload = message.payload as { text: string };
           const text = (payload?.text ?? '').trim();
-          if (!text) break;
+          if (!text || checkSelectionTranslateBlock()) break;
           if (appHandle) {
             appHandle.translateNow(text);
           } else {
