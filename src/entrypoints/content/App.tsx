@@ -336,9 +336,8 @@ export function ContentApp({ onReady }: Props) {
           onClick={handleTranslate}
           style={{
             position: 'fixed',
-            left: position.x + 6,
-            top: position.y - 4,
-            transform: 'translateY(-100%)',
+            left: position.x,
+            top: position.y,
             zIndex: 2147483647,
             pointerEvents: 'auto',
           }}
