@@ -4,7 +4,7 @@ export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react', '@wxt-dev/auto-icons'],
   manifest: {
-    version: '0.1.1',
+    version: '0.2.0',
     name: 'LinguaLens',
     description: 'LinguaLens — translate anything with LLM and online APIs',
     permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus', 'scripting'],
