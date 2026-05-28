@@ -32,6 +32,22 @@ export default defineBackground(() => {
     }
   }
 
+  async function getFocusedActiveTabId(): Promise<number | undefined> {
+    const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+    return tab?.id;
+  }
+
+  /** Menu enabled state is global; only sync from the tab the user is actually viewing. */
+  async function updatePageContextMenuIfFocusedTab(tabId: number): Promise<void> {
+    if ((await getFocusedActiveTabId()) !== tabId) return;
+    return updatePageContextMenu(tabId);
+  }
+
+  async function syncPageContextMenuForFocusedTab(): Promise<void> {
+    const tabId = await getFocusedActiveTabId();
+    if (tabId) await updatePageContextMenu(tabId);
+  }
+
   /** When `selectionText` is empty (some sites / frames), read the live selection in the page. */
   async function readSelectedTextFromTab(tabId: number, frameId?: number): Promise<string> {
     const scripting = browser.scripting;
@@ -103,7 +119,7 @@ export default defineBackground(() => {
         } else {
           pageTranslatedTabs.delete(tabId);
         }
-        updatePageContextMenu(tabId).catch(() => {});
+        updatePageContextMenuIfFocusedTab(tabId).catch(() => {});
       }
       sendResponse({ success: true });
       return false;
@@ -188,13 +204,25 @@ export default defineBackground(() => {
     updatePageContextMenu(tabId).catch(() => {});
   });
 
+  browser.tabs.onCreated.addListener((tab) => {
+    if (tab.active && tab.id) updatePageContextMenuIfFocusedTab(tab.id).catch(() => {});
+  });
+
   browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.status === 'loading') {
       pageTranslatedTabs.delete(tabId);
     }
-    if (changeInfo.status === 'loading' || changeInfo.url) {
-      updatePageContextMenu(tabId).catch(() => {});
+    // Session restore after cold start often skips `loading`; `complete` carries the final URL.
+    if (changeInfo.status === 'loading' || changeInfo.status === 'complete' || changeInfo.url) {
+      updatePageContextMenuIfFocusedTab(tabId).catch(() => {});
     }
+  });
+
+  browser.windows.onFocusChanged.addListener((windowId) => {
+    if (windowId === browser.windows.WINDOW_ID_NONE) return;
+    browser.tabs.query({ active: true, windowId }).then(([tab]) => {
+      if (tab?.id) updatePageContextMenu(tab.id).catch(() => {});
+    });
   });
 
   browser.tabs.onRemoved.addListener((tabId) => {
@@ -236,13 +264,12 @@ export default defineBackground(() => {
     }
   });
 
-  // Service worker startup does not fire tabs.onActivated/onUpdated for the tab the user
-  // is already on (e.g. extension reload on chrome://extensions). contextMenus.create
-  // defaults to enabled, so sync the active tab once on boot.
-  // query: active=true → focused tab in the window; currentWindow=true → that browser window.
-  browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-    if (tab?.id) updatePageContextMenu(tab.id).catch(() => {});
+  // onStartup may run before session restore; tab events below sync menu once URLs are known.
+  browser.runtime.onStartup.addListener(() => {
+    syncPageContextMenuForFocusedTab().catch(() => {});
   });
+
+  syncPageContextMenuForFocusedTab().catch(() => {});
 
   console.log('[LinguaLens] background service worker started');
 });
