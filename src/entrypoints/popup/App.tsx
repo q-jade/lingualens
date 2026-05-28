@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
+import { isTranslatableTabUrl, PAGE_TRANSLATE_UNAVAILABLE } from '../../shared/translatable-tab';
 
 /** Chrome 114+ only; must run from a user gesture (e.g. click). */
 async function openExtensionSidePanel(): Promise<string | null> {
@@ -31,6 +32,7 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pageTranslateActive, setPageTranslateActive] = useState(false);
+  const [pageTranslateSupported, setPageTranslateSupported] = useState(true);
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -44,7 +46,9 @@ export function App() {
 
     browser.tabs.query({ active: true, currentWindow: true })
       .then(([tab]) => {
-        if (!tab?.id) return;
+        const supported = isTranslatableTabUrl(tab?.url);
+        setPageTranslateSupported(supported);
+        if (!tab?.id || !supported) return;
         return browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_STATUS' });
       })
       .then((res: { active?: boolean } | undefined) => {
@@ -158,9 +162,13 @@ export function App() {
       {/* Page translate */}
       <button
         onClick={async () => {
-          if (pageTranslateActive) return;
+          if (pageTranslateActive || !pageTranslateSupported) return;
           const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-          if (!tab?.id) return;
+          if (!tab?.id || !isTranslatableTabUrl(tab.url)) {
+            setPageTranslateSupported(false);
+            setError(PAGE_TRANSLATE_UNAVAILABLE);
+            return;
+          }
           try {
             const res = await browser.runtime.sendMessage({
               type: 'PAGE_TRANSLATE_PAGE',
@@ -170,18 +178,29 @@ export function App() {
               window.close();
             } else {
               if (res?.error === 'Page translation is already active.') setPageTranslateActive(true);
-              setError(res?.error || 'Cannot reach this page.');
+              setError(res?.error || PAGE_TRANSLATE_UNAVAILABLE);
             }
           } catch {
-            setError('Cannot reach this page. Reload the page and try again.');
+            setError(PAGE_TRANSLATE_UNAVAILABLE);
           }
         }}
-        disabled={pageTranslateActive}
+        disabled={pageTranslateActive || !pageTranslateSupported}
+        title={
+          !pageTranslateSupported
+            ? PAGE_TRANSLATE_UNAVAILABLE
+            : pageTranslateActive
+              ? 'This page is already being translated'
+              : undefined
+        }
         className="w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium
                    border border-gray-200 text-gray-700 hover:bg-gray-50
                    disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {pageTranslateActive ? 'Page Already Translated' : 'Translate This Page'}
+        {!pageTranslateSupported
+          ? 'Not Available on This Page'
+          : pageTranslateActive
+            ? 'Page Already Translated'
+            : 'Translate This Page'}
       </button>
 
       {/* Footer */}

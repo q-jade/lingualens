@@ -1,5 +1,6 @@
 import { handleMessage } from '../background/message-router';
 import { registerInstallOnboarding } from '../background/onboarding';
+import { isTranslatableTabUrl, PAGE_TRANSLATE_UNAVAILABLE } from '../shared/translatable-tab';
 
 export default defineBackground(() => {
   registerInstallOnboarding();
@@ -17,7 +18,13 @@ export default defineBackground(() => {
   }
 
   async function updatePageContextMenu(tabId?: number): Promise<void> {
+    if (!tabId) return;
     try {
+      const tab = await browser.tabs.get(tabId);
+      if (!isTranslatableTabUrl(tab.url)) {
+        await browser.contextMenus.update('translate-page', { enabled: false });
+        return;
+      }
       const active = await isPageTranslationActive(tabId);
       await browser.contextMenus.update('translate-page', { enabled: !active });
     } catch {
@@ -104,14 +111,21 @@ export default defineBackground(() => {
 
     if (message.type === 'PAGE_TRANSLATE_PAGE') {
       const payload = message.payload as { tabId: number };
-      isPageTranslationActive(payload.tabId)
-        .then((active) => {
-          if (active) return { success: false, error: 'Page translation is already active.' };
-          return browser.tabs.sendMessage(payload.tabId, { type: 'PAGE_TRANSLATE_START' })
-            .then(() => ({ success: true }));
+      browser.tabs
+        .get(payload.tabId)
+        .then((tab) => {
+          if (!isTranslatableTabUrl(tab.url)) {
+            return { success: false, error: PAGE_TRANSLATE_UNAVAILABLE };
+          }
+          return isPageTranslationActive(payload.tabId).then((active) => {
+            if (active) return { success: false, error: 'Page translation is already active.' };
+            return browser.tabs
+              .sendMessage(payload.tabId, { type: 'PAGE_TRANSLATE_START' })
+              .then(() => ({ success: true }));
+          });
         })
         .then(sendResponse)
-        .catch((err) => sendResponse({ success: false, error: err instanceof Error ? err.message : 'Failed to reach page' }));
+        .catch(() => sendResponse({ success: false, error: PAGE_TRANSLATE_UNAVAILABLE }));
       return true;
     }
 
@@ -147,6 +161,7 @@ export default defineBackground(() => {
         break;
       }
       case 'translate-page':
+        if (!isTranslatableTabUrl(tab.url)) break;
         await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' }).catch((err) => {
           console.warn(
             '[LinguaLens] translate-page: could not reach this tab (reload the page or use a normal https page).',
@@ -176,6 +191,8 @@ export default defineBackground(() => {
   browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.status === 'loading') {
       pageTranslatedTabs.delete(tabId);
+    }
+    if (changeInfo.status === 'loading' || changeInfo.url) {
       updatePageContextMenu(tabId).catch(() => {});
     }
   });
@@ -210,9 +227,21 @@ export default defineBackground(() => {
       await browser.tabs
         .sendMessage(tab.id, { type: 'TRANSLATE_SELECTION_TEXT', payload: { text } })
         .catch(() => {});
-    } else if (menuId === 'translate-page' && !(await isPageTranslationActive(tab.id))) {
+    } else if (
+      menuId === 'translate-page'
+      && isTranslatableTabUrl(tab.url)
+      && !(await isPageTranslationActive(tab.id))
+    ) {
       await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' }).catch(() => {});
     }
+  });
+
+  // Service worker startup does not fire tabs.onActivated/onUpdated for the tab the user
+  // is already on (e.g. extension reload on chrome://extensions). contextMenus.create
+  // defaults to enabled, so sync the active tab once on boot.
+  // query: active=true → focused tab in the window; currentWindow=true → that browser window.
+  browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+    if (tab?.id) updatePageContextMenu(tab.id).catch(() => {});
   });
 
   console.log('[LinguaLens] background service worker started');
