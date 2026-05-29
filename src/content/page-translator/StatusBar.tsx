@@ -1,5 +1,6 @@
 import { type TranslateProgress, type DisplayMode } from './engine';
 import { AppLogo } from '../../shared/AppLogo';
+import { PAGE_TRANSLATE_ACTION_LABEL } from '../../shared/page-translate-phase';
 
 interface Props {
   progress: TranslateProgress | null;
@@ -61,10 +62,14 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
           </button>
         )}
         {running && (
-          <button onClick={onStop} className="st-status-btn st-status-btn-warn">Stop</button>
+          <button onClick={onStop} className="st-status-btn st-status-btn-warn">
+            {PAGE_TRANSLATE_ACTION_LABEL.stop}
+          </button>
         )}
         {done && (
-          <button onClick={onRestore} className="st-status-btn">Restore</button>
+          <button onClick={onRestore} className="st-status-btn">
+            {PAGE_TRANSLATE_ACTION_LABEL.restore}
+          </button>
         )}
         <button onClick={onToggleCollapse} className="st-status-btn-icon" title="Minimize">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>

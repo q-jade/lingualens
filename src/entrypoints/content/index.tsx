@@ -228,9 +228,11 @@ export default defineContentScript({
           appHandle?.startPageTranslation();
           sendResponse({ ok: true });
           break;
-        case 'PAGE_TRANSLATE_STATUS':
-          sendResponse({ active: appHandle?.isPageTranslationActive() ?? false });
+        case 'PAGE_TRANSLATE_STATUS': {
+          const phase = appHandle?.getPageTranslatePhase() ?? 'idle';
+          sendResponse({ phase, active: phase !== 'idle' });
           break;
+        }
         case 'PAGE_TRANSLATE_STOP':
           appHandle?.stopPageTranslation();
           sendResponse({ ok: true });

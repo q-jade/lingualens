@@ -3,6 +3,14 @@ import type { AppSettings, MessageResponse } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
 import { StatusBar } from '../../content/page-translator/StatusBar';
 import { AppLogo } from '../../shared/AppLogo';
+import type { PageTranslatePhase } from '../../shared/page-translate-phase';
+
+function notifyPageTranslatePhase(phase: PageTranslatePhase) {
+  browser.runtime.sendMessage({
+    type: 'PAGE_TRANSLATE_STATE_CHANGED',
+    payload: { phase },
+  }).catch(() => {});
+}
 
 export interface ContentAppHandle {
   showTrigger: (text: string, position: { x: number; y: number }) => void;
@@ -10,6 +18,7 @@ export interface ContentAppHandle {
   translateNow: (text: string) => void;
   hide: () => void;
   isPageTranslationActive: () => boolean;
+  getPageTranslatePhase: () => PageTranslatePhase;
   startPageTranslation: () => void;
   stopPageTranslation: () => void;
   restorePageTranslation: () => void;
@@ -92,6 +101,19 @@ export function ContentApp({ onReady }: Props) {
   const settingsRef = useRef<AppSettings | null>(null);
   const engineRef = useRef(new PageTranslateEngine());
   const pageTranslatedRef = useRef(false);
+  const pageProgressRef = useRef<TranslateProgress | null>(null);
+  const pageRunningRef = useRef(false);
+
+  pageProgressRef.current = pageProgress;
+  pageRunningRef.current = pageRunning;
+
+  const computePageTranslatePhase = (): PageTranslatePhase => {
+    if (!pageTranslatedRef.current) return 'idle';
+    if (pageRunningRef.current) return 'running';
+    if (pageProgressRef.current && pageProgressRef.current.done > 0) return 'done';
+    return 'idle';
+  };
+
   const handleTranslateRef = useRef<() => Promise<void>>(async () => {});
   const panelRef = useRef<HTMLDivElement>(null);
   const pendingAnchorRef = useRef<{ x: number; y: number } | null>(null);
@@ -109,10 +131,7 @@ export function ContentApp({ onReady }: Props) {
     if (engine.running || pageTranslatedRef.current) return;
 
     pageTranslatedRef.current = true;
-    browser.runtime.sendMessage({
-      type: 'PAGE_TRANSLATE_STATE_CHANGED',
-      payload: { active: true },
-    }).catch(() => {});
+    notifyPageTranslatePhase('running');
     setMode('hidden');
     setPageRunning(true);
     setPageProgress({ total: 0, done: 0, errors: 0 });
@@ -130,21 +149,32 @@ export function ContentApp({ onReady }: Props) {
       );
     } finally {
       setPageRunning(false);
+      if ((pageProgressRef.current?.done ?? 0) === 0) {
+        pageTranslatedRef.current = false;
+        setPageProgress(null);
+        notifyPageTranslatePhase('idle');
+      } else {
+        notifyPageTranslatePhase('done');
+      }
     }
   }, [displayMode]);
 
   const stopPageTranslation = useCallback(() => {
     engineRef.current.stop();
     setPageRunning(false);
+    if ((pageProgressRef.current?.done ?? 0) === 0) {
+      pageTranslatedRef.current = false;
+      setPageProgress(null);
+      notifyPageTranslatePhase('idle');
+    } else {
+      notifyPageTranslatePhase('done');
+    }
   }, []);
 
   const restorePageTranslation = useCallback(() => {
     engineRef.current.restore();
     pageTranslatedRef.current = false;
-    browser.runtime.sendMessage({
-      type: 'PAGE_TRANSLATE_STATE_CHANGED',
-      payload: { active: false },
-    }).catch(() => {});
+    notifyPageTranslatePhase('idle');
     setPageProgress(null);
     setPageRunning(false);
   }, []);
@@ -271,6 +301,9 @@ export function ContentApp({ onReady }: Props) {
       },
       isPageTranslationActive() {
         return pageTranslatedRef.current;
+      },
+      getPageTranslatePhase() {
+        return computePageTranslatePhase();
       },
       startPageTranslation,
       stopPageTranslation,

@@ -79,7 +79,7 @@ If translation fails with *“No active provider configured”*, enable a provid
 
 - **Popup:** **Translate This Page**
 - **Shortcut (default):** `Alt+Shift+T`
-- **Context menu:** **Translate This Page** on the page (disabled while translation is already active)
+- **Context menu:** **Translate This Page** on the page; switches to **Stop Page Translation** while translating and **Restore Original Page** when finished
 
 Use the on-page status bar to stop or restore the original text.
 

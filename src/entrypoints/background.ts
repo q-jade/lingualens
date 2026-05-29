@@ -1,35 +1,53 @@
 import { handleMessage } from '../background/message-router';
 import { registerInstallOnboarding } from '../background/onboarding';
+import {
+  isPageTranslateStarted,
+  PAGE_TRANSLATE_CONTEXT_MENU_TITLE,
+  type PageTranslatePhase,
+} from '../shared/page-translate-phase';
 import { isTranslatableTabUrl, PAGE_TRANSLATE_UNAVAILABLE } from '../shared/translatable-tab';
 
 export default defineBackground(() => {
   registerInstallOnboarding();
-  const pageTranslatedTabs = new Set<number>();
+  const pageTranslatePhaseByTab = new Map<number, PageTranslatePhase>();
 
-  async function isPageTranslationActive(tabId?: number): Promise<boolean> {
-    if (!tabId) return false;
-    if (pageTranslatedTabs.has(tabId)) return true;
-    try {
-      const response = await browser.tabs.sendMessage(tabId, { type: 'PAGE_TRANSLATE_STATUS' });
-      return Boolean((response as { active?: boolean })?.active);
-    } catch {
-      return false;
-    }
+  function rememberPageTranslatePhase(tabId: number, phase: PageTranslatePhase): void {
+    if (isPageTranslateStarted(phase)) pageTranslatePhaseByTab.set(tabId, phase);
+    else pageTranslatePhaseByTab.delete(tabId);
   }
 
-  async function updatePageContextMenu(tabId?: number): Promise<void> {
-    if (!tabId) return;
+  async function applyPageContextMenu(tabId: number, phase: PageTranslatePhase): Promise<void> {
     try {
       const tab = await browser.tabs.get(tabId);
       if (!isTranslatableTabUrl(tab.url)) {
         await browser.contextMenus.update('translate-page', { enabled: false });
         return;
       }
-      const active = await isPageTranslationActive(tabId);
-      await browser.contextMenus.update('translate-page', { enabled: !active });
+      await browser.contextMenus.update('translate-page', {
+        title: PAGE_TRANSLATE_CONTEXT_MENU_TITLE[phase],
+        enabled: true,
+      });
     } catch {
       // Menu may not exist yet (e.g. first SW tick) or update unsupported
     }
+  }
+
+  async function getPageTranslatePhase(tabId: number): Promise<PageTranslatePhase> {
+    try {
+      const response = await browser.tabs.sendMessage(tabId, { type: 'PAGE_TRANSLATE_STATUS' });
+      const phase = (response as { phase?: PageTranslatePhase })?.phase ?? 'idle';
+      rememberPageTranslatePhase(tabId, phase);
+      return phase;
+    } catch {
+      return pageTranslatePhaseByTab.get(tabId) ?? 'idle';
+    }
+  }
+
+  /** Query content script and refresh menu (tab switch, startup, etc.). */
+  async function updatePageContextMenu(tabId?: number): Promise<void> {
+    if (!tabId) return;
+    const phase = await getPageTranslatePhase(tabId);
+    await applyPageContextMenu(tabId, phase);
   }
 
   async function getFocusedActiveTabId(): Promise<number | undefined> {
@@ -37,10 +55,19 @@ export default defineBackground(() => {
     return tab?.id;
   }
 
-  /** Menu enabled state is global; only sync from the tab the user is actually viewing. */
+  /** Menu is global; only repaint when the user is viewing this tab. */
+  async function applyPageContextMenuIfFocusedTab(
+    tabId: number,
+    phase: PageTranslatePhase,
+  ): Promise<void> {
+    if ((await getFocusedActiveTabId()) !== tabId) return;
+    await applyPageContextMenu(tabId, phase);
+  }
+
+  /** Query content script, but only if this tab is focused (tab switch / navigation). */
   async function updatePageContextMenuIfFocusedTab(tabId: number): Promise<void> {
     if ((await getFocusedActiveTabId()) !== tabId) return;
-    return updatePageContextMenu(tabId);
+    await updatePageContextMenu(tabId);
   }
 
   async function syncPageContextMenuForFocusedTab(): Promise<void> {
@@ -143,24 +170,32 @@ export default defineBackground(() => {
       }
     }
     if (!isTranslatableTabUrl(url)) return;
-    if (await isPageTranslationActive(tabId)) return;
+    if ((await getPageTranslatePhase(tabId)) !== 'idle') return;
 
     await browser.tabs
       .sendMessage(tabId, { type: 'PAGE_TRANSLATE_START' })
       .catch(warnTabTranslateUnreachable);
   }
 
+  async function stopPageInTab(tabId: number): Promise<void> {
+    await browser.tabs
+      .sendMessage(tabId, { type: 'PAGE_TRANSLATE_STOP' })
+      .catch(warnTabTranslateUnreachable);
+  }
+
+  async function restorePageInTab(tabId: number): Promise<void> {
+    await browser.tabs
+      .sendMessage(tabId, { type: 'PAGE_TRANSLATE_RESTORE' })
+      .catch(warnTabTranslateUnreachable);
+  }
+
   browser.runtime.onMessage.addListener((message: Record<string, unknown>, sender, sendResponse) => {
     if (message.type === 'PAGE_TRANSLATE_STATE_CHANGED') {
       const tabId = sender.tab?.id;
-      const payload = message.payload as { active?: boolean };
+      const phase = (message.payload as { phase?: PageTranslatePhase })?.phase ?? 'idle';
       if (tabId) {
-        if (payload.active) {
-          pageTranslatedTabs.add(tabId);
-        } else {
-          pageTranslatedTabs.delete(tabId);
-        }
-        updatePageContextMenuIfFocusedTab(tabId).catch(() => {});
+        rememberPageTranslatePhase(tabId, phase);
+        applyPageContextMenuIfFocusedTab(tabId, phase).catch(() => {});
       }
       sendResponse({ success: true });
       return false;
@@ -174,8 +209,8 @@ export default defineBackground(() => {
           if (!isTranslatableTabUrl(tab.url)) {
             return { success: false, error: PAGE_TRANSLATE_UNAVAILABLE };
           }
-          return isPageTranslationActive(payload.tabId).then((active) => {
-            if (active) return { success: false, error: 'Page translation is already active.' };
+          return getPageTranslatePhase(payload.tabId).then((phase) => {
+            if (phase !== 'idle') return { success: false, error: 'Page translation is already active.' };
             return browser.tabs
               .sendMessage(payload.tabId, { type: 'PAGE_TRANSLATE_START' })
               .then(() => ({ success: true }));
@@ -226,7 +261,7 @@ export default defineBackground(() => {
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.status === 'loading') {
-      pageTranslatedTabs.delete(tabId);
+      pageTranslatePhaseByTab.delete(tabId);
     }
     // Session restore after cold start often skips `loading`; `complete` carries the final URL.
     if (changeInfo.status === 'loading' || changeInfo.status === 'complete' || changeInfo.url) {
@@ -242,7 +277,7 @@ export default defineBackground(() => {
   });
 
   browser.tabs.onRemoved.addListener((tabId) => {
-    pageTranslatedTabs.delete(tabId);
+    pageTranslatePhaseByTab.delete(tabId);
   });
 
   browser.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -254,7 +289,17 @@ export default defineBackground(() => {
       const frameId = typeof info.frameId === 'number' ? info.frameId : undefined;
       await translateSelectionInTab(tab.id, frameId);
     } else if (menuId === 'translate-page') {
-      await translatePageInTab(tab.id, tab.url);
+      const phase = await getPageTranslatePhase(tab.id);
+      switch (phase) {
+        case 'running':
+          await stopPageInTab(tab.id);
+          break;
+        case 'done':
+          await restorePageInTab(tab.id);
+          break;
+        default:
+          await translatePageInTab(tab.id, tab.url);
+      }
     }
   });
 
