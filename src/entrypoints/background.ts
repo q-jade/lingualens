@@ -48,7 +48,7 @@ export default defineBackground(() => {
     if (tabId) await updatePageContextMenu(tabId);
   }
 
-  /** When `selectionText` is empty (some sites / frames), read the live selection in the page. */
+  /** Read the live selection via `getSelection()` (keeps paragraph breaks; used by all selection translate entry points). */
   async function readSelectedTextFromTab(tabId: number, frameId?: number): Promise<string> {
     const scripting = browser.scripting;
     if (!scripting?.executeScript) return '';
@@ -109,6 +109,47 @@ export default defineBackground(() => {
     }
   }
 
+  const TAB_TRANSLATE_UNREACHABLE =
+    '[LinguaLens] Could not run on this tab. Reload a normal website (https/http) after install or update — not chrome:// or the Web Store. If a keyboard shortcut does nothing, bind it at chrome://extensions/shortcuts.';
+
+  function warnTabTranslateUnreachable(err: unknown): void {
+    console.warn(TAB_TRANSLATE_UNREACHABLE, err);
+  }
+
+  /** Shared by keyboard shortcut and context menu (MV3: await keeps the SW alive until send completes). */
+  async function translateSelectionInTab(tabId: number, frameId?: number): Promise<void> {
+    if (await shouldBlockSelectionTranslate(tabId, frameId)) return;
+
+    const text = (await readSelectedTextFromTab(tabId, frameId)).trim();
+    if (text.length > 1) {
+      await browser.tabs
+        .sendMessage(tabId, { type: 'TRANSLATE_SELECTION_TEXT', payload: { text } })
+        .catch(warnTabTranslateUnreachable);
+    } else {
+      await browser.tabs
+        .sendMessage(tabId, { type: 'TRANSLATE_SELECTION' })
+        .catch(warnTabTranslateUnreachable);
+    }
+  }
+
+  /** Shared by keyboard shortcut and context menu. */
+  async function translatePageInTab(tabId: number, tabUrl?: string): Promise<void> {
+    let url = tabUrl;
+    if (url === undefined) {
+      try {
+        url = (await browser.tabs.get(tabId)).url;
+      } catch {
+        return;
+      }
+    }
+    if (!isTranslatableTabUrl(url)) return;
+    if (await isPageTranslationActive(tabId)) return;
+
+    await browser.tabs
+      .sendMessage(tabId, { type: 'PAGE_TRANSLATE_START' })
+      .catch(warnTabTranslateUnreachable);
+  }
+
   browser.runtime.onMessage.addListener((message: Record<string, unknown>, sender, sendResponse) => {
     if (message.type === 'PAGE_TRANSLATE_STATE_CHANGED') {
       const tabId = sender.tab?.id;
@@ -154,36 +195,11 @@ export default defineBackground(() => {
     if (!tab?.id) return;
 
     switch (command) {
-      case 'translate-selection': {
-        if (await shouldBlockSelectionTranslate(tab.id)) break;
-        let text = (await readSelectedTextFromTab(tab.id)).trim();
-        if (text.length > 1) {
-          await browser.tabs
-            .sendMessage(tab.id, { type: 'TRANSLATE_SELECTION_TEXT', payload: { text } })
-            .catch((err) => {
-              console.warn(
-                '[LinguaLens] translate-selection: could not reach this tab (reload the page, use a normal https page, or set a shortcut in chrome://extensions/shortcuts).',
-                err,
-              );
-            });
-        } else {
-          await browser.tabs.sendMessage(tab.id, { type: 'TRANSLATE_SELECTION' }).catch((err) => {
-            console.warn(
-              '[LinguaLens] translate-selection: could not reach this tab (reload the page, use a normal https page, or set a shortcut in chrome://extensions/shortcuts).',
-              err,
-            );
-          });
-        }
+      case 'translate-selection':
+        await translateSelectionInTab(tab.id);
         break;
-      }
       case 'translate-page':
-        if (!isTranslatableTabUrl(tab.url)) break;
-        await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' }).catch((err) => {
-          console.warn(
-            '[LinguaLens] translate-page: could not reach this tab (reload the page or use a normal https page).',
-            err,
-          );
-        });
+        await translatePageInTab(tab.id, tab.url);
         break;
     }
   });
@@ -235,32 +251,10 @@ export default defineBackground(() => {
     const menuId = String(info.menuItemId);
 
     if (menuId === 'translate-selection') {
-      let text = (info.selectionText ?? '').trim();
-      if (!text) {
-        text = await readSelectedTextFromTab(
-          tab.id,
-          typeof info.frameId === 'number' ? info.frameId : undefined,
-        );
-      }
-      if (!text) return;
-      if (
-        await shouldBlockSelectionTranslate(
-          tab.id,
-          typeof info.frameId === 'number' ? info.frameId : undefined,
-        )
-      ) {
-        return;
-      }
-      // MV3: await keeps the service worker alive until the message is sent; fire-and-forget can drop the message.
-      await browser.tabs
-        .sendMessage(tab.id, { type: 'TRANSLATE_SELECTION_TEXT', payload: { text } })
-        .catch(() => {});
-    } else if (
-      menuId === 'translate-page'
-      && isTranslatableTabUrl(tab.url)
-      && !(await isPageTranslationActive(tab.id))
-    ) {
-      await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_START' }).catch(() => {});
+      const frameId = typeof info.frameId === 'number' ? info.frameId : undefined;
+      await translateSelectionInTab(tab.id, frameId);
+    } else if (menuId === 'translate-page') {
+      await translatePageInTab(tab.id, tab.url);
     }
   });
 
