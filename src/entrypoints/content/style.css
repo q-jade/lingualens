@@ -185,7 +185,31 @@
 }
 
 .st-status-icon {
-  @apply text-blue-500 flex-shrink-0;
+  @apply flex-shrink-0;
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.st-status-collapsed-mark {
+  display: block;
+  line-height: 0;
+  border-radius: 10px;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 2px 10px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+  transition: box-shadow 150ms ease, transform 150ms ease;
+}
+
+.st-status-collapsed-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .st-status-text {
@@ -228,21 +252,48 @@
   padding: 0;
 }
 
-/* Collapsed floating icon */
+/* Collapsed floating control — icon-first, soft squircle (not a white circle) */
 .st-status-collapsed {
-  @apply fixed flex items-center justify-center w-9 h-9 rounded-full
-         shadow-lg border border-gray-200 text-blue-500 cursor-pointer
-         hover:shadow-xl hover:scale-105 active:scale-95
-         transition-all duration-150;
-  background-color: #ffffff;
+  position: fixed;
   top: 12px;
   right: 16px;
   z-index: 2147483646;
+  display: block;
+  cursor: pointer;
+  border: none;
+  outline: none;
   padding: 0;
+  line-height: 0;
+  background: transparent;
+  transition: transform 150ms ease;
+}
+
+.st-status-collapsed:hover {
+  transform: scale(1.05);
+}
+
+.st-status-collapsed:hover .st-status-collapsed-mark {
+  box-shadow:
+    0 4px 16px rgba(59, 130, 246, 0.2),
+    0 0 0 1px rgba(59, 130, 246, 0.12);
+}
+
+.st-status-collapsed:active {
+  transform: scale(0.96);
 }
 
 .st-status-collapsed-badge {
-  @apply absolute -bottom-1 -right-1 text-[9px] font-bold text-white
-         rounded-full px-1 min-w-[18px] text-center leading-[16px];
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 4px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 16px;
   background: linear-gradient(135deg, #3b82f6, #6366f1);
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.35);
 }

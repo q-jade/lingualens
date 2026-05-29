@@ -1,4 +1,5 @@
 import { type TranslateProgress, type DisplayMode } from './engine';
+import { AppLogo } from '../../shared/AppLogo';
 
 interface Props {
   progress: TranslateProgress | null;
@@ -20,10 +21,9 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
   if (collapsed) {
     return (
       <button onClick={onToggleCollapse} className="st-status-collapsed" title="Expand translation bar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" />
-          <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
-        </svg>
+        <span className="st-status-collapsed-mark">
+          <AppLogo className="st-status-collapsed-icon" />
+        </span>
         {running && (
           <span className="st-status-collapsed-badge">{percent}%</span>
         )}
@@ -34,10 +34,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
   return (
     <div className="st-status-bar">
       <div className="st-status-left">
-        <svg className="st-status-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" />
-          <path d="m22 22-5-10-5 10" /><path d="M14 18h6" />
-        </svg>
+        <AppLogo className="st-status-icon" />
         {running ? (
           <span className="st-status-text">
             Translating… {progress.done}/{progress.total} ({percent}%)
@@ -70,8 +67,8 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
           <button onClick={onRestore} className="st-status-btn">Restore</button>
         )}
         <button onClick={onToggleCollapse} className="st-status-btn-icon" title="Minimize">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m18 15-6-6-6 6" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+            <path d="M5 12h14" />
           </svg>
         </button>
       </div>
