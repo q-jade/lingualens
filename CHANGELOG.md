@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.0] - 2026-06-01
+
+### Added
+
+- Page translation phase state (`idle` / `running` / `done`): context menu and status bar share the same labels — **Translate This Page**, **Stop Page Translation**, and **Restore Original Page** — and update as the session progresses.
+
+### Changed
+
+- Page translate status bar: AppLogo on the bar and collapsed floater, minus minimize control, and a soft squircle chip instead of a white circle.
+- Selection translate trigger stays anchored to the selection while the page scrolls or resizes.
+
+### Fixed
+
+- Background: unified selection and page translate entry points so context menu, shortcut, and floating trigger use the same selection text (improves cache reuse).
+- Background: clearer warnings when translation is requested on unreachable tabs.
+
 ## [0.2.0] - 2026-05-28
 
 ### Added
@@ -38,6 +54,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.3.0]: https://github.com/q-jade/lingualens/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/q-jade/lingualens/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/q-jade/lingualens/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/q-jade/lingualens/releases/tag/v0.1.0
