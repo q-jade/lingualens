@@ -3,13 +3,20 @@ import type { AppSettings, MessageResponse } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
 import { StatusBar } from '../../content/page-translator/StatusBar';
 import { AppLogo } from '../../shared/AppLogo';
-import type { PageTranslatePhase } from '../../shared/page-translate-phase';
+import {
+  isPageTranslateStarted,
+  type PageTranslatePhase,
+} from '../../shared/page-translate-phase';
 
 function notifyPageTranslatePhase(phase: PageTranslatePhase) {
   browser.runtime.sendMessage({
     type: 'PAGE_TRANSLATE_STATE_CHANGED',
     payload: { phase },
   }).catch(() => {});
+}
+
+function phaseAfterPageTranslateEnds(progress: TranslateProgress | null): PageTranslatePhase {
+  return progress && progress.done > 0 ? 'done' : 'idle';
 }
 
 export interface ContentAppHandle {
@@ -91,8 +98,8 @@ export function ContentApp({ onReady }: Props) {
   const [copied, setCopied] = useState(false);
 
   // Page translation state
+  const [pageTranslatePhase, setPageTranslatePhase] = useState<PageTranslatePhase>('idle');
   const [pageProgress, setPageProgress] = useState<TranslateProgress | null>(null);
-  const [pageRunning, setPageRunning] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('bilingual');
   const [statusCollapsed, setStatusCollapsed] = useState(false);
 
@@ -100,18 +107,21 @@ export function ContentApp({ onReady }: Props) {
   const anchorRef = useRef({ x: 0, y: 0 });
   const settingsRef = useRef<AppSettings | null>(null);
   const engineRef = useRef(new PageTranslateEngine());
-  const pageTranslatedRef = useRef(false);
+  /** Mirrors `pageTranslatePhase` for sync guards inside message/async handlers. */
+  const pageTranslatePhaseRef = useRef<PageTranslatePhase>('idle');
+  /** Latest progress for `finally` / stop (React state may lag one tick). */
   const pageProgressRef = useRef<TranslateProgress | null>(null);
-  const pageRunningRef = useRef(false);
 
-  pageProgressRef.current = pageProgress;
-  pageRunningRef.current = pageRunning;
+  const applyPageTranslatePhase = (phase: PageTranslatePhase) => {
+    pageTranslatePhaseRef.current = phase;
+    setPageTranslatePhase(phase);
+    notifyPageTranslatePhase(phase);
+  };
 
-  const computePageTranslatePhase = (): PageTranslatePhase => {
-    if (!pageTranslatedRef.current) return 'idle';
-    if (pageRunningRef.current) return 'running';
-    if (pageProgressRef.current && pageProgressRef.current.done > 0) return 'done';
-    return 'idle';
+  const finishPageTranslateSession = (progress: TranslateProgress | null) => {
+    const phase = phaseAfterPageTranslateEnds(progress);
+    if (phase === 'idle') setPageProgress(null);
+    applyPageTranslatePhase(phase);
   };
 
   const handleTranslateRef = useRef<() => Promise<void>>(async () => {});
@@ -128,13 +138,13 @@ export function ContentApp({ onReady }: Props) {
   const startPageTranslation = useCallback(async () => {
     const settings = settingsRef.current;
     const engine = engineRef.current;
-    if (engine.running || pageTranslatedRef.current) return;
+    if (engine.running || pageTranslatePhaseRef.current !== 'idle') return;
 
-    pageTranslatedRef.current = true;
-    notifyPageTranslatePhase('running');
+    applyPageTranslatePhase('running');
     setMode('hidden');
-    setPageRunning(true);
-    setPageProgress({ total: 0, done: 0, errors: 0 });
+    const initial = { total: 0, done: 0, errors: 0 };
+    pageProgressRef.current = initial;
+    setPageProgress(initial);
 
     try {
       await engine.start(
@@ -145,39 +155,28 @@ export function ContentApp({ onReady }: Props) {
           concurrency: 4,
           chunkingMode: settings?.chunkingMode ?? 'quality',
         },
-        (progress) => setPageProgress({ ...progress }),
+        (progress) => {
+          // Keep ref in sync here: `finally` runs before React re-renders after the last onProgress.
+          pageProgressRef.current = progress;
+          setPageProgress({ ...progress });
+        },
       );
     } finally {
-      setPageRunning(false);
-      if ((pageProgressRef.current?.done ?? 0) === 0) {
-        pageTranslatedRef.current = false;
-        setPageProgress(null);
-        notifyPageTranslatePhase('idle');
-      } else {
-        notifyPageTranslatePhase('done');
-      }
+      finishPageTranslateSession(pageProgressRef.current);
     }
   }, [displayMode]);
 
-  const stopPageTranslation = useCallback(() => {
+  const stopPageTranslation = () => {
     engineRef.current.stop();
-    setPageRunning(false);
-    if ((pageProgressRef.current?.done ?? 0) === 0) {
-      pageTranslatedRef.current = false;
-      setPageProgress(null);
-      notifyPageTranslatePhase('idle');
-    } else {
-      notifyPageTranslatePhase('done');
-    }
-  }, []);
+    finishPageTranslateSession(pageProgressRef.current);
+  };
 
-  const restorePageTranslation = useCallback(() => {
+  const restorePageTranslation = () => {
     engineRef.current.restore();
-    pageTranslatedRef.current = false;
-    notifyPageTranslatePhase('idle');
+    pageProgressRef.current = null;
     setPageProgress(null);
-    setPageRunning(false);
-  }, []);
+    applyPageTranslatePhase('idle');
+  };
 
   const toggleDisplayMode = useCallback(() => {
     const newMode: DisplayMode = displayMode === 'bilingual' ? 'replace' : 'bilingual';
@@ -187,13 +186,13 @@ export function ContentApp({ onReady }: Props) {
 
   const STATUS_BAR_HEIGHT = 40;
   useEffect(() => {
-    const visible = pageProgress !== null && !statusCollapsed;
+    const visible = pageTranslatePhase !== 'idle' && !statusCollapsed;
     if (visible) {
       const original = document.documentElement.style.paddingTop;
       document.documentElement.style.paddingTop = `${STATUS_BAR_HEIGHT}px`;
       return () => { document.documentElement.style.paddingTop = original; };
     }
-  }, [pageProgress !== null, statusCollapsed]);
+  }, [pageTranslatePhase, statusCollapsed]);
 
   useLayoutEffect(() => {
     if (mode !== 'panel') return;
@@ -257,6 +256,7 @@ export function ContentApp({ onReady }: Props) {
     document.addEventListener('mouseup', onMouseUp);
   }, [panelPosition]);
 
+  // stop/restore only touch refs + setState; re-register when displayMode changes (start uses it).
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
       (res: MessageResponse<AppSettings>) => {
@@ -266,7 +266,7 @@ export function ContentApp({ onReady }: Props) {
 
     onReady({
       showTrigger(text, pos) {
-        if (pageTranslatedRef.current) return;
+        if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         selectedTextRef.current = text;
         anchorRef.current = pos;
         setSelectedText(text);
@@ -277,7 +277,7 @@ export function ContentApp({ onReady }: Props) {
         setCopied(false);
       },
       translateNow(text) {
-        if (pageTranslatedRef.current) return;
+        if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         const t = text.trim();
         if (!t) return;
         if (
@@ -300,21 +300,20 @@ export function ContentApp({ onReady }: Props) {
         setMode('hidden');
       },
       isPageTranslationActive() {
-        return pageTranslatedRef.current;
+        return isPageTranslateStarted(pageTranslatePhaseRef.current);
       },
       getPageTranslatePhase() {
-        return computePageTranslatePhase();
+        return pageTranslatePhaseRef.current;
       },
       startPageTranslation,
       stopPageTranslation,
       restorePageTranslation,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startPageTranslation, stopPageTranslation, restorePageTranslation]);
+  }, [onReady, startPageTranslation]);
 
   const handleTranslate = async () => {
     const text = selectedTextRef.current;
-    if (!text || pageTranslatedRef.current) return;
+    if (!text || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
 
     const targetLang = settingsRef.current?.defaultTargetLang ?? 'zh';
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
@@ -354,7 +353,7 @@ export function ContentApp({ onReady }: Props) {
       {/* Page translation status bar */}
       <StatusBar
         progress={pageProgress}
-        running={pageRunning}
+        running={pageTranslatePhase === 'running'}
         displayMode={displayMode}
         collapsed={statusCollapsed}
         onStop={stopPageTranslation}
