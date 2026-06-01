@@ -55,94 +55,13 @@ function shieldShadowPortal(shadow: ShadowRoot, container: HTMLElement) {
   container.style.setProperty('pointer-events', 'none', 'important');
 }
 
-/** Get corners of the selection. */
-function getSelectionCorners(range: Range): { x: number, y: number }[] {
-  const rects = [...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0);
-  const rect = range.getBoundingClientRect();
-  let corners = [{ x: rect.left, y: rect.top },
-  { x: rect.right, y: rect.top },
-  { x: rect.left, y: rect.bottom },
-  { x: rect.right, y: rect.bottom }];
-
-  if (rects.length < 2) return corners;
-  corners[0].x = Math.max(corners[0].x, rects[0].left);
-  corners[1].x = Math.min(corners[1].x, rects[0].right);
-  corners[2].x = Math.max(corners[2].x, rects[rects.length - 1].left);
-  corners[3].x = Math.min(corners[3].x, rects[rects.length - 1].right);
-
-  return corners;
-}
-
-function computePositionByCorners(corners: { x: number, y: number }[], mouseX: number, mouseY: number): { x: number; y: number } {
-  // sort corners by distance to mouse: left-top, right-top, left-bottom, right-bottom
-  const prio = [0, 1, 2, 3].sort((a, b) => {
-    const da = (mouseX - corners[a].x) ** 2 + (mouseY - corners[a].y) ** 2;
-    const db = (mouseX - corners[b].x) ** 2 + (mouseY - corners[b].y) ** 2;
-    return da - db;
-  });
-  const ICON_SIZE = 24;
-  const TRIGGER_MARGIN = 8;
-  const TRIGGER_OFFSET = 5; // distance from the corner to the trigger
-  for (const i of prio) {
-    switch (i) {
-      case 0: // left-top
-        {
-          const x = corners[i].x - TRIGGER_OFFSET - ICON_SIZE;
-          const y = corners[i].y - TRIGGER_OFFSET - ICON_SIZE;
-          if (x < TRIGGER_MARGIN && y < TRIGGER_MARGIN) break; // if the trigger would be off-screen, try the next corner
-          return { x: Math.max(x, TRIGGER_MARGIN), y: Math.max(y, TRIGGER_MARGIN) };
-        }
-      case 1: // right-top
-        {
-          const x = corners[i].x + TRIGGER_OFFSET;
-          const y = corners[i].y - TRIGGER_OFFSET - ICON_SIZE;
-          if (x > window.innerWidth - TRIGGER_MARGIN - ICON_SIZE && y < TRIGGER_MARGIN) break;
-          return {
-            x: Math.min(x, window.innerWidth - TRIGGER_MARGIN - ICON_SIZE),
-            y: Math.max(y, TRIGGER_MARGIN)
-          };
-        }
-      case 2: // left-bottom
-        {
-          const x = corners[i].x - TRIGGER_OFFSET - ICON_SIZE;
-          const y = corners[i].y + TRIGGER_OFFSET;
-          if (x < TRIGGER_MARGIN && y > window.innerHeight - TRIGGER_MARGIN - ICON_SIZE) break;
-          return {
-            x: Math.max(x, TRIGGER_MARGIN),
-            y: Math.min(y, window.innerHeight - TRIGGER_MARGIN - ICON_SIZE)
-          };
-        }
-      case 3: // right-bottom
-        {
-          const x = corners[i].x + TRIGGER_OFFSET;
-          const y = corners[i].y + TRIGGER_OFFSET;
-          if (x > window.innerWidth - TRIGGER_MARGIN - ICON_SIZE && y > window.innerHeight - TRIGGER_MARGIN - ICON_SIZE) break;
-          return {
-            x: Math.min(x, window.innerWidth - TRIGGER_MARGIN - ICON_SIZE),
-            y: Math.min(y, window.innerHeight - TRIGGER_MARGIN - ICON_SIZE)
-          };
-        }
-    }
-  }
-  // If all corners are off-screen, just put the trigger near the mouse point (but still try to keep it close to the selection).
-  const x = Math.min(Math.max(0, mouseX), window.innerWidth);
-  const y = Math.min(Math.max(0, mouseY), window.innerHeight);
-  return { x, y };
-}
-
-/** Place the trigger just outside the selection, near the mouse release point. */
-function computeTriggerPosition(range: Range, mouseX: number, mouseY: number): { x: number; y: number } {
-  const corners = getSelectionCorners(range);
-  return computePositionByCorners(corners, mouseX, mouseY);
-}
-
 export default defineContentScript({
   matches: ['<all_urls>'],
   cssInjectionMode: 'ui',
 
   async main(ctx) {
     let appHandle: ContentAppHandle | null = null;
-    type PendingSelection = { text: string; position: { x: number; y: number } };
+    type PendingSelection = { text: string; mouseX: number; mouseY: number; range: Range };
     const pendingSelection: PendingSelection[] = [];
     const pendingTranslateNow: string[] = [];
 
@@ -150,7 +69,7 @@ export default defineContentScript({
       if (!appHandle) return;
       while (pendingSelection.length > 0) {
         const p = pendingSelection.shift()!;
-        appHandle.showTrigger(p.text, p.position);
+        appHandle.showTrigger(p.text, p.mouseX, p.mouseY, p.range);
       }
       while (pendingTranslateNow.length > 0) {
         const t = pendingTranslateNow.shift()!;
@@ -204,9 +123,12 @@ export default defineContentScript({
       setTimeout(() => {
         const selection = window.getSelection();
         const text = selection?.toString().trim();
-        if (text && text.length > 1) {
-          const range = selection!.getRangeAt(0);
-          appHandle?.showTrigger(text, computeTriggerPosition(range, mouseX, mouseY));
+        if (!text || text.length <= 1 || !selection?.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        if (appHandle) {
+          appHandle.showTrigger(text, mouseX, mouseY, range);
+        } else {
+          pendingSelection.push({ text, mouseX, mouseY, range: range.cloneRange() });
         }
       }, 10);
     });

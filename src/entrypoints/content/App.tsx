@@ -3,6 +3,7 @@ import type { AppSettings, MessageResponse } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
 import { StatusBar } from '../../content/page-translator/StatusBar';
 import { AppLogo } from '../../shared/AppLogo';
+import { computeTriggerPosition } from '../../content/trigger-position';
 import {
   isPageTranslateStarted,
   type PageTranslatePhase,
@@ -20,7 +21,7 @@ function phaseAfterPageTranslateEnds(progress: TranslateProgress | null): PageTr
 }
 
 export interface ContentAppHandle {
-  showTrigger: (text: string, position: { x: number; y: number }) => void;
+  showTrigger: (text: string, mouseX: number, mouseY: number, range: Range) => void;
   /** Open panel and translate immediately (e.g. context menu — no floating trigger step). */
   translateNow: (text: string) => void;
   hide: () => void;
@@ -103,6 +104,7 @@ export function ContentApp({ onReady }: Props) {
   const [statusCollapsed, setStatusCollapsed] = useState(false);
 
   const selectedTextRef = useRef('');
+  const triggerMouseRef = useRef({ x: 0, y: 0 });
   const settingsRef = useRef<AppSettings | null>(null);
   const engineRef = useRef(new PageTranslateEngine());
   /** Mirrors `pageTranslatePhase` for sync guards inside message/async handlers. */
@@ -282,6 +284,33 @@ export function ContentApp({ onReady }: Props) {
     document.addEventListener('mouseup', onMouseUp);
   }, [panelPosition]);
 
+  useEffect(() => {
+    if (mode !== 'trigger') return;
+
+    const syncTriggerPosition = () => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim() ?? '';
+      if (!text || text !== selectedTextRef.current || !selection?.rangeCount) {
+        setMode('hidden');
+        return;
+      }
+      const range = selection.getRangeAt(0);
+      const { x, y } = computeTriggerPosition(
+        range,
+        triggerMouseRef.current.x,
+        triggerMouseRef.current.y,
+      );
+      setAnchor({ x, y });
+    };
+
+    document.addEventListener('scroll', syncTriggerPosition, { capture: true, passive: true });
+    window.addEventListener('resize', syncTriggerPosition, { passive: true });
+    return () => {
+      document.removeEventListener('scroll', syncTriggerPosition, { capture: true });
+      window.removeEventListener('resize', syncTriggerPosition);
+    };
+  }, [mode]);
+
   // Re-register handle when startPageTranslation changes (displayMode).
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -291,10 +320,11 @@ export function ContentApp({ onReady }: Props) {
     );
 
     onReady({
-      showTrigger(text, pos) {
+      showTrigger(text, mouseX, mouseY, range) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         selectedTextRef.current = text;
-        setAnchor(pos);
+        triggerMouseRef.current = { x: mouseX, y: mouseY };
+        setAnchor(computeTriggerPosition(range, mouseX, mouseY));
         setMode('trigger');
         setTranslation('');
         setError(null);
