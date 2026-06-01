@@ -89,9 +89,8 @@ function panelPositionFromAnchor(
 
 export function ContentApp({ onReady }: Props) {
   const [mode, setMode] = useState<Mode>('hidden');
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [anchor, setAnchor] = useState({ x: 0, y: 0 });
   const [panelPosition, setPanelPosition] = useState<PanelPosition>({ left: 0, top: 0 });
-  const [selectedText, setSelectedText] = useState('');
   const [translation, setTranslation] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +103,6 @@ export function ContentApp({ onReady }: Props) {
   const [statusCollapsed, setStatusCollapsed] = useState(false);
 
   const selectedTextRef = useRef('');
-  const anchorRef = useRef({ x: 0, y: 0 });
   const settingsRef = useRef<AppSettings | null>(null);
   const engineRef = useRef(new PageTranslateEngine());
   /** Mirrors `pageTranslatePhase` for sync guards inside message/async handlers. */
@@ -124,7 +122,6 @@ export function ContentApp({ onReady }: Props) {
     applyPageTranslatePhase(phase);
   };
 
-  const handleTranslateRef = useRef<() => Promise<void>>(async () => {});
   const panelRef = useRef<HTMLDivElement>(null);
   const pendingAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const panelDragRef = useRef<{ startX: number; startY: number; origin: PanelPosition } | null>(null);
@@ -218,10 +215,39 @@ export function ContentApp({ onReady }: Props) {
     return () => window.removeEventListener('resize', sync);
   }, [mode]);
 
-  const openPanelAt = useCallback((anchor: { x: number; y: number }) => {
-    pendingAnchorRef.current = anchor;
+  const openPanelAt = (panelAnchor: { x: number; y: number }) => {
+    pendingAnchorRef.current = panelAnchor;
     setMode('panel');
-  }, []);
+  };
+
+  const runSelectionTranslate = async (panelAnchor: { x: number; y: number }) => {
+    const text = selectedTextRef.current;
+    if (!text || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
+
+    const targetLang = settingsRef.current?.defaultTargetLang ?? 'zh';
+    const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
+
+    openPanelAt(panelAnchor);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await browser.runtime.sendMessage({
+        type: 'TRANSLATE',
+        payload: { text, sourceLang, targetLang },
+      });
+
+      if (response?.success) {
+        setTranslation(response.data.translated);
+      } else {
+        setError(response?.error || 'Translation failed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Translation failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close')) return;
@@ -256,7 +282,7 @@ export function ContentApp({ onReady }: Props) {
     document.addEventListener('mouseup', onMouseUp);
   }, [panelPosition]);
 
-  // stop/restore only touch refs + setState; re-register when displayMode changes (start uses it).
+  // Re-register handle when startPageTranslation changes (displayMode).
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
       (res: MessageResponse<AppSettings>) => {
@@ -268,9 +294,7 @@ export function ContentApp({ onReady }: Props) {
       showTrigger(text, pos) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         selectedTextRef.current = text;
-        anchorRef.current = pos;
-        setSelectedText(text);
-        setPosition(pos);
+        setAnchor(pos);
         setMode('trigger');
         setTranslation('');
         setError(null);
@@ -288,13 +312,15 @@ export function ContentApp({ onReady }: Props) {
           return;
         }
         selectedTextRef.current = t;
-        setSelectedText(t);
-        anchorRef.current = { x: window.innerWidth / 2, y: window.innerHeight / 3 };
-        setPosition(anchorRef.current);
+        const panelAnchor = {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 3,
+        };
+        setAnchor(panelAnchor);
         setTranslation('');
         setError(null);
         setCopied(false);
-        queueMicrotask(() => void handleTranslateRef.current());
+        queueMicrotask(() => void runSelectionTranslate(panelAnchor));
       },
       hide() {
         setMode('hidden');
@@ -310,37 +336,6 @@ export function ContentApp({ onReady }: Props) {
       restorePageTranslation,
     });
   }, [onReady, startPageTranslation]);
-
-  const handleTranslate = async () => {
-    const text = selectedTextRef.current;
-    if (!text || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
-
-    const targetLang = settingsRef.current?.defaultTargetLang ?? 'zh';
-    const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
-
-    openPanelAt(anchorRef.current);
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await browser.runtime.sendMessage({
-        type: 'TRANSLATE',
-        payload: { text, sourceLang, targetLang },
-      });
-
-      if (response?.success) {
-        setTranslation(response.data.translated);
-      } else {
-        setError(response?.error || 'Translation failed');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Translation failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  handleTranslateRef.current = handleTranslate;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(translation);
@@ -365,11 +360,11 @@ export function ContentApp({ onReady }: Props) {
       {/* Selection trigger button */}
       {mode === 'trigger' && (
         <button
-          onClick={handleTranslate}
+          onClick={() => void runSelectionTranslate(anchor)}
           style={{
             position: 'fixed',
-            left: position.x,
-            top: position.y,
+            left: anchor.x,
+            top: anchor.y,
             zIndex: 2147483647,
             pointerEvents: 'auto',
           }}
