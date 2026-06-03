@@ -28,7 +28,7 @@ async function openExtensionSidePanel(): Promise<string | null> {
 export function App() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [text, setText] = useState('');
-  const [targetLang, setTargetLang] = useState('zh');
+  const [targetLang, setTargetLang] = useState<string | null>(null);
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,14 +38,13 @@ export function App() {
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
       async (res: MessageResponse<AppSettings>) => {
-        if (res.success) {
-          setSettings(res.data);
-          const langs = await getTranslatorLanguages({
-            sourceLang: res.data.defaultSourceLang,
-            targetLang: res.data.defaultTargetLang,
-          });
-          setTargetLang(langs.targetLang);
-        }
+        if (res.success) setSettings(res.data);
+        const langs = await getTranslatorLanguages(
+          res.success
+            ? { sourceLang: res.data.defaultSourceLang, targetLang: res.data.defaultTargetLang }
+            : undefined,
+        );
+        setTargetLang(langs.targetLang);
       },
     );
 
@@ -65,7 +64,7 @@ export function App() {
   }, []);
 
   const handleTranslate = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || !targetLang) return;
     setLoading(true);
     setError(null);
 
@@ -112,14 +111,16 @@ export function App() {
 
       {/* Target language */}
       <select
-        value={targetLang}
+        value={targetLang ?? ''}
+        disabled={targetLang === null}
         onChange={(e) => {
           const next = e.target.value;
           setTargetLang(next);
           void updateTranslatorLanguages({ targetLang: next });
         }}
         className="w-full mb-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm
-                   bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400"
+                   bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400
+                   disabled:opacity-60 disabled:cursor-wait"
       >
         {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((lang) => (
           <option key={lang.code} value={lang.code}>{lang.name}</option>
@@ -142,7 +143,7 @@ export function App() {
       {/* Translate button */}
       <button
         onClick={handleTranslate}
-        disabled={loading || !text.trim()}
+        disabled={loading || !text.trim() || targetLang === null}
         className="w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium text-white
                    bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600
                    disabled:opacity-50 disabled:cursor-not-allowed transition-all"

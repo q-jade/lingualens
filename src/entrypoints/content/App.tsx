@@ -8,6 +8,7 @@ import {
   isPageTranslateStarted,
   type PageTranslatePhase,
 } from '../../shared/page-translate-phase';
+import { resolveDefaultTargetLang } from '../../shared/default-target-lang';
 
 function notifyPageTranslatePhase(phase: PageTranslatePhase) {
   browser.runtime.sendMessage({
@@ -148,7 +149,7 @@ export function ContentApp({ onReady }: Props) {
     try {
       await engine.start(
         {
-          targetLang: settings?.defaultTargetLang ?? 'zh',
+          targetLang: settings?.defaultTargetLang ?? resolveDefaultTargetLang(),
           sourceLang: settings?.defaultSourceLang ?? 'auto',
           displayMode,
           concurrency: 4,
@@ -226,7 +227,7 @@ export function ContentApp({ onReady }: Props) {
     const text = selectedTextRef.current;
     if (!text || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
 
-    const targetLang = settingsRef.current?.defaultTargetLang ?? 'zh';
+    const targetLang = settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
     openPanelAt(panelAnchor);

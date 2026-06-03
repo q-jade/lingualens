@@ -15,8 +15,9 @@ interface HistoryEntry {
 
 export function App() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [sourceLang, setSourceLang] = useState('auto');
-  const [targetLang, setTargetLang] = useState('zh');
+  const [sourceLang, setSourceLang] = useState<string | null>(null);
+  const [targetLang, setTargetLang] = useState<string | null>(null);
+  const langsReady = sourceLang !== null && targetLang !== null;
   const [sourceText, setSourceText] = useState('');
   const [translation, setTranslation] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,15 +29,14 @@ export function App() {
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
       async (res: MessageResponse<AppSettings>) => {
-        if (res.success) {
-          setSettings(res.data);
-          const langs = await getTranslatorLanguages({
-            sourceLang: res.data.defaultSourceLang,
-            targetLang: res.data.defaultTargetLang,
-          });
-          setSourceLang(langs.sourceLang);
-          setTargetLang(langs.targetLang);
-        }
+        if (res.success) setSettings(res.data);
+        const langs = await getTranslatorLanguages(
+          res.success
+            ? { sourceLang: res.data.defaultSourceLang, targetLang: res.data.defaultTargetLang }
+            : undefined,
+        );
+        setSourceLang(langs.sourceLang);
+        setTargetLang(langs.targetLang);
       },
     );
     browser.storage.local.get('translationHistory').then((result) => {
@@ -51,7 +51,7 @@ export function App() {
 
   const handleTranslate = async () => {
     const text = sourceText.trim();
-    if (!text) return;
+    if (!text || !langsReady) return;
 
     setLoading(true);
     setError(null);
@@ -82,7 +82,7 @@ export function App() {
   };
 
   const swapLanguages = () => {
-    if (sourceLang === 'auto') return;
+    if (!langsReady || sourceLang === 'auto') return;
     const nextSource = targetLang;
     const nextTarget = sourceLang;
     setSourceLang(nextSource);
@@ -96,7 +96,10 @@ export function App() {
     setSourceText(entry.source);
     setTranslation(entry.translated);
     setTargetLang(entry.targetLang);
-    void setTranslatorLanguages({ sourceLang, targetLang: entry.targetLang });
+    void setTranslatorLanguages({
+      sourceLang: sourceLang ?? 'auto',
+      targetLang: entry.targetLang,
+    });
     setShowHistory(false);
   };
 
@@ -120,29 +123,38 @@ export function App() {
       {/* Language bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50">
         <select
-          value={sourceLang}
+          value={sourceLang ?? ''}
+          disabled={!langsReady}
           onChange={(e) => {
             const next = e.target.value;
             setSourceLang(next);
-            void setTranslatorLanguages({ sourceLang: next, targetLang });
+            if (targetLang) void setTranslatorLanguages({ sourceLang: next, targetLang });
           }}
-          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400
+                     disabled:opacity-60 disabled:cursor-wait"
         >
           {SUPPORTED_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
-        <button onClick={swapLanguages} className="p-1 text-gray-400 hover:text-blue-500 transition-colors" title="Swap languages">
+        <button
+          onClick={swapLanguages}
+          disabled={!langsReady}
+          className="p-1 text-gray-400 hover:text-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Swap languages"
+        >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m7 16 4 4 4-4" /><path d="M11 20V4" /><path d="m17 8-4-4-4 4" /><path d="M13 4v16" />
           </svg>
         </button>
         <select
-          value={targetLang}
+          value={targetLang ?? ''}
+          disabled={!langsReady}
           onChange={(e) => {
             const next = e.target.value;
             setTargetLang(next);
-            void setTranslatorLanguages({ sourceLang, targetLang: next });
+            if (sourceLang) void setTranslatorLanguages({ sourceLang, targetLang: next });
           }}
-          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400
+                     disabled:opacity-60 disabled:cursor-wait"
         >
           {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
@@ -170,7 +182,7 @@ export function App() {
                 <span className="text-[10px] text-gray-300">{sourceText.length} chars</span>
                 <button
                   onClick={handleTranslate}
-                  disabled={loading || !sourceText.trim()}
+                  disabled={loading || !sourceText.trim() || !langsReady}
                   className="px-4 py-1.5 rounded-lg text-xs font-medium text-white
                              bg-gradient-to-r from-blue-500 to-indigo-500
                              hover:from-blue-600 hover:to-indigo-600

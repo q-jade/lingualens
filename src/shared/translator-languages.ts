@@ -1,3 +1,5 @@
+import { DEFAULT_TRANSLATOR_LANGUAGES } from './default-target-lang';
+
 export interface TranslatorLanguages {
   sourceLang: string;
   targetLang: string;
@@ -14,7 +16,7 @@ function parseTranslatorLanguages(value: unknown): TranslatorLanguages | null {
 }
 
 export async function getTranslatorLanguages(
-  fallback: TranslatorLanguages = { sourceLang: 'auto', targetLang: 'zh' },
+  fallback: TranslatorLanguages = { ...DEFAULT_TRANSLATOR_LANGUAGES },
 ): Promise<TranslatorLanguages> {
   const result = await browser.storage.local.get(STORAGE_KEY);
   return parseTranslatorLanguages(result[STORAGE_KEY]) ?? fallback;

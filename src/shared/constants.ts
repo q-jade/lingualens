@@ -1,4 +1,5 @@
 import type { AppSettings, ProviderConfig } from './types';
+import { resolveDefaultTargetLang } from './default-target-lang';
 
 export const DEFAULT_SYSTEM_PROMPT =
   'You are a professional translator. Translate the following text from {sourceLang} to {targetLang}. Preserve the original formatting, tone, and style. Only output the translated text, nothing else.';
@@ -56,7 +57,7 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
 export const DEFAULT_SETTINGS: AppSettings = {
   defaultProvider: 'ollama',
   fallbackProviders: [],
-  defaultTargetLang: 'zh',
+  defaultTargetLang: resolveDefaultTargetLang(),
   defaultSourceLang: 'auto',
   providers: [
     {
