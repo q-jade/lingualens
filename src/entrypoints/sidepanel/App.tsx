@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
-import { getTranslatorLanguages, setTranslatorLanguages } from '../../shared/translator-languages';
+import { getTranslatorLanguages, setTranslatorLanguages, subscribeTranslatorLanguages } from '../../shared/translator-languages';
 
 interface HistoryEntry {
   id: number;
@@ -41,6 +41,11 @@ export function App() {
     );
     browser.storage.local.get('translationHistory').then((result) => {
       if (result.translationHistory) setHistory(result.translationHistory as HistoryEntry[]);
+    });
+
+    return subscribeTranslatorLanguages((langs) => {
+      setSourceLang(langs.sourceLang);
+      setTargetLang(langs.targetLang);
     });
   }, []);
 
