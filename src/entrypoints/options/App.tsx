@@ -190,8 +190,11 @@ export function App() {
           </div>
         </div>
 
-        {/* Language */}
-        <Section title="Language">
+        {/* Language — selection & page translation */}
+        <Section title="Selection & Page Translation">
+          <p className="text-sm text-gray-500 mb-4">
+            Default languages for text selection and full-page translation. Popup and side panel use separate language preferences.
+          </p>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Source Language">
               <select value={settings.defaultSourceLang} onChange={(e) => { setSettings((s) => ({ ...s, defaultSourceLang: e.target.value })); setSaved(false); }} className="input">

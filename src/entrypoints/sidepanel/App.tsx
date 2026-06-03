@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
+import { getTranslatorLanguages, setTranslatorLanguages } from '../../shared/translator-languages';
 
 interface HistoryEntry {
   id: number;
@@ -26,11 +27,15 @@ export function App() {
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
-      (res: MessageResponse<AppSettings>) => {
+      async (res: MessageResponse<AppSettings>) => {
         if (res.success) {
           setSettings(res.data);
-          setTargetLang(res.data.defaultTargetLang);
-          setSourceLang(res.data.defaultSourceLang);
+          const langs = await getTranslatorLanguages({
+            sourceLang: res.data.defaultSourceLang,
+            targetLang: res.data.defaultTargetLang,
+          });
+          setSourceLang(langs.sourceLang);
+          setTargetLang(langs.targetLang);
         }
       },
     );
@@ -73,16 +78,20 @@ export function App() {
 
   const swapLanguages = () => {
     if (sourceLang === 'auto') return;
-    setSourceLang(targetLang);
-    setTargetLang(sourceLang);
+    const nextSource = targetLang;
+    const nextTarget = sourceLang;
+    setSourceLang(nextSource);
+    setTargetLang(nextTarget);
     setSourceText(translation);
     setTranslation(sourceText);
+    void setTranslatorLanguages({ sourceLang: nextSource, targetLang: nextTarget });
   };
 
   const loadHistoryEntry = (entry: HistoryEntry) => {
     setSourceText(entry.source);
     setTranslation(entry.translated);
     setTargetLang(entry.targetLang);
+    void setTranslatorLanguages({ sourceLang, targetLang: entry.targetLang });
     setShowHistory(false);
   };
 
@@ -105,7 +114,15 @@ export function App() {
 
       {/* Language bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50">
-        <select value={sourceLang} onChange={(e) => setSourceLang(e.target.value)} className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+        <select
+          value={sourceLang}
+          onChange={(e) => {
+            const next = e.target.value;
+            setSourceLang(next);
+            void setTranslatorLanguages({ sourceLang: next, targetLang });
+          }}
+          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+        >
           {SUPPORTED_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
         <button onClick={swapLanguages} className="p-1 text-gray-400 hover:text-blue-500 transition-colors" title="Swap languages">
@@ -113,7 +130,15 @@ export function App() {
             <path d="m7 16 4 4 4-4" /><path d="M11 20V4" /><path d="m17 8-4-4-4 4" /><path d="M13 4v16" />
           </svg>
         </button>
-        <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)} className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+        <select
+          value={targetLang}
+          onChange={(e) => {
+            const next = e.target.value;
+            setTargetLang(next);
+            void setTranslatorLanguages({ sourceLang, targetLang: next });
+          }}
+          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+        >
           {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
       </div>

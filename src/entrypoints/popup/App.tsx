@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
+import { getTranslatorLanguages, updateTranslatorLanguages } from '../../shared/translator-languages';
 import { isTranslatableTabUrl, PAGE_TRANSLATE_UNAVAILABLE } from '../../shared/translatable-tab';
 
 /** Chrome 114+ only; must run from a user gesture (e.g. click). */
@@ -36,10 +37,14 @@ export function App() {
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
-      (res: MessageResponse<AppSettings>) => {
+      async (res: MessageResponse<AppSettings>) => {
         if (res.success) {
           setSettings(res.data);
-          setTargetLang(res.data.defaultTargetLang);
+          const langs = await getTranslatorLanguages({
+            sourceLang: res.data.defaultSourceLang,
+            targetLang: res.data.defaultTargetLang,
+          });
+          setTargetLang(langs.targetLang);
         }
       },
     );
@@ -108,7 +113,11 @@ export function App() {
       {/* Target language */}
       <select
         value={targetLang}
-        onChange={(e) => setTargetLang(e.target.value)}
+        onChange={(e) => {
+          const next = e.target.value;
+          setTargetLang(next);
+          void updateTranslatorLanguages({ targetLang: next });
+        }}
         className="w-full mb-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm
                    bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400"
       >
