@@ -16,11 +16,11 @@ export default defineBackground(() => {
   }
 
   function getPageContextMenuTitle(phase: PageTranslatePhase): string {
-    const key: Record<PageTranslatePhase, string> = {
+    const key = {
       idle: 'contextMenuTranslatePage',
       running: 'contextMenuStopPage',
       done: 'contextMenuRestorePage',
-    };
+    } as const;
     return browser.i18n.getMessage(key[phase]) || 'Translate This Page';
   }
 
