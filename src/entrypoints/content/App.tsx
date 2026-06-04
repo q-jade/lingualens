@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { AppSettings, MessageResponse } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
 import { StatusBar } from '../../content/page-translator/StatusBar';
@@ -90,6 +91,7 @@ function panelPositionFromAnchor(
 }
 
 export function ContentApp({ onReady }: Props) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('hidden');
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
   const [panelPosition, setPanelPosition] = useState<PanelPosition>({ left: 0, top: 0 });
@@ -243,10 +245,10 @@ export function ContentApp({ onReady }: Props) {
       if (response?.success) {
         setTranslation(response.data.translated);
       } else {
-        setError(response?.error || 'Translation failed');
+        setError(response?.error || t('content.translationFailed'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Translation failed');
+      setError(err instanceof Error ? err.message : t('content.translationFailed'));
     } finally {
       setLoading(false);
     }
@@ -400,7 +402,7 @@ export function ContentApp({ onReady }: Props) {
             pointerEvents: 'auto',
           }}
           className="st-trigger-btn"
-          title="Translate"
+          title={t('popup.translate')}
         >
           <AppLogo className="st-trigger-icon" />
         </button>
@@ -436,7 +438,7 @@ export function ContentApp({ onReady }: Props) {
             {loading && (
               <div className="st-loading">
                 <span className="st-dot" /><span className="st-dot" /><span className="st-dot" />
-                <span style={{ marginLeft: 6 }}>Translating…</span>
+                <span style={{ marginLeft: 6 }}>{t('content.translating')}</span>
               </div>
             )}
             {error && <div className="st-error">{error}</div>}
@@ -448,7 +450,7 @@ export function ContentApp({ onReady }: Props) {
           </div>
           {!loading && !error && translation && (
             <div className="st-panel-footer">
-              <button onClick={handleCopy} className="st-copy-btn" title="Copy translation">
+              <button onClick={handleCopy} className="st-copy-btn" title={t('content.copy')}>
                 {copied ? (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                 ) : (

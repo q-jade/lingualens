@@ -5,8 +5,9 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react', '@wxt-dev/auto-icons'],
   manifest: {
     version: '0.3.0',
-    name: 'LinguaLens',
-    description: 'LinguaLens — translate anything with LLM and online APIs',
+    name: '__MSG_extName__',
+    description: '__MSG_extDescription__',
+    default_locale: 'en',
     permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus', 'scripting'],
     host_permissions: [
       // Chrome Web Store rejects `http://localhost:*/*`; omit port to match all local ports.
@@ -21,11 +22,11 @@ export default defineConfig({
     commands: {
       'translate-selection': {
         suggested_key: { default: 'Alt+T' },
-        description: 'Translate selected text',
+        description: '__MSG_commandTranslateSelection__',
       },
       'translate-page': {
         suggested_key: { default: 'Alt+Shift+T' },
-        description: 'Translate entire page',
+        description: '__MSG_commandTranslatePage__',
       },
     },
   },

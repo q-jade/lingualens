@@ -18,14 +18,16 @@
   },
   "dependencies": {
     "@wxt-dev/module-react": "^1.2.2",
+    "i18next": "^26.3.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-i18next": "^17.0.8",
     "wxt": "^0.20.26"
   },
   "devDependencies": {
-    "@wxt-dev/auto-icons": "^1.1.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@wxt-dev/auto-icons": "^1.1.1",
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",

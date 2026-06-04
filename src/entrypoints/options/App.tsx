@@ -1,21 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode } from '../../shared/types';
 import { DEFAULT_SETTINGS, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
 import { clearOnboardingPending, isOnboardingPending } from '../../shared/onboarding';
 import { isLlmProvider } from '../../providers/thinking';
 import { AppLogo } from '../../shared/AppLogo';
-
-const PROVIDER_TYPE_LABELS: Record<ProviderConfig['type'], string> = {
-  'openai-compat': 'OpenAI Compatible',
-  ollama: 'Ollama',
-  openai: 'OpenAI',
-  lmstudio: 'LM Studio',
-  deepl: 'DeepL',
-  google: 'Google Translate',
-  custom: 'Custom',
-};
+import { AVAILABLE_UI_LANGUAGES, setUILanguage, getUILanguage } from '../../shared/i18n';
 
 export function App() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -23,6 +16,7 @@ export function App() {
   const [verifyResults, setVerifyResults] = useState<Record<string, { ok: boolean; msg: string }>>({});
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [uiLang, setUiLang] = useState(getUILanguage());
   const welcomeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -155,17 +149,17 @@ export function App() {
         payload: { providerConfig: provider },
       });
       if (!res) {
-        setVerifyResults((r) => ({ ...r, [provider.id]: { ok: false, msg: 'No response from background' } }));
+        setVerifyResults((r) => ({ ...r, [provider.id]: { ok: false, msg: t('options.noResponseFromBackground') } }));
         return;
       }
       const result = res.success
-        ? { ok: true, msg: `Verified! "Hello" → "${res.data}"` }
+        ? { ok: true, msg: t('options.verifiedResult', { result: res.data }) }
         : { ok: false, msg: res.error };
       setVerifyResults((r) => ({ ...r, [provider.id]: result }));
     } catch (err) {
       setVerifyResults((r) => ({
         ...r,
-        [provider.id]: { ok: false, msg: err instanceof Error ? err.message : 'Verification failed' },
+        [provider.id]: { ok: false, msg: err instanceof Error ? err.message : t('options.verificationFailed') },
       }));
     } finally {
       setVerifying(null);
@@ -178,6 +172,11 @@ export function App() {
   const needsModel = (type: ProviderConfig['type']) =>
     ['openai-compat', 'ollama', 'openai', 'lmstudio'].includes(type);
 
+  const handleUiLangChange = async (lang: string) => {
+    setUiLang(lang);
+    await setUILanguage(lang);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto py-10 px-6">
@@ -186,22 +185,35 @@ export function App() {
           <AppLogo className="w-10 h-10 shrink-0" />
           <div>
             <h1 className="text-2xl font-bold text-gray-800">LinguaLens</h1>
-            <p className="text-sm text-gray-400">Settings</p>
+            <p className="text-sm text-gray-400">{t('options.settings')}</p>
           </div>
         </div>
 
+        {/* UI Language */}
+        <Section title={t('options.uiLanguage')}>
+          <select
+            value={uiLang}
+            onChange={(e) => void handleUiLangChange(e.target.value)}
+            className="input"
+          >
+            {AVAILABLE_UI_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>{l.name}</option>
+            ))}
+          </select>
+        </Section>
+
         {/* Language — selection & page translation */}
-        <Section title="Selection & Page Translation">
+        <Section title={t('options.selectionPageTranslation')}>
           <p className="text-sm text-gray-500 mb-4">
-            Default languages for text selection and full-page translation. Popup and side panel use separate language preferences.
+            {t('options.selectionPageDesc')}
           </p>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Source Language">
+            <Field label={t('options.sourceLanguage')}>
               <select value={settings.defaultSourceLang} onChange={(e) => { setSettings((s) => ({ ...s, defaultSourceLang: e.target.value })); setSaved(false); }} className="input">
                 {SUPPORTED_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
               </select>
             </Field>
-            <Field label="Target Language">
+            <Field label={t('options.targetLanguage')}>
               <select value={settings.defaultTargetLang} onChange={(e) => { setSettings((s) => ({ ...s, defaultTargetLang: e.target.value })); setSaved(false); }} className="input">
                 {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
               </select>
@@ -211,14 +223,14 @@ export function App() {
 
         {/* Default Provider */}
         {settings.providers.length > 1 && (
-          <Section title="Default Provider">
+          <Section title={t('options.defaultProvider')}>
             <select
               value={settings.defaultProvider}
               onChange={(e) => setDefaultProvider(e.target.value)}
               className="input"
             >
               {settings.providers.map((p) => (
-                <option key={p.id} value={p.id}>{p.name} ({PROVIDER_TYPE_LABELS[p.type]})</option>
+                <option key={p.id} value={p.id}>{p.name} ({t(`providerTypes.${p.type}`)})</option>
               ))}
             </select>
           </Section>
@@ -226,12 +238,12 @@ export function App() {
 
         {/* Fallback Providers */}
         {settings.providers.length > 1 && (
-          <Section title="Fallback Providers">
+          <Section title={t('options.fallbackProviders')}>
             <p className="text-xs text-gray-400 mb-3">
-              When the default provider fails, LinguaLens tries these providers in order. Leave empty to disable fallback.
+              {t('options.fallbackDesc')}
             </p>
             {settings.fallbackProviders.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-3">No fallback providers configured.</p>
+              <p className="text-sm text-gray-400 text-center py-3">{t('options.noFallback')}</p>
             ) : (
               <ol className="space-y-2 mb-3">
                 {settings.fallbackProviders.map((id, index) => {
@@ -245,17 +257,17 @@ export function App() {
                       <span className="text-xs text-gray-400 w-5 shrink-0">{index + 1}.</span>
                       <span className="flex-1 text-sm text-gray-800 truncate">
                         {provider.name}
-                        <span className="ml-2 text-xs text-gray-400">{PROVIDER_TYPE_LABELS[provider.type]}</span>
+                        <span className="ml-2 text-xs text-gray-400">{t(`providerTypes.${provider.type}`)}</span>
                       </span>
                       {!provider.enabled && (
-                        <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">DISABLED</span>
+                        <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">{t('options.disabled')}</span>
                       )}
                       <button
                         type="button"
                         onClick={() => moveFallbackProvider(index, -1)}
                         disabled={index === 0}
                         className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                        aria-label="Move up"
+                        aria-label={t('options.moveUp')}
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 15-6-6-6 6" /></svg>
                       </button>
@@ -264,7 +276,7 @@ export function App() {
                         onClick={() => moveFallbackProvider(index, 1)}
                         disabled={index === settings.fallbackProviders.length - 1}
                         className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                        aria-label="Move down"
+                        aria-label={t('options.moveDown')}
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
                       </button>
@@ -272,7 +284,7 @@ export function App() {
                         type="button"
                         onClick={() => removeFallbackProvider(id)}
                         className="p-1 text-red-400 hover:text-red-500"
-                        aria-label="Remove"
+                        aria-label={t('options.remove')}
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
                       </button>
@@ -289,9 +301,9 @@ export function App() {
                 }}
                 className="input"
               >
-                <option value="">+ Add fallback provider…</option>
+                <option value="">{t('options.addFallback')}</option>
                 {availableFallbackProviders.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} ({PROVIDER_TYPE_LABELS[p.type]})</option>
+                  <option key={p.id} value={p.id}>{p.name} ({t(`providerTypes.${p.type}`)})</option>
                 ))}
               </select>
             )}
@@ -304,32 +316,31 @@ export function App() {
             className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5"
             role="status"
           >
-            <h2 className="text-base font-semibold text-blue-900">Welcome to LinguaLens</h2>
+            <h2 className="text-base font-semibold text-blue-900">{t('options.welcomeTitle')}</h2>
             <p className="mt-2 text-sm text-blue-800/90 leading-relaxed">
-              Before translating, set up at least one provider below. Ollama and LM Studio work locally;
-              cloud APIs need a base URL, model, and API key where required.
+              {t('options.welcomeDesc')}
             </p>
             <ol className="mt-3 space-y-1.5 text-sm text-blue-900/90 list-decimal list-inside">
-              <li>Enable a provider and check its URL and model</li>
-              <li>Click <strong>Verify</strong> to test the connection</li>
-              <li>Click <strong>Save Settings</strong> at the bottom</li>
+              <li>{t('options.welcomeStep1')}</li>
+              <li dangerouslySetInnerHTML={{ __html: t('options.welcomeStep2') }} />
+              <li dangerouslySetInnerHTML={{ __html: t('options.welcomeStep3') }} />
             </ol>
             <button
               type="button"
               onClick={dismissWelcome}
               className="mt-4 text-sm font-medium text-blue-700 hover:text-blue-900"
             >
-              Dismiss
+              {t('options.dismiss')}
             </button>
           </div>
         )}
 
         {/* Providers */}
         <Section
-          title="Translation Providers"
+          title={t('options.providers')}
           action={
             <div className="relative group">
-              <button className="text-sm text-blue-500 hover:text-blue-600 font-medium">+ Add Provider</button>
+              <button className="text-sm text-blue-500 hover:text-blue-600 font-medium">{t('options.addProvider')}</button>
               <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
                 {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
                   <button
@@ -345,7 +356,7 @@ export function App() {
           }
         >
           {settings.providers.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-6">No providers configured. Add one above.</p>
+            <p className="text-sm text-gray-400 text-center py-6">{t('options.noProviders')}</p>
           )}
           <div className="space-y-3">
             {settings.providers.map((provider) => {
@@ -367,10 +378,10 @@ export function App() {
                     </label>
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium text-gray-800">{provider.name}</span>
-                      <span className="ml-2 text-xs text-gray-400">{PROVIDER_TYPE_LABELS[provider.type]}</span>
+                      <span className="ml-2 text-xs text-gray-400">{t(`providerTypes.${provider.type}`)}</span>
                     </div>
                     {settings.defaultProvider === provider.id && (
-                      <span className="text-[10px] font-medium text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">DEFAULT</span>
+                      <span className="text-[10px] font-medium text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">{t('options.default')}</span>
                     )}
                     <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
                   </div>
@@ -378,10 +389,10 @@ export function App() {
                   {/* Provider details */}
                   {expanded && (
                     <div className="px-4 pb-4 pt-1 border-t border-gray-100 space-y-3">
-                      <Field label="Provider Name">
+                      <Field label={t('options.providerName')}>
                         <input type="text" value={provider.name} onChange={(e) => updateProvider(provider.id, { name: e.target.value })} className="input" />
                       </Field>
-                      <Field label={provider.type === 'lmstudio' ? 'Server URL' : 'API Base URL'}>
+                      <Field label={provider.type === 'lmstudio' ? t('options.serverUrl') : t('options.apiBaseUrl')}>
                         <input
                           type="text"
                           value={provider.baseUrl}
@@ -391,17 +402,15 @@ export function App() {
                         />
                       </Field>
                       {provider.type === 'lmstudio' && (
-                        <p className="text-xs text-gray-400 -mt-1">
-                          Uses LM Studio native <code className="bg-gray-100 px-1 rounded">/api/v1/chat</code> (not OpenAI <code className="bg-gray-100 px-1 rounded">/v1</code>).
-                        </p>
+                        <p className="text-xs text-gray-400 -mt-1" dangerouslySetInnerHTML={{ __html: t('options.lmStudioNote') }} />
                       )}
                       {needsApiKey(provider.type) && (
-                        <Field label="API Key">
+                        <Field label={t('options.apiKey')}>
                           <input type="password" value={provider.apiKey || ''} onChange={(e) => updateProvider(provider.id, { apiKey: e.target.value })} placeholder="sk-…" className="input font-mono text-xs" />
                         </Field>
                       )}
                       {needsModel(provider.type) && (
-                        <Field label="Model">
+                        <Field label={t('options.model')}>
                           <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'llama3' : provider.type === 'lmstudio' ? 'loaded model' : 'gpt-4o-mini'} className="input font-mono text-xs" />
                         </Field>
                       )}
@@ -414,26 +423,26 @@ export function App() {
                             className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500/40"
                           />
                           <div>
-                            <span className="text-sm font-medium text-gray-700">Disable thinking chain</span>
+                            <span className="text-sm font-medium text-gray-700">{t('options.disableThinking')}</span>
                             <p className="text-xs text-gray-400 mt-0.5">
-                              Skip model reasoning for faster translation
+                              {t('options.disableThinkingDesc')}
                             </p>
                           </div>
                         </label>
                       )}
                       {provider.type === 'ollama' && (
                         <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                          Ollama requires CORS configuration for browser extensions. Start Ollama with: <code className="bg-amber-100 px-1 rounded">OLLAMA_ORIGINS="chrome-extension://*" ollama serve</code>
+                          {t('options.ollamaCorsWarning')} <code className="bg-amber-100 px-1 rounded">OLLAMA_ORIGINS="chrome-extension://*" ollama serve</code>
                         </p>
                       )}
                       <div className="flex items-center gap-3 pt-1 flex-wrap">
                         <button onClick={() => handleVerify(provider)} disabled={verifying === provider.id} className="px-3 py-1.5 border border-blue-200 bg-blue-50 rounded-lg text-xs text-blue-600 hover:bg-blue-100 disabled:opacity-50 transition-colors">
-                          {verifying === provider.id ? 'Verifying…' : 'Verify Config'}
+                          {verifying === provider.id ? t('options.verifying') : t('options.verifyConfig')}
                         </button>
                         {settings.defaultProvider !== provider.id && (
-                          <button onClick={() => setDefaultProvider(provider.id)} className="px-3 py-1.5 text-xs text-blue-500 hover:text-blue-600">Set as Default</button>
+                          <button onClick={() => setDefaultProvider(provider.id)} className="px-3 py-1.5 text-xs text-blue-500 hover:text-blue-600">{t('options.setAsDefault')}</button>
                         )}
-                        <button onClick={() => removeProvider(provider.id)} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-500 ml-auto">Remove</button>
+                        <button onClick={() => removeProvider(provider.id)} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-500 ml-auto">{t('options.remove')}</button>
                       </div>
                       {verifyResults[provider.id] && (
                         <span className={`text-xs font-medium pt-1 ${verifyResults[provider.id].ok ? 'text-green-600' : 'text-red-500'}`}>{verifyResults[provider.id].msg}</span>
@@ -447,9 +456,9 @@ export function App() {
         </Section>
 
         {/* Prompt Template */}
-        <Section title="Translation Prompt Template">
+        <Section title={t('options.promptTemplate')}>
           <p className="text-xs text-gray-400 mb-3">
-            Customize the system prompt for LLM-based providers. Available variables: <code className="bg-gray-100 px-1 rounded">{'{sourceLang}'}</code>, <code className="bg-gray-100 px-1 rounded">{'{targetLang}'}</code>
+            {t('options.promptTemplateDesc')} <code className="bg-gray-100 px-1 rounded">{'{sourceLang}'}</code>, <code className="bg-gray-100 px-1 rounded">{'{targetLang}'}</code>
           </p>
           <textarea
             value={settings.promptTemplate ?? 'You are a professional translator. Translate the following text from {sourceLang} to {targetLang}. Preserve the original formatting, tone, and style. Only output the translated text, nothing else.'}
@@ -461,17 +470,17 @@ export function App() {
             onClick={() => { setSettings((s) => ({ ...s, promptTemplate: undefined })); setSaved(false); }}
             className="mt-2 text-xs text-gray-400 hover:text-gray-600"
           >
-            Reset to default
+            {t('options.resetToDefault')}
           </button>
         </Section>
 
         {/* Page Translation */}
-        <Section title="Page Translation">
-          <Field label="Translation Strategy">
+        <Section title={t('options.pageTranslation')}>
+          <Field label={t('options.translationStrategy')}>
             <div className="space-y-2 mt-1">
               {([
-                { value: 'quality' as ChunkingMode, label: 'Quality', desc: 'Translate larger blocks for better context and quality' },
-                { value: 'speed' as ChunkingMode, label: 'Speed', desc: 'Translate smaller chunks for faster progressive results' },
+                { value: 'quality' as ChunkingMode, labelKey: 'options.strategyQuality', descKey: 'options.strategyQualityDesc' },
+                { value: 'speed' as ChunkingMode, labelKey: 'options.strategySpeed', descKey: 'options.strategySpeedDesc' },
               ]).map((opt) => (
                 <label key={opt.value} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
                   <input
@@ -482,8 +491,8 @@ export function App() {
                     className="mt-0.5 w-4 h-4 text-blue-500 focus:ring-blue-500/40"
                   />
                   <div>
-                    <span className="text-sm font-medium text-gray-700">{opt.label}</span>
-                    <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
+                    <span className="text-sm font-medium text-gray-700">{t(opt.labelKey)}</span>
+                    <p className="text-xs text-gray-400 mt-0.5">{t(opt.descKey)}</p>
                   </div>
                 </label>
               ))}
@@ -492,31 +501,26 @@ export function App() {
         </Section>
 
         {/* Keyboard shortcuts */}
-        <Section title="Keyboard shortcuts">
-          <p className="text-sm text-gray-600 leading-relaxed mb-3">
-            Default shortcuts (if Chrome assigns them): <kbd className="px-1 py-0.5 rounded bg-gray-200 text-xs">Alt+T</kbd>
-            {' '}translate selection (starts translation in the panel whenever the selection can be read — in the page or from the background),{' '}
-            <kbd className="px-1 py-0.5 rounded bg-gray-200 text-xs">Alt+Shift+T</kbd>
-            {' '}translate page. Selecting text with the mouse already shows the floating trigger — the shortcut is mainly for keyboard-first use or when you want one-step translate without clicking the trigger. If a shortcut does nothing, open shortcut settings and bind LinguaLens to a free combination. Content scripts do not run on restricted pages (for example <code className="text-xs bg-gray-100 px-1 rounded">chrome://</code> URLs or the Chrome Web Store).
-          </p>
+        <Section title={t('options.keyboardShortcuts')}>
+          <p className="text-sm text-gray-600 leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: t('options.keyboardShortcutsDesc') }} />
           <button
             type="button"
             onClick={() => browser.tabs.create({ url: 'chrome://extensions/shortcuts' })}
             className="text-sm font-medium text-blue-600 hover:text-blue-700"
           >
-            Open extension shortcut settings
+            {t('options.openShortcutSettings')}
           </button>
         </Section>
 
         {/* Save */}
         <div className="flex items-center gap-3 mt-6">
           <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 transition-all shadow-sm">
-            {saving ? 'Saving…' : 'Save Settings'}
+            {saving ? t('options.saving') : t('options.save')}
           </button>
           {saved && (
             <span className="text-sm font-medium text-green-600 flex items-center gap-1">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5" /></svg>
-              Saved
+              {t('options.saved')}
             </span>
           )}
         </div>

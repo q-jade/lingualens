@@ -1,0 +1,40 @@
+{
+  "extName": {
+    "message": "LinguaLens",
+    "description": "Extension display name"
+  },
+  "extDescription": {
+    "message": "LinguaLens — 使用 LLM 和在线 API 翻译一切",
+    "description": "Extension description shown in store and management page"
+  },
+  "commandTranslateSelection": {
+    "message": "翻译选中文本",
+    "description": "Keyboard shortcut description for selection translation"
+  },
+  "commandTranslatePage": {
+    "message": "翻译整个页面",
+    "description": "Keyboard shortcut description for page translation"
+  },
+  "contextMenuTranslateSelection": {
+    "message": "翻译 \"$TEXT$\"",
+    "description": "Context menu item for translating selected text",
+    "placeholders": {
+      "TEXT": {
+        "content": "$1",
+        "example": "hello world"
+      }
+    }
+  },
+  "contextMenuTranslatePage": {
+    "message": "翻译此页面",
+    "description": "Context menu item for translating the whole page"
+  },
+  "contextMenuStopPage": {
+    "message": "停止页面翻译",
+    "description": "Context menu item to stop ongoing page translation"
+  },
+  "contextMenuRestorePage": {
+    "message": "恢复原始页面",
+    "description": "Context menu item to restore the original page"
+  }
+}

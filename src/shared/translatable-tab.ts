@@ -45,6 +45,3 @@ export function isTranslatableTabUrl(url: string | undefined): boolean {
 
   return true;
 }
-
-export const PAGE_TRANSLATE_UNAVAILABLE =
-  'Page translation is not available on this page. Open a normal web page and try again.';

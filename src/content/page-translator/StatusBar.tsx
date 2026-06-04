@@ -1,6 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import { type TranslateProgress, type DisplayMode } from './engine';
 import { AppLogo } from '../../shared/AppLogo';
-import { PAGE_TRANSLATE_ACTION_LABEL } from '../../shared/page-translate-phase';
 
 interface Props {
   progress: TranslateProgress | null;
@@ -14,6 +14,8 @@ interface Props {
 }
 
 export function StatusBar({ progress, running, displayMode, collapsed, onStop, onRestore, onToggleMode, onToggleCollapse }: Props) {
+  const { t } = useTranslation();
+
   if (!progress) return null;
 
   const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
@@ -21,7 +23,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
 
   if (collapsed) {
     return (
-      <button onClick={onToggleCollapse} className="st-status-collapsed" title="Expand translation bar">
+      <button onClick={onToggleCollapse} className="st-status-collapsed" title={t('statusBar.expand')}>
         <span className="st-status-collapsed-mark">
           <AppLogo className="st-status-collapsed-icon" />
         </span>
@@ -38,13 +40,13 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
         <AppLogo className="st-status-icon" />
         {running ? (
           <span className="st-status-text">
-            Translating… {progress.done}/{progress.total} ({percent}%)
-            {progress.errors > 0 && <span className="st-status-err"> · {progress.errors} errors</span>}
+            {t('statusBar.translatingProgress', { done: progress.done, total: progress.total, percent })}
+            {progress.errors > 0 && <span className="st-status-err"> {t('statusBar.errors', { count: progress.errors })}</span>}
           </span>
         ) : done ? (
           <span className="st-status-text">
-            Translated {progress.done}/{progress.total}
-            {progress.errors > 0 && <span className="st-status-err"> · {progress.errors} errors</span>}
+            {t('statusBar.translatedProgress', { done: progress.done, total: progress.total })}
+            {progress.errors > 0 && <span className="st-status-err"> {t('statusBar.errors', { count: progress.errors })}</span>}
           </span>
         ) : null}
       </div>
@@ -57,21 +59,21 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
 
       <div className="st-status-actions">
         {done && (
-          <button onClick={onToggleMode} className="st-status-btn" title="Switch display mode">
-            {displayMode === 'bilingual' ? 'Replace' : 'Bilingual'}
+          <button onClick={onToggleMode} className="st-status-btn" title={t('statusBar.switchMode')}>
+            {displayMode === 'bilingual' ? t('statusBar.replace') : t('statusBar.bilingual')}
           </button>
         )}
         {running && (
           <button onClick={onStop} className="st-status-btn st-status-btn-warn">
-            {PAGE_TRANSLATE_ACTION_LABEL.stop}
+            {t('statusBar.stop')}
           </button>
         )}
         {done && (
           <button onClick={onRestore} className="st-status-btn">
-            {PAGE_TRANSLATE_ACTION_LABEL.restore}
+            {t('statusBar.restore')}
           </button>
         )}
-        <button onClick={onToggleCollapse} className="st-status-btn-icon" title="Minimize">
+        <button onClick={onToggleCollapse} className="st-status-btn-icon" title={t('statusBar.minimize')}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             <path d="M5 12h14" />
           </svg>

@@ -88,17 +88,17 @@ export async function handleTranslate(
   const chain = buildProviderChain(settings);
 
   if (chain.length === 0) {
-    return { success: false, error: 'No active provider configured. Open Settings to add one.' };
+    return { success: false, error: 'NO_PROVIDER' };
   }
 
-  let lastError = 'Translation failed';
+  let lastError = '';
 
   for (const providerConfig of chain) {
     try {
       const result = await translateWithProvider(request, providerConfig, settings.promptTemplate);
       return { success: true, data: result };
     } catch (err) {
-      lastError = err instanceof Error ? err.message : 'Translation failed';
+      lastError = err instanceof Error ? err.message : 'TRANSLATION_FAILED';
     }
   }
 

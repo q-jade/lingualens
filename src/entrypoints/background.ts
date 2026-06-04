@@ -2,10 +2,9 @@ import { handleMessage } from '../background/message-router';
 import { registerInstallOnboarding } from '../background/onboarding';
 import {
   isPageTranslateStarted,
-  PAGE_TRANSLATE_CONTEXT_MENU_TITLE,
   type PageTranslatePhase,
 } from '../shared/page-translate-phase';
-import { isTranslatableTabUrl, PAGE_TRANSLATE_UNAVAILABLE } from '../shared/translatable-tab';
+import { isTranslatableTabUrl } from '../shared/translatable-tab';
 
 export default defineBackground(() => {
   registerInstallOnboarding();
@@ -16,6 +15,15 @@ export default defineBackground(() => {
     else pageTranslatePhaseByTab.delete(tabId);
   }
 
+  function getPageContextMenuTitle(phase: PageTranslatePhase): string {
+    const key: Record<PageTranslatePhase, string> = {
+      idle: 'contextMenuTranslatePage',
+      running: 'contextMenuStopPage',
+      done: 'contextMenuRestorePage',
+    };
+    return browser.i18n.getMessage(key[phase]) || 'Translate This Page';
+  }
+
   async function applyPageContextMenu(tabId: number, phase: PageTranslatePhase): Promise<void> {
     try {
       const tab = await browser.tabs.get(tabId);
@@ -24,7 +32,7 @@ export default defineBackground(() => {
         return;
       }
       await browser.contextMenus.update('translate-page', {
-        title: PAGE_TRANSLATE_CONTEXT_MENU_TITLE[phase],
+        title: getPageContextMenuTitle(phase),
         enabled: true,
       });
     } catch {
@@ -207,17 +215,17 @@ export default defineBackground(() => {
         .get(payload.tabId)
         .then((tab) => {
           if (!isTranslatableTabUrl(tab.url)) {
-            return { success: false, error: PAGE_TRANSLATE_UNAVAILABLE };
+            return { success: false, error: 'PAGE_TRANSLATE_UNAVAILABLE' };
           }
           return getPageTranslatePhase(payload.tabId).then((phase) => {
-            if (phase !== 'idle') return { success: false, error: 'Page translation is already active.' };
+            if (phase !== 'idle') return { success: false, error: 'PAGE_TRANSLATE_ALREADY_ACTIVE' };
             return browser.tabs
               .sendMessage(payload.tabId, { type: 'PAGE_TRANSLATE_START' })
               .then(() => ({ success: true }));
           });
         })
         .then(sendResponse)
-        .catch(() => sendResponse({ success: false, error: PAGE_TRANSLATE_UNAVAILABLE }));
+        .catch(() => sendResponse({ success: false, error: 'PAGE_TRANSLATE_UNAVAILABLE' }));
       return true;
     }
 
@@ -241,13 +249,13 @@ export default defineBackground(() => {
 
   browser.contextMenus.create({
     id: 'translate-selection',
-    title: 'Translate "%s"',
+    title: browser.i18n.getMessage('contextMenuTranslateSelection', ['%s']) || 'Translate "%s"',
     contexts: ['selection'],
   });
 
   browser.contextMenus.create({
     id: 'translate-page',
-    title: 'Translate This Page',
+    title: browser.i18n.getMessage('contextMenuTranslatePage') || 'Translate This Page',
     contexts: ['page'],
   });
 

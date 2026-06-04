@@ -6,6 +6,7 @@ import {
   isInsideOurUI,
   markContextMenuInExtensionUI,
 } from './selection-ui-guard';
+import { initI18n } from '../../shared/i18n';
 import './style.css';
 
 const OVERLAY_Z = '2147483647';
@@ -60,6 +61,7 @@ export default defineContentScript({
   cssInjectionMode: 'ui',
 
   async main(ctx) {
+    await initI18n();
     let appHandle: ContentAppHandle | null = null;
     type PendingSelection = { text: string; mouseX: number; mouseY: number; range: Range };
     const pendingSelection: PendingSelection[] = [];

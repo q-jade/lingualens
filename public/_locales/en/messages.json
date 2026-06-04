@@ -1,0 +1,40 @@
+{
+  "extName": {
+    "message": "LinguaLens",
+    "description": "Extension display name"
+  },
+  "extDescription": {
+    "message": "LinguaLens — translate anything with LLM and online APIs",
+    "description": "Extension description shown in store and management page"
+  },
+  "commandTranslateSelection": {
+    "message": "Translate selected text",
+    "description": "Keyboard shortcut description for selection translation"
+  },
+  "commandTranslatePage": {
+    "message": "Translate entire page",
+    "description": "Keyboard shortcut description for page translation"
+  },
+  "contextMenuTranslateSelection": {
+    "message": "Translate \"$TEXT$\"",
+    "description": "Context menu item for translating selected text",
+    "placeholders": {
+      "TEXT": {
+        "content": "$1",
+        "example": "hello world"
+      }
+    }
+  },
+  "contextMenuTranslatePage": {
+    "message": "Translate This Page",
+    "description": "Context menu item for translating the whole page"
+  },
+  "contextMenuStopPage": {
+    "message": "Stop Page Translation",
+    "description": "Context menu item to stop ongoing page translation"
+  },
+  "contextMenuRestorePage": {
+    "message": "Restore Original Page",
+    "description": "Context menu item to restore the original page"
+  }
+}

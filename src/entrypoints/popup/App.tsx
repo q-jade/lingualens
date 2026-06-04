@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
 import { getTranslatorLanguages, updateTranslatorLanguages } from '../../shared/translator-languages';
-import { isTranslatableTabUrl, PAGE_TRANSLATE_UNAVAILABLE } from '../../shared/translatable-tab';
+import { isTranslatableTabUrl } from '../../shared/translatable-tab';
 
-/** Chrome 114+ only; must run from a user gesture (e.g. click). */
 async function openExtensionSidePanel(): Promise<string | null> {
   type ChromeSidePanel = {
     windows: { getCurrent: () => Promise<{ id?: number }> };
@@ -13,19 +13,30 @@ async function openExtensionSidePanel(): Promise<string | null> {
   };
   const chromeApi = (globalThis as typeof globalThis & { chrome?: ChromeSidePanel }).chrome;
   if (!chromeApi?.sidePanel?.open) {
-    return 'Side panel is not available in this browser. Try recent Chrome or Edge (Chromium).';
+    return 'sidePanelNotAvailable';
   }
   const win = await chromeApi.windows.getCurrent();
-  if (win.id == null) return 'Could not detect the browser window.';
+  if (win.id == null) return 'cannotDetectWindow';
   try {
     await chromeApi.sidePanel.open({ windowId: win.id });
     return null;
   } catch (err) {
-    return err instanceof Error ? err.message : 'Could not open side panel.';
+    return err instanceof Error ? err.message : 'cannotOpenSidePanel';
   }
 }
 
+const ERROR_KEYS: Record<string, string> = {
+  NO_PROVIDER: 'popup.noProvider',
+  TRANSLATION_FAILED: 'popup.translationFailed',
+  PAGE_TRANSLATE_UNAVAILABLE: 'popup.pageTranslateUnavailable',
+};
+
 export function App() {
+  const { t } = useTranslation();
+
+  const translateError = (err: string | undefined): string =>
+    err ? (ERROR_KEYS[err] ? t(ERROR_KEYS[err]) : err) : t('popup.translationFailed');
+
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [text, setText] = useState('');
   const [targetLang, setTargetLang] = useState<string | null>(null);
@@ -77,7 +88,7 @@ export function App() {
     if (res.success) {
       setResult(res.data.translated);
     } else {
-      setError(res.error);
+      setError(translateError(res.error));
     }
   };
 
@@ -86,16 +97,16 @@ export function App() {
 
   return (
     <div className="p-4 bg-white min-h-[200px]">
-      {/* Header — side panel control here so it stays visible without scrolling the popup */}
+      {/* Header */}
       <div className="flex items-center gap-2 mb-3">
         <AppLogo className="w-7 h-7 shrink-0" />
         <h1 className="text-base font-semibold text-gray-800 flex-1 min-w-0 truncate">LinguaLens</h1>
         <button
           type="button"
           onClick={async () => {
-            const errMsg = await openExtensionSidePanel();
-            if (errMsg) {
-              setError(errMsg);
+            const errKey = await openExtensionSidePanel();
+            if (errKey) {
+              setError(t(`popup.${errKey}`));
               return;
             }
             window.close();
@@ -103,9 +114,9 @@ export function App() {
           className="shrink-0 px-2 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide
                      border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100
                      focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-          title="Opens the full translator in Chrome’s side panel (Chrome 114+)"
+          title={t('popup.sidePanelTitle')}
         >
-          Side panel
+          {t('popup.sidePanel')}
         </button>
       </div>
 
@@ -131,7 +142,7 @@ export function App() {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Enter text to translate…"
+        placeholder={t('popup.placeholder')}
         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none
                    focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400"
         rows={3}
@@ -148,7 +159,7 @@ export function App() {
                    bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600
                    disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
-        {loading ? 'Translating…' : 'Translate'}
+        {loading ? t('popup.translating') : t('popup.translate')}
       </button>
 
       {/* Error */}
@@ -164,7 +175,7 @@ export function App() {
             onClick={() => navigator.clipboard.writeText(result)}
             className="mt-1 text-xs text-blue-500 hover:text-blue-600"
           >
-            Copy
+            {t('popup.copy')}
           </button>
         </div>
       )}
@@ -176,7 +187,7 @@ export function App() {
           const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
           if (!tab?.id || !isTranslatableTabUrl(tab.url)) {
             setPageTranslateSupported(false);
-            setError(PAGE_TRANSLATE_UNAVAILABLE);
+            setError(t('popup.pageTranslateUnavailable'));
             return;
           }
           try {
@@ -187,19 +198,19 @@ export function App() {
             if (res?.success) {
               window.close();
             } else {
-              if (res?.error === 'Page translation is already active.') setPageTranslateActive(true);
-              setError(res?.error || PAGE_TRANSLATE_UNAVAILABLE);
+              if (res?.error === 'PAGE_TRANSLATE_ALREADY_ACTIVE') setPageTranslateActive(true);
+              setError(t('popup.pageTranslateUnavailable'));
             }
           } catch {
-            setError(PAGE_TRANSLATE_UNAVAILABLE);
+            setError(t('popup.pageTranslateUnavailable'));
           }
         }}
         disabled={pageTranslateActive || !pageTranslateSupported}
         title={
           !pageTranslateSupported
-            ? PAGE_TRANSLATE_UNAVAILABLE
+            ? t('popup.pageTranslateUnavailable')
             : pageTranslateActive
-              ? 'This page is already being translated'
+              ? t('popup.alreadyActive')
               : undefined
         }
         className="w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium
@@ -207,10 +218,10 @@ export function App() {
                    disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {!pageTranslateSupported
-          ? 'Not Available on This Page'
+          ? t('popup.notAvailable')
           : pageTranslateActive
-            ? 'Page Already Translated'
-            : 'Translate This Page'}
+            ? t('popup.pageAlreadyTranslated')
+            : t('popup.translatePage')}
       </button>
 
       {/* Footer */}
@@ -221,7 +232,7 @@ export function App() {
           onClick={() => browser.runtime.openOptionsPage()}
           className="text-xs text-blue-500 hover:text-blue-600 font-medium shrink-0"
         >
-          Settings
+          {t('popup.settings')}
         </button>
       </div>
     </div>
