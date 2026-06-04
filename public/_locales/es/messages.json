@@ -1,0 +1,10 @@
+{
+  "extName": { "message": "LinguaLens" },
+  "extDescription": { "message": "LinguaLens — traduce cualquier cosa con LLM y APIs en línea" },
+  "commandTranslateSelection": { "message": "Traducir texto seleccionado" },
+  "commandTranslatePage": { "message": "Traducir página completa" },
+  "contextMenuTranslateSelection": { "message": "Traducir \"$TEXT$\"", "placeholders": { "TEXT": { "content": "$1" } } },
+  "contextMenuTranslatePage": { "message": "Traducir esta página" },
+  "contextMenuStopPage": { "message": "Detener traducción de página" },
+  "contextMenuRestorePage": { "message": "Restaurar página original" }
+}

@@ -1,0 +1,10 @@
+{
+  "extName": { "message": "LinguaLens" },
+  "extDescription": { "message": "LinguaLens — переводите что угодно с помощью LLM и онлайн-API" },
+  "commandTranslateSelection": { "message": "Перевести выделенный текст" },
+  "commandTranslatePage": { "message": "Перевести всю страницу" },
+  "contextMenuTranslateSelection": { "message": "Перевести «$TEXT$»", "placeholders": { "TEXT": { "content": "$1" } } },
+  "contextMenuTranslatePage": { "message": "Перевести эту страницу" },
+  "contextMenuStopPage": { "message": "Остановить перевод страницы" },
+  "contextMenuRestorePage": { "message": "Восстановить оригинал страницы" }
+}
