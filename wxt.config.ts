@@ -4,7 +4,7 @@ export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react', '@wxt-dev/auto-icons'],
   manifest: {
-    version: '0.3.0',
+    version: '0.4.0',
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
     default_locale: 'en',

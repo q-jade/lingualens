@@ -1,6 +1,8 @@
 # LinguaLens
 
 [![GitHub](https://img.shields.io/github/license/q-jade/lingualens)](LICENSE)
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jpmdhkgjoppnfnnebhmjjnbhpmcploec?label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/lingualens/jpmdhkgjoppnfnnebhmjjnbhpmcploec)
+[![Edge Add-ons](https://img.shields.io/badge/dynamic/json?label=Edge%20Add-ons&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2Fbdpgakpajghfgehcdhknlcacelkgeleo)](https://microsoftedge.microsoft.com/addons/detail/bdpgakpajghfgehcdhknlcacelkgeleo)
 
 **Translate anything on the web** — with local LLMs (Ollama, LM Studio), cloud APIs (OpenAI, DeepSeek, DeepL, Google Translate), or your own HTTP endpoint.
 
@@ -25,14 +27,23 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 
 Content scripts do **not** run on restricted pages (for example `chrome://`, `edge://`, or the browser extension gallery).
 
-## Quick start
+## Install
+
+| Browser | Link |
+|---------|------|
+| Chrome / Chromium | [Chrome Web Store](https://chromewebstore.google.com/detail/lingualens/jpmdhkgjoppnfnnebhmjjnbhpmcploec) |
+| Edge | [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/bdpgakpajghfgehcdhknlcacelkgeleo) |
+
+After installing, click the LinguaLens toolbar icon to open the popup, then go to **Settings** to configure at least one translation provider.
+
+## Quick start (from source)
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+ and npm
 - For the default setup: [Ollama](https://ollama.com/) running locally with a model pulled (e.g. `ollama pull llama3`)
 
-### Install from source
+### Clone and run
 
 ```bash
 git clone https://github.com/q-jade/lingualens.git

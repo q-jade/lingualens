@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] - 2026-06-04
+
+### Added
+
+- Full internationalization (i18n) support with 9 UI languages: English, Simplified Chinese, Traditional Chinese, Japanese, Korean, French, German, Spanish, and Russian.
+- UI language selector in Options page with auto-detection from browser locale on first use; user preference persists across sessions.
+- Chrome native i18n (`_locales`) for manifest name/description and context menu titles (follows browser language).
+- `react-i18next` integration for all React surfaces (popup, side panel, options, content overlay) with user-selectable language.
+- Separate translator language preferences: popup/side panel remember their own source/target independent of selection & page translation settings.
+- Auto-infer default target language from browser locale.
+
+### Fixed
+
+- Side panel language prefs now sync when popup updates storage.
+
 ## [0.3.0] - 2026-06-01
 
 ### Added
@@ -54,6 +69,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.4.0]: https://github.com/q-jade/lingualens/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/q-jade/lingualens/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/q-jade/lingualens/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/q-jade/lingualens/compare/v0.1.0...v0.1.1
