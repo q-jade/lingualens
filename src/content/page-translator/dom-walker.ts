@@ -4,7 +4,12 @@ const SKIP_TAGS = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'OBJECT', 'EMBED',
   'SVG', 'CANVAS', 'VIDEO', 'AUDIO', 'MAP', 'CODE', 'PRE',
   'KBD', 'SAMP', 'VAR', 'LINGUA-LENS', 'INPUT', 'TEXTAREA',
-  'SELECT', 'BUTTON',
+  'SELECT', 'OPTION', 'OPTGROUP', 'DATALIST', 'BUTTON',
+]);
+
+const SKIP_ROLES = new Set([
+  'tooltip', 'option', 'listbox', 'menu', 'menuitem', 'menuitemcheckbox',
+  'menuitemradio', 'combobox', 'tree', 'treeitem',
 ]);
 
 const BLOCK_TAGS = new Set([
@@ -76,13 +81,38 @@ export interface TextSegment {
 
 function isVisible(el: Element): boolean {
   const style = getComputedStyle(el);
-  return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+  if (el.hasAttribute('hidden')) return false;
+  return true;
 }
+
+function isPopupOverlay(el: Element): boolean {
+  const style = getComputedStyle(el);
+  const position = style.position;
+  if (position !== 'absolute' && position !== 'fixed') return false;
+  const role = el.getAttribute('role');
+  if (role && SKIP_ROLES.has(role)) return true;
+  const cls = el.className;
+  if (typeof cls === 'string' && SKIP_CLASS_RE.test(cls)) return true;
+  return false;
+}
+
+const SKIP_CLASS_RE = /\b(dropdown|popover|tooltip|popup|select-menu|menu-list|listbox|menu-item|dropdown-item|tippy|popper)\b/i;
+const SR_ONLY_RE = /\b(sr-only|visually-hidden|visuallyhidden|screen-reader-only|screenreader)\b/i;
 
 function isInsideSkipTag(node: Node, root: Element): boolean {
   let current = node.parentElement;
   while (current && current !== root) {
     if (SKIP_TAGS.has(current.tagName)) return true;
+    const role = current.getAttribute('role');
+    if (role && SKIP_ROLES.has(role)) return true;
+    if (current.getAttribute('aria-hidden') === 'true') return true;
+    const cls = current.className;
+    if (typeof cls === 'string') {
+      if (SKIP_CLASS_RE.test(cls)) return true;
+      if (SR_ONLY_RE.test(cls)) return true;
+    }
+    if (current.hasAttribute('data-tippy-root') || current.hasAttribute('data-popper-placement')) return true;
     current = current.parentElement;
   }
   return false;
@@ -370,7 +400,9 @@ export function extractSegments(
       if (!node.textContent?.trim()) return NodeFilter.FILTER_REJECT;
       if (isInsideSkipTag(node, root)) return NodeFilter.FILTER_REJECT;
       const parent = node.parentElement;
-      if (parent && !isVisible(parent)) return NodeFilter.FILTER_REJECT;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      if (!isVisible(parent)) return NodeFilter.FILTER_REJECT;
+      if (isPopupOverlay(parent)) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     },
   });
