@@ -38,13 +38,15 @@ const SKIP_WORDS = new Set([
   'ok', 'n/a', 'todo', 'null', 'undefined', 'true', 'false',
 ]);
 
+const FILE_EXT_RE = /\.(tsx?|jsx?|mjs|cjs|vue|svelte|py|rb|rs|go|java|kt|scala|c|cpp|cc|h|hpp|cs|swift|css|scss|sass|less|html?|xml|svg|json[l5]?|ya?ml|toml|ini|cfg|conf|env|sh|bash|zsh|bat|cmd|ps1|md|mdx|rst|txt|log|csv|sql|graphql|proto|wasm|dll|so|dylib|exe|bin|png|jpe?g|gif|webp|ico|mp[34]|wav|pdf|zip|tar|gz|bz2|xz|rar|7z|woff2?|ttf|otf|eot|lock|map|d\.ts)$/i;
+
 /**
  * Returns true if the text doesn't need translation:
  * - Pure numbers (with optional commas, dots, percent, currency symbols)
  * - A single word that is a well-known brand/tech term
  * - Pure punctuation or symbols
  * - Very short content (single character)
- * - URLs, emails, file paths
+ * - URLs, emails, file paths (absolute, relative, and bare filenames)
  */
 function shouldSkipTranslation(text: string): boolean {
   const trimmed = text.trim();
@@ -54,7 +56,13 @@ function shouldSkipTranslation(text: string): boolean {
 
   if (/^[^\w\s]+$/.test(trimmed)) return true;
 
-  if (/^(https?:\/\/|www\.|\/[\w/.-]+|\S+@\S+\.\S+)/.test(trimmed)) return true;
+  if (/^(https?:\/\/|www\.|\.{0,2}\/[\w/@.-]+|\S+@\S+\.\S+)/.test(trimmed)) return true;
+
+  // Relative paths without prefix: word/word/... (no spaces, at least one /)
+  if (/^[\w@.-]+(?:\/[\w@.-]+)+$/.test(trimmed)) return true;
+
+  // Bare filenames with known extensions (e.g., package.json, dom-walker.ts)
+  if (/^[\w.-]+$/.test(trimmed) && FILE_EXT_RE.test(trimmed)) return true;
 
   const words = trimmed.split(/\s+/);
   if (words.length === 1) {
