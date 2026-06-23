@@ -15,6 +15,10 @@
     "message": "翻译整个页面",
     "description": "Keyboard shortcut description for page translation"
   },
+  "commandCycleSelectionMode": {
+    "message": "切换划词触发模式",
+    "description": "Keyboard shortcut description for cycling selection trigger mode"
+  },
   "contextMenuTranslateSelection": {
     "message": "翻译 \"$TEXT$\"",
     "description": "Context menu item for translating selected text",

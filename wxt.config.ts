@@ -28,6 +28,10 @@ export default defineConfig({
         suggested_key: { default: 'Alt+Shift+T' },
         description: '__MSG_commandTranslatePage__',
       },
+      'cycle-selection-mode': {
+        suggested_key: { default: 'Alt+M' },
+        description: '__MSG_commandCycleSelectionMode__',
+      },
     },
   },
 });

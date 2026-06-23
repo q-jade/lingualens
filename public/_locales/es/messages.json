@@ -3,6 +3,7 @@
   "extDescription": { "message": "LinguaLens — traduce cualquier cosa con LLM y APIs en línea" },
   "commandTranslateSelection": { "message": "Traducir texto seleccionado" },
   "commandTranslatePage": { "message": "Traducir página completa" },
+  "commandCycleSelectionMode": { "message": "Cambiar modo de activación de selección" },
   "contextMenuTranslateSelection": { "message": "Traducir \"$TEXT$\"", "placeholders": { "TEXT": { "content": "$1" } } },
   "contextMenuTranslatePage": { "message": "Traducir esta página" },
   "contextMenuStopPage": { "message": "Detener traducción de página" },

@@ -3,6 +3,7 @@
   "extDescription": { "message": "LinguaLens — 使用 LLM 和線上 API 翻譯一切" },
   "commandTranslateSelection": { "message": "翻譯選取文字" },
   "commandTranslatePage": { "message": "翻譯整個頁面" },
+  "commandCycleSelectionMode": { "message": "切換劃詞觸發模式" },
   "contextMenuTranslateSelection": { "message": "翻譯「$TEXT$」", "placeholders": { "TEXT": { "content": "$1" } } },
   "contextMenuTranslatePage": { "message": "翻譯此頁面" },
   "contextMenuStopPage": { "message": "停止頁面翻譯" },

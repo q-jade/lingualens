@@ -27,6 +27,9 @@ export interface ProviderConfig {
 
 export type ChunkingMode = 'quality' | 'speed';
 
+export type SelectionTriggerMode = 'icon' | 'instant' | 'modifier' | 'off';
+export type SelectionModifierKey = 'ctrl' | 'alt' | 'shift';
+
 export interface AppSettings {
   defaultProvider: string;
   /** Ordered provider IDs to try when the default provider fails. May be empty. */
@@ -36,6 +39,8 @@ export interface AppSettings {
   providers: ProviderConfig[];
   promptTemplate?: string;
   chunkingMode: ChunkingMode;
+  selectionTriggerMode: SelectionTriggerMode;
+  selectionModifierKey: SelectionModifierKey;
 }
 
 export type MessageType =

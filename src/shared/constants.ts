@@ -80,4 +80,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     },
   ],
   chunkingMode: 'quality',
+  selectionTriggerMode: 'icon',
+  selectionModifierKey: 'ctrl',
 };

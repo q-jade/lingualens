@@ -3,6 +3,7 @@
   "extDescription": { "message": "LinguaLens — LLMとオンラインAPIで何でも翻訳" },
   "commandTranslateSelection": { "message": "選択テキストを翻訳" },
   "commandTranslatePage": { "message": "ページ全体を翻訳" },
+  "commandCycleSelectionMode": { "message": "選択トリガーモードを切替" },
   "contextMenuTranslateSelection": { "message": "「$TEXT$」を翻訳", "placeholders": { "TEXT": { "content": "$1" } } },
   "contextMenuTranslatePage": { "message": "このページを翻訳" },
   "contextMenuStopPage": { "message": "ページ翻訳を停止" },

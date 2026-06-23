@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AppSettings, MessageResponse } from '../../shared/types';
+import type { AppSettings, MessageResponse, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
 import { StatusBar } from '../../content/page-translator/StatusBar';
 import { AppLogo } from '../../shared/AppLogo';
@@ -29,6 +29,9 @@ export interface ContentAppHandle {
   hide: () => void;
   isPageTranslationActive: () => boolean;
   getPageTranslatePhase: () => PageTranslatePhase;
+  getSelectionTriggerMode: () => SelectionTriggerMode;
+  getSelectionModifierKey: () => SelectionModifierKey;
+  showModeToast: (mode: SelectionTriggerMode, modifierKey?: SelectionModifierKey) => void;
   startPageTranslation: () => void;
   stopPageTranslation: () => void;
   restorePageTranslation: () => void;
@@ -106,9 +109,14 @@ export function ContentApp({ onReady }: Props) {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('bilingual');
   const [statusCollapsed, setStatusCollapsed] = useState(false);
 
+  const [toastText, setToastText] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const selectedTextRef = useRef('');
   const triggerMouseRef = useRef({ x: 0, y: 0 });
   const settingsRef = useRef<AppSettings | null>(null);
+  const selectionTriggerModeRef = useRef<SelectionTriggerMode>('icon');
+  const selectionModifierKeyRef = useRef<SelectionModifierKey>('ctrl');
   const engineRef = useRef(new PageTranslateEngine());
   /** Mirrors `pageTranslatePhase` for sync guards inside message/async handlers. */
   const pageTranslatePhaseRef = useRef<PageTranslatePhase>('idle');
@@ -120,6 +128,29 @@ export function ContentApp({ onReady }: Props) {
     setPageTranslatePhase(phase);
     notifyPageTranslatePhase(phase);
   };
+
+  const showToast = useCallback((text: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastText(text);
+    toastTimerRef.current = setTimeout(() => setToastText(null), 1500);
+  }, []);
+
+  useEffect(() => {
+    const onStorageChanged = (changes: Record<string, { newValue?: unknown; oldValue?: unknown }>) => {
+      if (!changes.settings) return;
+      const newSettings = changes.settings.newValue as AppSettings | undefined;
+      if (!newSettings) return;
+      settingsRef.current = newSettings;
+      if (newSettings.selectionTriggerMode) {
+        selectionTriggerModeRef.current = newSettings.selectionTriggerMode;
+      }
+      if (newSettings.selectionModifierKey) {
+        selectionModifierKeyRef.current = newSettings.selectionModifierKey;
+      }
+    };
+    browser.storage.onChanged.addListener(onStorageChanged);
+    return () => browser.storage.onChanged.removeListener(onStorageChanged);
+  }, []);
 
   const finishPageTranslateSession = (progress: TranslateProgress | null) => {
     const phase = phaseAfterPageTranslateEnds(progress);
@@ -318,7 +349,11 @@ export function ContentApp({ onReady }: Props) {
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
       (res: MessageResponse<AppSettings>) => {
-        if (res.success) settingsRef.current = res.data;
+        if (res.success) {
+          settingsRef.current = res.data;
+          selectionTriggerModeRef.current = res.data.selectionTriggerMode ?? 'icon';
+          selectionModifierKeyRef.current = res.data.selectionModifierKey ?? 'ctrl';
+        }
       },
     );
 
@@ -363,6 +398,18 @@ export function ContentApp({ onReady }: Props) {
       },
       getPageTranslatePhase() {
         return pageTranslatePhaseRef.current;
+      },
+      getSelectionTriggerMode() {
+        return selectionTriggerModeRef.current;
+      },
+      getSelectionModifierKey() {
+        return selectionModifierKeyRef.current;
+      },
+      showModeToast(m, modifierKey) {
+        const key = m === 'modifier'
+          ? t('content.modeSwitchedModifier', { key: (modifierKey ?? selectionModifierKeyRef.current).toUpperCase() })
+          : t(`content.modeSwitched${m.charAt(0).toUpperCase() + m.slice(1)}` as 'content.modeSwitchedIcon');
+        showToast(key);
       },
       startPageTranslation,
       stopPageTranslation,
@@ -459,6 +506,13 @@ export function ContentApp({ onReady }: Props) {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Mode-switch toast */}
+      {toastText && (
+        <div className="st-toast" role="status">
+          {toastText}
         </div>
       )}
     </>

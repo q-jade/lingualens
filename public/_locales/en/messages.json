@@ -15,6 +15,10 @@
     "message": "Translate entire page",
     "description": "Keyboard shortcut description for page translation"
   },
+  "commandCycleSelectionMode": {
+    "message": "Cycle selection trigger mode",
+    "description": "Keyboard shortcut description for cycling selection trigger mode"
+  },
   "contextMenuTranslateSelection": {
     "message": "Translate \"$TEXT$\"",
     "description": "Context menu item for translating selected text",

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
+import type { AppSettings, TranslateResult, MessageResponse, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
 import { getTranslatorLanguages, updateTranslatorLanguages } from '../../shared/translator-languages';
@@ -224,8 +224,73 @@ export function App() {
             : t('popup.translatePage')}
       </button>
 
+      {/* Selection mode quick-toggle */}
+      {settings && (
+        <div className="mt-3 pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[11px] font-medium text-gray-500">{t('popup.selectionMode')}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {([
+              { mode: 'icon' as SelectionTriggerMode, label: t('options.triggerModeIcon'), icon: '🔘' },
+              { mode: 'instant' as SelectionTriggerMode, label: t('options.triggerModeInstant'), icon: '⚡' },
+              { mode: 'modifier' as SelectionTriggerMode, label: t('options.triggerModeModifier'), icon: '⌨' },
+              { mode: 'off' as SelectionTriggerMode, label: t('options.triggerModeOff'), icon: '○' },
+            ]).map(({ mode: m, label, icon }) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setSettings((s) => s ? { ...s, selectionTriggerMode: m } : s);
+                  void browser.runtime.sendMessage({ type: 'SAVE_SETTINGS', payload: { selectionTriggerMode: m } });
+                  browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+                    if (tab?.id) {
+                      browser.tabs.sendMessage(tab.id, {
+                        type: 'SELECTION_MODE_CHANGED',
+                        payload: { mode: m, modifierKey: settings.selectionModifierKey },
+                      }).catch(() => {});
+                    }
+                  });
+                }}
+                title={label}
+                className={`flex-1 py-1 rounded-md text-xs font-medium transition-colors
+                  ${settings.selectionTriggerMode === m
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                    : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                  }`}
+              >
+                <span className="block text-center">{icon}</span>
+                <span className="block text-center text-[10px] leading-tight mt-0.5 truncate">{label}</span>
+              </button>
+            ))}
+          </div>
+          {settings.selectionTriggerMode === 'modifier' && (
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-[10px] text-gray-400">{t('options.selectionModifierKey')}:</span>
+              {(['ctrl', 'alt', 'shift'] as SelectionModifierKey[]).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => {
+                    setSettings((s) => s ? { ...s, selectionModifierKey: k } : s);
+                    void browser.runtime.sendMessage({ type: 'SAVE_SETTINGS', payload: { selectionModifierKey: k } });
+                  }}
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase transition-colors
+                    ${settings.selectionModifierKey === k
+                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                      : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Footer */}
-      <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
+      <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
         <span className="text-[11px] text-gray-400 truncate max-w-[180px]">{providerName}</span>
         <button
           type="button"

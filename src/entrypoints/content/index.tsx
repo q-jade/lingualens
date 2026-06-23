@@ -115,7 +115,7 @@ export default defineContentScript({
 
     ui.mount();
 
-    // Selection-based translation trigger
+    // Selection-based translation trigger (mode-aware)
     document.addEventListener('mouseup', (e) => {
       if (isInsideOurUI(e)) return;
 
@@ -127,13 +127,69 @@ export default defineContentScript({
         const text = selection?.toString().trim();
         if (!text || text.length <= 1 || !selection?.rangeCount) return;
         const range = selection.getRangeAt(0);
-        if (appHandle) {
-          appHandle.showTrigger(text, mouseX, mouseY, range);
-        } else {
-          pendingSelection.push({ text, mouseX, mouseY, range: range.cloneRange() });
+
+        const mode = appHandle?.getSelectionTriggerMode() ?? 'icon';
+        switch (mode) {
+          case 'icon':
+            if (appHandle) {
+              appHandle.showTrigger(text, mouseX, mouseY, range);
+            } else {
+              pendingSelection.push({ text, mouseX, mouseY, range: range.cloneRange() });
+            }
+            break;
+          case 'instant':
+            if (appHandle) {
+              appHandle.translateNow(text);
+            } else {
+              pendingTranslateNow.push(text);
+            }
+            break;
+        // 'modifier' and 'off': do nothing on mouseup
         }
       }, 10);
     });
+
+    // Modifier-key-alone listener for 'modifier' mode
+    let modifierPending = false;
+
+    document.addEventListener('keydown', (e) => {
+      if (appHandle?.getSelectionTriggerMode() !== 'modifier') return;
+      const configuredKey = appHandle?.getSelectionModifierKey() ?? 'ctrl';
+
+      const isConfiguredModifier =
+        (configuredKey === 'ctrl' && e.key === 'Control') ||
+        (configuredKey === 'alt' && e.key === 'Alt') ||
+        (configuredKey === 'shift' && e.key === 'Shift');
+
+      if (isConfiguredModifier && !e.repeat) {
+        modifierPending = true;
+      } else if (modifierPending) {
+        modifierPending = false;
+      }
+    }, true);
+
+    document.addEventListener('keyup', (e) => {
+      if (!modifierPending) return;
+      const configuredKey = appHandle?.getSelectionModifierKey() ?? 'ctrl';
+
+      const isConfiguredModifier =
+        (configuredKey === 'ctrl' && e.key === 'Control') ||
+        (configuredKey === 'alt' && e.key === 'Alt') ||
+        (configuredKey === 'shift' && e.key === 'Shift');
+
+      if (!isConfiguredModifier) return;
+      modifierPending = false;
+
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+      if (!text || text.length <= 1) return;
+
+      if (appHandle) {
+        appHandle.translateNow(text);
+      } else {
+        pendingTranslateNow.push(text);
+      }
+    }, true);
 
     document.addEventListener('mousedown', (e) => {
       if (!isInsideOurUI(e)) {
@@ -188,6 +244,16 @@ export default defineContentScript({
             requestAnimationFrame(() => {
               if (!tryTranslateFromSelection()) setTimeout(() => tryTranslateFromSelection(), 50);
             });
+          }
+          break;
+        }
+        case 'SELECTION_MODE_CHANGED': {
+          const payload = message.payload as { mode: string; modifierKey?: string };
+          if (appHandle && payload?.mode) {
+            appHandle.showModeToast(
+              payload.mode as import('../../shared/types').SelectionTriggerMode,
+              payload.modifierKey as import('../../shared/types').SelectionModifierKey | undefined,
+            );
           }
           break;
         }

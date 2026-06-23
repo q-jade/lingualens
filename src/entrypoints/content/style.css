@@ -170,6 +170,32 @@
   pointer-events: none;
 }
 
+/* Mode-switch toast */
+.st-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  pointer-events: none;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(30, 41, 59, 0.88);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  animation: st-toast-in 200ms ease-out;
+}
+
+@keyframes st-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 /* Page translation status bar */
 .st-status-bar {
   @apply fixed top-0 left-0 right-0 flex items-center gap-3 px-4 py-2

@@ -1,10 +1,11 @@
-import { handleMessage } from '../background/message-router';
+import { handleMessage, getSettings, saveSettings } from '../background/message-router';
 import { registerInstallOnboarding } from '../background/onboarding';
 import {
   isPageTranslateStarted,
   type PageTranslatePhase,
 } from '../shared/page-translate-phase';
 import { isTranslatableTabUrl } from '../shared/translatable-tab';
+import type { SelectionTriggerMode } from '../shared/types';
 
 export default defineBackground(() => {
   registerInstallOnboarding();
@@ -244,6 +245,20 @@ export default defineBackground(() => {
       case 'translate-page':
         await translatePageInTab(tab.id, tab.url);
         break;
+      case 'cycle-selection-mode': {
+        const MODES: SelectionTriggerMode[] = ['icon', 'instant', 'modifier', 'off'];
+        const settings = await getSettings();
+        const idx = MODES.indexOf(settings.selectionTriggerMode ?? 'icon');
+        const nextMode = MODES[(idx + 1) % MODES.length];
+        await saveSettings({ selectionTriggerMode: nextMode });
+        browser.tabs
+          .sendMessage(tab.id, {
+            type: 'SELECTION_MODE_CHANGED',
+            payload: { mode: nextMode, modifierKey: settings.selectionModifierKey },
+          })
+          .catch(() => {});
+        break;
+      }
     }
   });
 
