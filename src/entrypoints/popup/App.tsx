@@ -43,7 +43,7 @@ export function App() {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pageTranslateActive, setPageTranslateActive] = useState(false);
+  const [pageTranslatePhase, setPageTranslatePhase] = useState<'idle' | 'running' | 'done'>('idle');
   const [pageTranslateSupported, setPageTranslateSupported] = useState(true);
 
   useEffect(() => {
@@ -66,12 +66,11 @@ export function App() {
         if (!tab?.id || !supported) return;
         return browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_STATUS' });
       })
-      .then((res: { active?: boolean } | undefined) => {
-        setPageTranslateActive(Boolean(res?.active));
+      .then((res: { phase?: string } | undefined) => {
+        const phase = res?.phase;
+        if (phase === 'running' || phase === 'done') setPageTranslatePhase(phase);
       })
-      .catch(() => {
-        setPageTranslateActive(false);
-      });
+      .catch(() => { });
   }, []);
 
   const handleTranslate = async () => {
@@ -183,7 +182,7 @@ export function App() {
       {/* Page translate */}
       <button
         onClick={async () => {
-          if (pageTranslateActive || !pageTranslateSupported) return;
+          if (!pageTranslateSupported) return;
           const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
           if (!tab?.id || !isTranslatableTabUrl(tab.url)) {
             setPageTranslateSupported(false);
@@ -191,37 +190,47 @@ export function App() {
             return;
           }
           try {
-            const res = await browser.runtime.sendMessage({
-              type: 'PAGE_TRANSLATE_PAGE',
-              payload: { tabId: tab.id },
-            });
-            if (res?.success) {
-              window.close();
+            if (pageTranslatePhase === 'running') {
+              await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_STOP' });
+              setPageTranslatePhase('done');
+            } else if (pageTranslatePhase === 'done') {
+              await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_RESTORE' });
+              setPageTranslatePhase('idle');
             } else {
-              if (res?.error === 'PAGE_TRANSLATE_ALREADY_ACTIVE') setPageTranslateActive(true);
-              setError(t('popup.pageTranslateUnavailable'));
+              const res = await browser.runtime.sendMessage({
+                type: 'PAGE_TRANSLATE_PAGE',
+                payload: { tabId: tab.id },
+              });
+              if (res?.success) {
+                window.close();
+              } else {
+                if (res?.error === 'PAGE_TRANSLATE_ALREADY_ACTIVE') setPageTranslatePhase('running');
+                setError(t('popup.pageTranslateUnavailable'));
+              }
             }
           } catch {
             setError(t('popup.pageTranslateUnavailable'));
           }
         }}
-        disabled={pageTranslateActive || !pageTranslateSupported}
-        title={
-          !pageTranslateSupported
-            ? t('popup.pageTranslateUnavailable')
-            : pageTranslateActive
-              ? t('popup.alreadyActive')
-              : undefined
-        }
-        className="w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium
-                   border border-gray-200 text-gray-700 hover:bg-gray-50
-                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        disabled={!pageTranslateSupported}
+        title={!pageTranslateSupported ? t('popup.pageTranslateUnavailable') : undefined}
+        className={`w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                   ${!pageTranslateSupported
+            ? 'border border-gray-200 text-gray-400 opacity-50 cursor-not-allowed'
+            : pageTranslatePhase === 'running'
+              ? 'border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100'
+              : pageTranslatePhase === 'done'
+                ? 'border border-green-300 text-green-700 bg-green-50 hover:bg-green-100'
+                : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+          }`}
       >
         {!pageTranslateSupported
           ? t('popup.notAvailable')
-          : pageTranslateActive
-            ? t('popup.pageAlreadyTranslated')
-            : t('popup.translatePage')}
+          : pageTranslatePhase === 'running'
+            ? t('popup.stopPageTranslation')
+            : pageTranslatePhase === 'done'
+              ? t('popup.restoreOriginalPage')
+              : t('popup.translatePage')}
       </button>
 
       {/* Selection mode quick-toggle */}
@@ -248,7 +257,7 @@ export function App() {
                       browser.tabs.sendMessage(tab.id, {
                         type: 'SELECTION_MODE_CHANGED',
                         payload: { mode: m, modifierKey: settings.selectionModifierKey },
-                      }).catch(() => {});
+                      }).catch(() => { });
                     }
                   });
                 }}
@@ -274,6 +283,14 @@ export function App() {
                   onClick={() => {
                     setSettings((s) => s ? { ...s, selectionModifierKey: k } : s);
                     void browser.runtime.sendMessage({ type: 'SAVE_SETTINGS', payload: { selectionModifierKey: k } });
+                    browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+                      if (tab?.id) {
+                        browser.tabs.sendMessage(tab.id, {
+                          type: 'SELECTION_MODE_CHANGED',
+                          payload: { mode: settings.selectionTriggerMode, modifierKey: k },
+                        }).catch(() => { });
+                      }
+                    });
                   }}
                   className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase transition-colors
                     ${settings.selectionModifierKey === k

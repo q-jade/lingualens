@@ -210,7 +210,7 @@ export default defineContentScript({
           break;
         case 'PAGE_TRANSLATE_STATUS': {
           const phase = appHandle?.getPageTranslatePhase() ?? 'idle';
-          sendResponse({ phase, active: phase !== 'idle' });
+          sendResponse({ phase });
           break;
         }
         case 'PAGE_TRANSLATE_STOP':
