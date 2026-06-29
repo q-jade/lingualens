@@ -78,8 +78,8 @@ export function App() {
       setTranslation(res.data.translated);
       const entry: HistoryEntry = {
         id: Date.now(),
-        source: text.slice(0, 200),
-        translated: res.data.translated.slice(0, 200),
+        source: text,
+        translated: res.data.translated,
         targetLang,
         provider: res.data.provider,
         timestamp: Date.now(),
