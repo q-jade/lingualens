@@ -106,6 +106,7 @@
   "content": {
     "translating": "Translating…",
     "translationFailed": "Translation failed",
+    "noProvider": "No active provider configured. Open Settings to add one.",
     "copy": "Copy translation",
     "modeSwitchedIcon": "Trigger icon mode",
     "modeSwitchedInstant": "Instant mode",

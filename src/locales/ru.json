@@ -106,6 +106,7 @@
   "content": {
     "translating": "Перевод…",
     "translationFailed": "Ошибка перевода",
+    "noProvider": "Нет активного провайдера. Откройте настройки, чтобы добавить.",
     "copy": "Копировать перевод",
     "modeSwitchedIcon": "Режим значка-триггера",
     "modeSwitchedInstant": "Мгновенный режим",

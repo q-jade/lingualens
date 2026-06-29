@@ -106,6 +106,7 @@
   "content": {
     "translating": "Traduction en cours…",
     "translationFailed": "Échec de la traduction",
+    "noProvider": "Aucun fournisseur actif configuré. Ouvrez les paramètres pour en ajouter un.",
     "copy": "Copier la traduction",
     "modeSwitchedIcon": "Mode icône de déclenchement",
     "modeSwitchedInstant": "Mode instantané",

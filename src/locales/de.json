@@ -106,6 +106,7 @@
   "content": {
     "translating": "Übersetze…",
     "translationFailed": "Übersetzung fehlgeschlagen",
+    "noProvider": "Kein aktiver Anbieter konfiguriert. Öffnen Sie die Einstellungen, um einen hinzuzufügen.",
     "copy": "Übersetzung kopieren",
     "modeSwitchedIcon": "Auslösesymbol-Modus",
     "modeSwitchedInstant": "Sofortmodus",

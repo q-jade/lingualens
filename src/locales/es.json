@@ -106,6 +106,7 @@
   "content": {
     "translating": "Traduciendo…",
     "translationFailed": "Error en la traducción",
+    "noProvider": "No hay proveedor activo configurado. Abra Configuración para agregar uno.",
     "copy": "Copiar traducción",
     "modeSwitchedIcon": "Modo icono de activación",
     "modeSwitchedInstant": "Modo instantáneo",

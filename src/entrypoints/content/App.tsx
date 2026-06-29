@@ -11,6 +11,11 @@ import {
 } from '../../shared/page-translate-phase';
 import { resolveDefaultTargetLang } from '../../shared/default-target-lang';
 
+const ERROR_KEYS: Record<string, string> = {
+  NO_PROVIDER: 'content.noProvider',
+  TRANSLATION_FAILED: 'content.translationFailed',
+};
+
 function notifyPageTranslatePhase(phase: PageTranslatePhase) {
   browser.runtime.sendMessage({
     type: 'PAGE_TRANSLATE_STATE_CHANGED',
@@ -276,7 +281,8 @@ export function ContentApp({ onReady }: Props) {
       if (response?.success) {
         setTranslation(response.data.translated);
       } else {
-        setError(response?.error || t('content.translationFailed'));
+        const raw = response?.error;
+        setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : (raw || t('content.translationFailed')));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('content.translationFailed'));

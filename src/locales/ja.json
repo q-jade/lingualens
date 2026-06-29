@@ -106,6 +106,7 @@
   "content": {
     "translating": "翻訳中…",
     "translationFailed": "翻訳に失敗しました",
+    "noProvider": "有効なプロバイダーが設定されていません。設定を開いて追加してください。",
     "copy": "翻訳をコピー",
     "modeSwitchedIcon": "トリガーアイコンモード",
     "modeSwitchedInstant": "即時翻訳モード",
