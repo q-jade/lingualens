@@ -117,6 +117,7 @@
     "translatingProgress": "翻译中… {{done}}/{{total}} ({{percent}}%)",
     "translatedProgress": "已翻译 {{done}}/{{total}}",
     "errors": "· {{count}} 个错误",
+    "allFailed": "翻译失败（{{count}} 个错误）",
     "stop": "停止页面翻译",
     "restore": "恢复原始页面",
     "replace": "替换",

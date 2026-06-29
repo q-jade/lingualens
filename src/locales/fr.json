@@ -117,6 +117,7 @@
     "translatingProgress": "Traduction… {{done}}/{{total}} ({{percent}} %)",
     "translatedProgress": "Traduit {{done}}/{{total}}",
     "errors": "· {{count}} erreurs",
+    "allFailed": "Échec de la traduction ({{count}} erreurs)",
     "stop": "Arrêter la traduction de page",
     "restore": "Restaurer la page originale",
     "replace": "Remplacer",

@@ -19,7 +19,8 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
   if (!progress) return null;
 
   const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
-  const done = !running && progress.done > 0;
+  const finished = !running && (progress.done > 0 || progress.errors > 0);
+  const allFailed = finished && progress.done === 0 && progress.errors > 0;
 
   if (collapsed) {
     return (
@@ -43,7 +44,11 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
             {t('statusBar.translatingProgress', { done: progress.done, total: progress.total, percent })}
             {progress.errors > 0 && <span className="st-status-err"> {t('statusBar.errors', { count: progress.errors })}</span>}
           </span>
-        ) : done ? (
+        ) : allFailed ? (
+          <span className="st-status-text st-status-err">
+            {t('statusBar.allFailed', { count: progress.errors })}
+          </span>
+        ) : finished ? (
           <span className="st-status-text">
             {t('statusBar.translatedProgress', { done: progress.done, total: progress.total })}
             {progress.errors > 0 && <span className="st-status-err"> {t('statusBar.errors', { count: progress.errors })}</span>}
@@ -58,7 +63,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
       )}
 
       <div className="st-status-actions">
-        {done && (
+        {finished && !allFailed && (
           <button onClick={onToggleMode} className="st-status-btn" title={t('statusBar.switchMode')}>
             {displayMode === 'bilingual' ? t('statusBar.replace') : t('statusBar.bilingual')}
           </button>
@@ -68,7 +73,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
             {t('statusBar.stop')}
           </button>
         )}
-        {done && (
+        {finished && (
           <button onClick={onRestore} className="st-status-btn">
             {t('statusBar.restore')}
           </button>

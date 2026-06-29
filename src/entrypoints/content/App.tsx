@@ -24,7 +24,8 @@ function notifyPageTranslatePhase(phase: PageTranslatePhase) {
 }
 
 function phaseAfterPageTranslateEnds(progress: TranslateProgress | null): PageTranslatePhase {
-  return progress && progress.done > 0 ? 'done' : 'idle';
+  if (!progress) return 'idle';
+  return (progress.done > 0 || progress.errors > 0) ? 'done' : 'idle';
 }
 
 export interface ContentAppHandle {
