@@ -262,16 +262,16 @@ export function ContentApp({ onReady }: Props) {
     setMode('panel');
   };
 
-  const runSelectionTranslate = async (panelAnchor: { x: number; y: number }) => {
+  const doTranslate = async () => {
     const text = selectedTextRef.current;
-    if (!text || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
+    if (!text) return;
 
     const targetLang = settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
-    openPanelAt(panelAnchor);
     setLoading(true);
     setError(null);
+    setTranslation('');
 
     try {
       const response = await browser.runtime.sendMessage({
@@ -290,6 +290,12 @@ export function ContentApp({ onReady }: Props) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const runSelectionTranslate = async (panelAnchor: { x: number; y: number }) => {
+    if (!selectedTextRef.current || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
+    openPanelAt(panelAnchor);
+    await doTranslate();
   };
 
   const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
@@ -495,7 +501,12 @@ export function ContentApp({ onReady }: Props) {
                 <span style={{ marginLeft: 6 }}>{t('content.translating')}</span>
               </div>
             )}
-            {error && <div className="st-error">{error}</div>}
+            {error && (
+              <div className="st-error">
+                <span>{error}</span>
+                <button onClick={doTranslate} className="st-retry-btn">{t('content.retry')}</button>
+              </div>
+            )}
             {!loading && !error && translation && (
               <div className="st-translation">
                 <p>{translation}</p>

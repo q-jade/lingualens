@@ -98,7 +98,11 @@
 }
 
 .st-error {
-  @apply text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2;
+  @apply text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2 flex items-center justify-between gap-2;
+}
+
+.st-retry-btn {
+  @apply shrink-0 text-xs text-blue-500 hover:text-blue-600 underline cursor-pointer;
 }
 
 .st-translation p {

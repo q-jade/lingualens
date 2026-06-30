@@ -111,7 +111,8 @@
     "modeSwitchedIcon": "Trigger icon mode",
     "modeSwitchedInstant": "Instant mode",
     "modeSwitchedModifier": "Modifier key mode ({{key}})",
-    "modeSwitchedOff": "Selection trigger off"
+    "modeSwitchedOff": "Selection trigger off",
+    "retry": "Retry"
   },
   "statusBar": {
     "translatingProgress": "Translating… {{done}}/{{total}} ({{percent}}%)",

@@ -111,7 +111,8 @@
     "modeSwitchedIcon": "觸發圖示模式",
     "modeSwitchedInstant": "即時翻譯模式",
     "modeSwitchedModifier": "按鍵觸發模式 ({{key}})",
-    "modeSwitchedOff": "劃詞觸發已關閉"
+    "modeSwitchedOff": "劃詞觸發已關閉",
+    "retry": "重試"
   },
   "statusBar": {
     "translatingProgress": "翻譯中… {{done}}/{{total}} ({{percent}}%)",

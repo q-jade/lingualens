@@ -111,7 +111,8 @@
     "modeSwitchedIcon": "트리거 아이콘 모드",
     "modeSwitchedInstant": "즉시 번역 모드",
     "modeSwitchedModifier": "보조 키 모드 ({{key}})",
-    "modeSwitchedOff": "선택 트리거 꺼짐"
+    "modeSwitchedOff": "선택 트리거 꺼짐",
+    "retry": "재시도"
   },
   "statusBar": {
     "translatingProgress": "번역 중… {{done}}/{{total}} ({{percent}}%)",

@@ -111,7 +111,8 @@
     "modeSwitchedIcon": "触发图标模式",
     "modeSwitchedInstant": "即时翻译模式",
     "modeSwitchedModifier": "按键触发模式 ({{key}})",
-    "modeSwitchedOff": "划词触发已关闭"
+    "modeSwitchedOff": "划词触发已关闭",
+    "retry": "重试"
   },
   "statusBar": {
     "translatingProgress": "翻译中… {{done}}/{{total}} ({{percent}}%)",

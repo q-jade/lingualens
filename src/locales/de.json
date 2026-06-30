@@ -111,7 +111,8 @@
     "modeSwitchedIcon": "Auslösesymbol-Modus",
     "modeSwitchedInstant": "Sofortmodus",
     "modeSwitchedModifier": "Modifikatortaste-Modus ({{key}})",
-    "modeSwitchedOff": "Auswahl-Auslöser aus"
+    "modeSwitchedOff": "Auswahl-Auslöser aus",
+    "retry": "Wiederholen"
   },
   "statusBar": {
     "translatingProgress": "Übersetze… {{done}}/{{total}} ({{percent}} %)",

@@ -111,7 +111,8 @@
     "modeSwitchedIcon": "Modo icono de activación",
     "modeSwitchedInstant": "Modo instantáneo",
     "modeSwitchedModifier": "Modo tecla modificadora ({{key}})",
-    "modeSwitchedOff": "Activación de selección desactivada"
+    "modeSwitchedOff": "Activación de selección desactivada",
+    "retry": "Reintentar"
   },
   "statusBar": {
     "translatingProgress": "Traduciendo… {{done}}/{{total}} ({{percent}} %)",

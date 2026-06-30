@@ -111,7 +111,8 @@
     "modeSwitchedIcon": "トリガーアイコンモード",
     "modeSwitchedInstant": "即時翻訳モード",
     "modeSwitchedModifier": "修飾キーモード ({{key}})",
-    "modeSwitchedOff": "選択トリガーオフ"
+    "modeSwitchedOff": "選択トリガーオフ",
+    "retry": "再試行"
   },
   "statusBar": {
     "translatingProgress": "翻訳中… {{done}}/{{total}} ({{percent}}%)",

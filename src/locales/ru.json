@@ -111,7 +111,8 @@
     "modeSwitchedIcon": "Режим значка-триггера",
     "modeSwitchedInstant": "Мгновенный режим",
     "modeSwitchedModifier": "Режим клавиши-модификатора ({{key}})",
-    "modeSwitchedOff": "Триггер выделения: выкл."
+    "modeSwitchedOff": "Триггер выделения: выкл.",
+    "retry": "Повторить"
   },
   "statusBar": {
     "translatingProgress": "Перевод… {{done}}/{{total}} ({{percent}} %)",
