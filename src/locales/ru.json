@@ -21,7 +21,7 @@
   },
   "sidepanel": {
     "placeholder": "Введите текст для перевода…",
-    "translate": "Перевести ⌘↵",
+    "translate": "Перевести",
     "translating": "Перевод…",
     "translationPlaceholder": "Перевод появится здесь",
     "copy": "Копировать",

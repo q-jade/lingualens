@@ -200,7 +200,9 @@ export function App() {
                              hover:from-blue-600 hover:to-indigo-600
                              disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  {loading ? t('sidepanel.translating') : t('sidepanel.translate')}
+                  {loading
+                    ? t('sidepanel.translating')
+                    : `${t('sidepanel.translate')} ${/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl'}↵`}
                 </button>
               </div>
             </div>

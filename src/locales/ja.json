@@ -21,7 +21,7 @@
   },
   "sidepanel": {
     "placeholder": "翻訳するテキストを入力…",
-    "translate": "翻訳 ⌘↵",
+    "translate": "翻訳",
     "translating": "翻訳中…",
     "translationPlaceholder": "翻訳結果がここに表示されます",
     "copy": "コピー",

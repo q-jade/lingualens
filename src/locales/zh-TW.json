@@ -21,7 +21,7 @@
   },
   "sidepanel": {
     "placeholder": "輸入要翻譯的文字…",
-    "translate": "翻譯 ⌘↵",
+    "translate": "翻譯",
     "translating": "翻譯中…",
     "translationPlaceholder": "翻譯結果將顯示於此",
     "copy": "複製",

@@ -21,7 +21,7 @@
   },
   "sidepanel": {
     "placeholder": "Text zum Übersetzen eingeben…",
-    "translate": "Übersetzen ⌘↵",
+    "translate": "Übersetzen",
     "translating": "Übersetze…",
     "translationPlaceholder": "Übersetzung wird hier angezeigt",
     "copy": "Kopieren",

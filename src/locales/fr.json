@@ -21,7 +21,7 @@
   },
   "sidepanel": {
     "placeholder": "Saisissez le texte à traduire…",
-    "translate": "Traduire ⌘↵",
+    "translate": "Traduire",
     "translating": "Traduction en cours…",
     "translationPlaceholder": "La traduction apparaîtra ici",
     "copy": "Copier",

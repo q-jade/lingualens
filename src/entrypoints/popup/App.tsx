@@ -159,7 +159,9 @@ export function App() {
                    bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600
                    disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
-        {loading ? t('popup.translating') : t('popup.translate')}
+        {loading
+          ? t('popup.translating')
+          : `${t('popup.translate')} ${/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl'}↵`}
       </button>
 
       {/* Error */}
