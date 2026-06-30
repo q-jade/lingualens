@@ -43,6 +43,7 @@ export function App() {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [pageTranslatePhase, setPageTranslatePhase] = useState<'idle' | 'running' | 'done'>('idle');
   const [pageTranslateSupported, setPageTranslateSupported] = useState(true);
 
@@ -171,10 +172,15 @@ export function App() {
         <div className="mt-2 p-3 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{result}</p>
           <button
-            onClick={() => navigator.clipboard.writeText(result)}
-            className="mt-1 text-xs text-blue-500 hover:text-blue-600"
+            onClick={() => {
+              navigator.clipboard.writeText(result).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }).catch(() => { });
+            }}
+            className={`mt-1 text-xs ${copied ? 'text-green-500' : 'text-blue-500 hover:text-blue-600'}`}
           >
-            {t('popup.copy')}
+            {copied ? '✓' : t('popup.copy')}
           </button>
         </div>
       )}

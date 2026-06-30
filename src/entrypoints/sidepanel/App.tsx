@@ -35,6 +35,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [copied, setCopied] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -224,7 +225,17 @@ export function App() {
               {translation && !loading && (
                 <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100">
                   <span className="text-[10px] text-gray-300">{providerName}</span>
-                  <button onClick={() => navigator.clipboard.writeText(translation)} className="text-xs text-blue-500 hover:text-blue-600">{t('sidepanel.copy')}</button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(translation).then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 1500);
+                      }).catch(() => { });
+                    }}
+                    className={`text-xs ${copied ? 'text-green-500' : 'text-blue-500 hover:text-blue-600'}`}
+                  >
+                    {copied ? '✓' : t('sidepanel.copy')}
+                  </button>
                 </div>
               )}
             </div>
