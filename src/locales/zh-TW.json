@@ -26,6 +26,7 @@
     "translationPlaceholder": "翻譯結果將顯示於此",
     "copy": "複製",
     "clear": "清空",
+    "settings": "設定",
     "history": "歷史記錄",
     "historyCount": "歷史記錄 ({{count}})",
     "noHistory": "尚無翻譯歷史",

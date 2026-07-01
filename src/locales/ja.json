@@ -26,6 +26,7 @@
     "translationPlaceholder": "翻訳結果がここに表示されます",
     "copy": "コピー",
     "clear": "クリア",
+    "settings": "設定",
     "history": "履歴",
     "historyCount": "履歴 ({{count}})",
     "noHistory": "翻訳履歴はありません",

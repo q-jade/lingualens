@@ -26,6 +26,7 @@
     "translationPlaceholder": "번역 결과가 여기에 표시됩니다",
     "copy": "복사",
     "clear": "지우기",
+    "settings": "설정",
     "history": "기록",
     "historyCount": "기록 ({{count}})",
     "noHistory": "번역 기록이 없습니다",

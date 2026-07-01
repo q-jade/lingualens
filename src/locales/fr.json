@@ -26,6 +26,7 @@
     "translationPlaceholder": "La traduction apparaîtra ici",
     "copy": "Copier",
     "clear": "Effacer",
+    "settings": "Paramètres",
     "history": "Historique",
     "historyCount": "Historique ({{count}})",
     "noHistory": "Aucun historique de traduction",

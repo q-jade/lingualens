@@ -26,6 +26,7 @@
     "translationPlaceholder": "Translation will appear here",
     "copy": "Copy",
     "clear": "Clear",
+    "settings": "Settings",
     "history": "History",
     "historyCount": "History ({{count}})",
     "noHistory": "No translation history",

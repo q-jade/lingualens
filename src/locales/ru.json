@@ -26,6 +26,7 @@
     "translationPlaceholder": "Перевод появится здесь",
     "copy": "Копировать",
     "clear": "Очистить",
+    "settings": "Настройки",
     "history": "История",
     "historyCount": "История ({{count}})",
     "noHistory": "Нет истории переводов",

@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
-import { AppLogo } from '../../shared/AppLogo';
 import { getTranslatorLanguages, setTranslatorLanguages, subscribeTranslatorLanguages } from '../../shared/translator-languages';
 
 interface HistoryEntry {
@@ -36,7 +35,27 @@ export function App() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(0.5);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const container = contentRef.current;
+    if (!container) return;
+
+    const onMove = (ev: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      const ratio = Math.min(0.8, Math.max(0.2, (ev.clientY - rect.top) / rect.height));
+      setSplitRatio(ratio);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, []);
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -123,18 +142,6 @@ export function App() {
 
   return (
     <div className="flex flex-col h-screen bg-white">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-500 to-indigo-500">
-        <AppLogo className="w-6 h-6 shrink-0" />
-        <h1 className="text-sm font-semibold text-white flex-1">LinguaLens</h1>
-        <button onClick={() => setShowHistory(!showHistory)} className="text-white/80 hover:text-white" title={t('sidepanel.history')}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" /><path d="M12 7v5l4 2" />
-          </svg>
-        </button>
-      </div>
-
       {/* Language bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50">
         <select
@@ -176,13 +183,13 @@ export function App() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div ref={contentRef} className="flex-1 flex flex-col overflow-hidden">
         {showHistory ? (
           <HistoryPanel history={history} onSelect={loadHistoryEntry} onClear={() => { setHistory([]); browser.storage.local.remove('translationHistory'); }} onBack={() => setShowHistory(false)} />
         ) : (
           <>
             {/* Source */}
-            <div className="flex-1 flex flex-col border-b border-gray-100 min-h-0">
+            <div className="flex flex-col min-h-0" style={{ flex: `${splitRatio} 1 0%` }}>
               <textarea
                 ref={textareaRef}
                 value={sourceText}
@@ -226,8 +233,16 @@ export function App() {
               </div>
             </div>
 
+            {/* Draggable divider */}
+            <div
+              onMouseDown={onDividerMouseDown}
+              className="h-1.5 shrink-0 cursor-row-resize bg-gray-100 hover:bg-blue-200 transition-colors flex items-center justify-center"
+            >
+              <div className="w-8 h-0.5 rounded-full bg-gray-300" />
+            </div>
+
             {/* Translation result */}
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex flex-col min-h-0" style={{ flex: `${1 - splitRatio} 1 0%` }}>
               {error && <div className="px-4 py-3 text-sm text-red-500 bg-red-50">{error}</div>}
               {!error && (
                 <div className="flex-1 overflow-y-auto px-4 py-3">
@@ -244,24 +259,40 @@ export function App() {
                 </div>
               )}
               {translation && !loading && (
-                <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100">
-                  <span className="text-[10px] text-gray-300">{providerName}</span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(translation).then(() => {
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 1500);
-                      }).catch(() => { });
-                    }}
-                    className={`text-xs ${copied ? 'text-green-500' : 'text-blue-500 hover:text-blue-600'}`}
-                  >
-                    {copied ? '✓' : t('sidepanel.copy')}
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(translation).then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    }).catch(() => { });
+                  }}
+                  className={`self-start mt-1 mb-2 px-4 text-xs ${copied ? 'text-green-500' : 'text-blue-500 hover:text-blue-600'}`}
+                >
+                  {copied ? '✓' : t('sidepanel.copy')}
+                </button>
               )}
             </div>
           </>
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100">
+        <span className="text-[11px] text-gray-400 truncate flex-1 min-w-0">{providerName}</span>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className={`text-xs font-medium ${showHistory ? 'text-blue-600' : 'text-gray-400 hover:text-blue-500'}`}
+          >
+            {t('sidepanel.history')}
+          </button>
+          <button
+            onClick={() => browser.runtime.openOptionsPage()}
+            className="text-xs text-gray-400 hover:text-blue-500 font-medium"
+          >
+            {t('sidepanel.settings')}
+          </button>
+        </div>
       </div>
     </div>
   );
