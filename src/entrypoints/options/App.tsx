@@ -382,20 +382,7 @@ export function App() {
         <Section
           title={t('options.providers')}
           action={
-            <div className="relative group">
-              <button className="text-sm text-blue-500 hover:text-blue-600 font-medium">{t('options.addProvider')}</button>
-              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
-                  <button
-                    key={key}
-                    onClick={() => addProvider(key as ProviderConfig['type'])}
-                    className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  >
-                    {preset.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <AddProviderMenu onAdd={(type) => addProvider(type)} />
           }
         >
           {settings.providers.length === 0 && (
@@ -568,6 +555,45 @@ export function App() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AddProviderMenu({ onAdd }: { onAdd: (type: ProviderConfig['type']) => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="text-sm text-blue-500 hover:text-blue-600 font-medium"
+      >
+        {t('options.addProvider')}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-48 z-10">
+          {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
+            <button
+              key={key}
+              onClick={() => { onAdd(key as ProviderConfig['type']); setOpen(false); }}
+              className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
