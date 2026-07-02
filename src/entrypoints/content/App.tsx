@@ -20,7 +20,7 @@ function notifyPageTranslatePhase(phase: PageTranslatePhase) {
   browser.runtime.sendMessage({
     type: 'PAGE_TRANSLATE_STATE_CHANGED',
     payload: { phase },
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 function phaseAfterPageTranslateEnds(progress: TranslateProgress | null): PageTranslatePhase {
@@ -109,6 +109,18 @@ export function ContentApp({ onReady }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const switchProvider = async (providerId: string) => {
+    if (!settings || providerId === settings.defaultProvider) return;
+    const nextFallback = settings.fallbackProviders.filter((id) => id !== providerId);
+    const next = { ...settings, defaultProvider: providerId, fallbackProviders: nextFallback };
+    setSettings(next);
+    await browser.runtime.sendMessage({
+      type: 'SAVE_SETTINGS',
+      payload: { defaultProvider: providerId, fallbackProviders: nextFallback },
+    });
+    await doTranslate();
+  };
+
   // Page translation state
   const [pageTranslatePhase, setPageTranslatePhase] = useState<PageTranslatePhase>('idle');
   const [pageProgress, setPageProgress] = useState<TranslateProgress | null>(null);
@@ -116,11 +128,13 @@ export function ContentApp({ onReady }: Props) {
   const [statusCollapsed, setStatusCollapsed] = useState(false);
 
   const [toastText, setToastText] = useState<string | null>(null);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedTextRef = useRef('');
   const triggerMouseRef = useRef({ x: 0, y: 0 });
   const settingsRef = useRef<AppSettings | null>(null);
+  settingsRef.current = settings;
   const selectionTriggerModeRef = useRef<SelectionTriggerMode>('icon');
   const selectionModifierKeyRef = useRef<SelectionModifierKey>('ctrl');
   const engineRef = useRef(new PageTranslateEngine());
@@ -146,7 +160,7 @@ export function ContentApp({ onReady }: Props) {
       if (!changes.settings) return;
       const newSettings = changes.settings.newValue as AppSettings | undefined;
       if (!newSettings) return;
-      settingsRef.current = newSettings;
+      setSettings(newSettings);
       if (newSettings.selectionTriggerMode) {
         selectionTriggerModeRef.current = newSettings.selectionTriggerMode;
       }
@@ -299,7 +313,7 @@ export function ContentApp({ onReady }: Props) {
   };
 
   const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close')) return;
+    if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close, .st-provider-select')) return;
     event.preventDefault();
     const rect = panelRef.current?.getBoundingClientRect();
     const origin = rect
@@ -363,7 +377,7 @@ export function ContentApp({ onReady }: Props) {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
       (res: MessageResponse<AppSettings>) => {
         if (res.success) {
-          settingsRef.current = res.data;
+          setSettings(res.data);
           selectionTriggerModeRef.current = res.data.selectionTriggerMode ?? 'icon';
           selectionModifierKeyRef.current = res.data.selectionModifierKey ?? 'ctrl';
         }
@@ -487,7 +501,17 @@ export function ContentApp({ onReady }: Props) {
             className="st-panel-header"
             onMouseDown={handlePanelHeaderMouseDown}
           >
-            <span className="st-panel-title">LinguaLens</span>
+            <AppLogo className="st-header-logo" />
+            <select
+              className="st-provider-select"
+              value={settings?.defaultProvider ?? ''}
+              onChange={(e) => switchProvider(e.target.value)}
+            >
+              {(settings?.providers ?? []).map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+              {!settings && <option value="">—</option>}
+            </select>
             <button onClick={() => setMode('hidden')} className="st-panel-close">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6 6 18" /><path d="m6 6 12 12" />

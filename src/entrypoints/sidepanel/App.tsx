@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { getTranslatorLanguages, setTranslatorLanguages, subscribeTranslatorLanguages } from '../../shared/translator-languages';
+import { ProviderPicker } from '../../shared/ProviderPicker';
 
 interface HistoryEntry {
   id: number;
@@ -74,10 +75,23 @@ export function App() {
       if (result.translationHistory) setHistory(result.translationHistory as HistoryEntry[]);
     });
 
-    return subscribeTranslatorLanguages((langs) => {
+    const onStorageChanged = (changes: Record<string, { newValue?: unknown }>) => {
+      if (changes.settings) {
+        const next = changes.settings.newValue as AppSettings | undefined;
+        if (next) setSettings(next);
+      }
+    };
+    browser.storage.onChanged.addListener(onStorageChanged);
+
+    const unsubLangs = subscribeTranslatorLanguages((langs) => {
       setSourceLang(langs.sourceLang);
       setTargetLang(langs.targetLang);
     });
+
+    return () => {
+      browser.storage.onChanged.removeListener(onStorageChanged);
+      unsubLangs();
+    };
   }, []);
 
   const handleTranslate = async () => {
@@ -137,8 +151,19 @@ export function App() {
     setShowHistory(false);
   };
 
-  const providerName =
-    settings?.providers.find((p) => p.id === settings.defaultProvider)?.name ?? '—';
+  const setDefaultProvider = (providerId: string) => {
+    if (!settings) return;
+    const nextFallbackProviders = settings.fallbackProviders.filter((id) => id !== providerId);
+    setSettings({
+      ...settings,
+      defaultProvider: providerId,
+      fallbackProviders: nextFallbackProviders,
+    });
+    void browser.runtime.sendMessage({
+      type: 'SAVE_SETTINGS',
+      payload: { defaultProvider: providerId, fallbackProviders: nextFallbackProviders },
+    });
+  };
 
   return (
     <div className="flex flex-col h-screen bg-white">
@@ -278,7 +303,13 @@ export function App() {
 
       {/* Footer */}
       <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100">
-        <span className="text-[11px] text-gray-400 truncate flex-1 min-w-0">{providerName}</span>
+        <div className="min-w-0 flex-1">
+          <ProviderPicker
+            settings={settings}
+            onChange={setDefaultProvider}
+            triggerClassName="max-w-full"
+          />
+        </div>
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setShowHistory((v) => !v)}

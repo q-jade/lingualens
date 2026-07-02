@@ -65,6 +65,10 @@
   @apply text-sm font-semibold tracking-wide;
 }
 
+.st-header-logo {
+  @apply w-4 h-4 shrink-0;
+}
+
 .st-panel-close {
   @apply flex items-center justify-center w-6 h-6 rounded-full
          text-white/80 hover:text-white hover:bg-white/20
@@ -120,6 +124,22 @@
   border: none;
   background: none;
   padding: 0;
+}
+
+.st-provider-select {
+  @apply text-sm font-semibold tracking-wide max-w-[140px] truncate;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  outline: none;
+  padding: 0 2px;
+  appearance: auto;
+}
+
+.st-provider-select option {
+  color: #374151;
+  background: white;
 }
 
 /*
