@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.0] - 2026-07-03
+
+### Added
+
+- **Selection trigger modes**: choose how text selection starts translation on web pages — Trigger icon (default), Instant, Modifier key, or Off. Toggle quickly from the popup or cycle with `Alt+M`.
+- **Trigger mode picker** accessible from the panel header — switch modes directly without opening the popup. Toast confirmation on change; no-op when selecting the already-active mode.
+- **Pin button** on the selection translation panel: pin the floating panel so it stays open across selections. A floating trigger appears for new text and translates into the pinned panel without moving it.
+- **Retry button** in the selection translation panel when translation fails.
+- **Switch default provider** from any UI surface — popup, side panel, and the selection translation panel header all show a provider dropdown that immediately re-translates.
+- Popup page-translate button now shows **Stop Page Translation** while running and **Restore Original Page** when finished (mirrors context menu behavior). Modifier key changes from the popup take effect immediately.
+
+### Fixed
+
+- Skip dropdown menus, tooltips, popovers, and screen-reader-only elements during page translation.
+- Skip relative paths and filenames (e.g. `package.json`, `dom-walker.ts`) in the "don't translate" filter.
+- Side panel history stores full text instead of truncating to 200 characters.
+- Map raw error codes to friendly i18n messages in the selection translation overlay (e.g. "No active provider" instead of raw error codes).
+- Show error feedback when all page-translate segments fail, instead of silently disappearing.
+- Show platform-aware keyboard shortcut hints (`Ctrl` vs `⌘`) in popup and side panel.
+
+### Improved
+
+- Selection panel focus management: receives focus on open (Escape works immediately), restores previous focus on close.
+- Side panel: history back button deduplicates repeated entries; added clear-input button and draggable split-pane divider.
+- Side panel: added settings entry button and layout polish.
+- Popup and side panel: show a brief checkmark animation after copying translation to clipboard.
+- Options: Add Provider menu changed from hover to click for better usability.
+
 ## [0.4.0] - 2026-06-04
 
 ### Added
@@ -69,6 +97,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.5.0]: https://github.com/q-jade/lingualens/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/q-jade/lingualens/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/q-jade/lingualens/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/q-jade/lingualens/compare/v0.1.1...v0.2.0

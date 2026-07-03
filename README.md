@@ -10,12 +10,12 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 
 ## Features
 
-- **Selection translation** — Select text on any page; a floating trigger appears. Right-click **Translate** or use the keyboard shortcut for one-step translation.
+- **Selection translation** — Select text on any page; a floating trigger appears. Choose from four trigger modes: icon, instant, modifier key, or off. Right-click **Translate** or use the keyboard shortcut for one-step translation. Pin the panel to translate multiple selections without reopening. Switch providers or retry on failure directly from the panel.
 - **Full-page translation** — Inject bilingual translations inline while preserving layout. Choose **Quality** (larger chunks, better context) or **Speed** (smaller chunks, faster updates) in settings.
-- **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation, and a customizable HTTP template.
+- **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation, and a customizable HTTP template. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
 - **Provider fallback** — If the default provider fails, try the next configured provider in order.
 - **Translation cache** — Repeated text is served from an in-memory cache with debounced persistence.
-- **Popup & side panel** — Quick translate from the toolbar popup; open the side panel (Chrome 114+) for a larger UI with session history.
+- **Popup & side panel** — Quick translate from the toolbar popup; open the side panel (Chrome 114+) for a larger UI with session history, back navigation, and draggable layout.
 - **LLM tuning** — Custom system prompt template; optional **disable thinking** for models that emit chain-of-thought (faster, cleaner output).
 
 ## Browser support
@@ -99,12 +99,24 @@ Use the on-page status bar to stop or restore the original text.
 - **Popup** — Enter text, pick target language, translate. Link to **Settings** and **Translate This Page**.
 - **Side panel** — Click **Side panel** in the popup (Chrome 114+). Supports source/target languages, swap, and recent history (stored locally).
 
+### Selection trigger modes
+
+Control how text selection triggers translation. Change the mode from the popup or cycle with `Alt+M`:
+
+| Mode | Behaviour |
+|------|-----------|
+| **Trigger icon** (default) | A floating icon appears near the selection -- click to translate. |
+| **Instant** | Translation starts immediately when text is selected. |
+| **Modifier key** | Select text, then press the configured key (Ctrl / Alt / Shift) alone to translate. |
+| **Off** | No reaction on selection (use `Alt+T` or the context menu). |
+
 ### Keyboard shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Alt+T` | Translate selection |
 | `Alt+Shift+T` | Translate entire page |
+| `Alt+M` | Cycle selection trigger mode |
 
 If shortcuts do nothing, open your browser’s extension shortcut settings and assign LinguaLens to a free combination. Reload the tab after installing or updating the extension.
 
