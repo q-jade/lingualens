@@ -115,7 +115,10 @@
     "modeSwitchedInstant": "Modo instantáneo",
     "modeSwitchedModifier": "Modo tecla modificadora ({{key}})",
     "modeSwitchedOff": "Activación de selección desactivada",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "pin": "Fijar panel",
+    "unpin": "Desfijar panel",
+    "close": "Cerrar"
   },
   "statusBar": {
     "translatingProgress": "Traduciendo… {{done}}/{{total}} ({{percent}} %)",

@@ -115,7 +115,10 @@
     "modeSwitchedInstant": "Sofortmodus",
     "modeSwitchedModifier": "Modifikatortaste-Modus ({{key}})",
     "modeSwitchedOff": "Auswahl-Auslöser aus",
-    "retry": "Wiederholen"
+    "retry": "Wiederholen",
+    "pin": "Panel anheften",
+    "unpin": "Panel lösen",
+    "close": "Schließen"
   },
   "statusBar": {
     "translatingProgress": "Übersetze… {{done}}/{{total}} ({{percent}} %)",

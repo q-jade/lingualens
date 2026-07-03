@@ -115,7 +115,10 @@
     "modeSwitchedInstant": "即時翻訳モード",
     "modeSwitchedModifier": "修飾キーモード ({{key}})",
     "modeSwitchedOff": "選択トリガーオフ",
-    "retry": "再試行"
+    "retry": "再試行",
+    "pin": "パネルを固定",
+    "unpin": "固定を解除",
+    "close": "閉じる"
   },
   "statusBar": {
     "translatingProgress": "翻訳中… {{done}}/{{total}} ({{percent}}%)",

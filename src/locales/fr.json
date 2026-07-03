@@ -115,7 +115,10 @@
     "modeSwitchedInstant": "Mode instantané",
     "modeSwitchedModifier": "Mode touche modificatrice ({{key}})",
     "modeSwitchedOff": "Déclenchement de sélection désactivé",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "pin": "Épingler le panneau",
+    "unpin": "Détacher le panneau",
+    "close": "Fermer"
   },
   "statusBar": {
     "translatingProgress": "Traduction… {{done}}/{{total}} ({{percent}} %)",

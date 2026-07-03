@@ -115,7 +115,10 @@
     "modeSwitchedInstant": "Мгновенный режим",
     "modeSwitchedModifier": "Режим клавиши-модификатора ({{key}})",
     "modeSwitchedOff": "Триггер выделения: выкл.",
-    "retry": "Повторить"
+    "retry": "Повторить",
+    "pin": "Закрепить панель",
+    "unpin": "Открепить панель",
+    "close": "Закрыть"
   },
   "statusBar": {
     "translatingProgress": "Перевод… {{done}}/{{total}} ({{percent}} %)",

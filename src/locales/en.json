@@ -115,7 +115,10 @@
     "modeSwitchedInstant": "Instant mode",
     "modeSwitchedModifier": "Modifier key mode ({{key}})",
     "modeSwitchedOff": "Selection trigger off",
-    "retry": "Retry"
+    "retry": "Retry",
+    "pin": "Pin panel",
+    "unpin": "Unpin panel",
+    "close": "Close"
   },
   "statusBar": {
     "translatingProgress": "Translating… {{done}}/{{total}} ({{percent}}%)",

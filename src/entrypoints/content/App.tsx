@@ -108,6 +108,27 @@ export function ContentApp({ onReady }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  // When the panel is pinned, a new selection shows this floating trigger
+  // (instead of replacing the panel) so the user can translate into it.
+  const [pinnedTrigger, setPinnedTrigger] = useState<{ x: number; y: number } | null>(null);
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const modeMenuRef = useRef<HTMLDivElement>(null);
+
+  const selectTriggerMode = (m: SelectionTriggerMode) => {
+    setModeMenuOpen(false);
+    if (selectionTriggerModeRef.current === m) return;
+    selectionTriggerModeRef.current = m;
+    setSettings((s) => (s ? { ...s, selectionTriggerMode: m } : s));
+    void browser.runtime.sendMessage({
+      type: 'SAVE_SETTINGS',
+      payload: { selectionTriggerMode: m },
+    });
+    const key = m === 'modifier'
+      ? t('content.modeSwitchedModifier', { key: selectionModifierKeyRef.current.toUpperCase() })
+      : t(`content.modeSwitched${m.charAt(0).toUpperCase() + m.slice(1)}`);
+    showToast(key);
+  };
 
   const switchProvider = async (providerId: string) => {
     if (!settings || providerId === settings.defaultProvider) return;
@@ -184,9 +205,12 @@ export function ContentApp({ onReady }: Props) {
   const modeRef = useRef(mode);
   const loadingRef = useRef(loading);
   const translationRef = useRef(translation);
+  const pinnedRef = useRef(pinned);
+  const previousFocusRef = useRef<Element | null>(null);
   modeRef.current = mode;
   loadingRef.current = loading;
   translationRef.current = translation;
+  pinnedRef.current = pinned;
 
   const startPageTranslation = useCallback(async () => {
     const settings = settingsRef.current;
@@ -271,6 +295,43 @@ export function ContentApp({ onReady }: Props) {
     return () => window.removeEventListener('resize', sync);
   }, [mode]);
 
+  // Focus management: move focus into the panel on open (so Escape works and
+  // keyboard users land inside it), restore the previous focus on close.
+  useEffect(() => {
+    if (mode !== 'panel') return;
+    previousFocusRef.current = document.activeElement;
+    panelRef.current?.focus({ preventScroll: true });
+    return () => {
+      const prev = previousFocusRef.current;
+      if (prev instanceof HTMLElement && prev.isConnected) {
+        prev.focus({ preventScroll: true });
+      }
+    };
+  }, [mode]);
+
+  // Pin is a per-open-session flag: it survives re-translations (panel stays
+  // open or briefly switches to the trigger) but resets once the panel closes.
+  useEffect(() => {
+    if (mode === 'hidden') {
+      setPinned(false);
+      setPinnedTrigger(null);
+      setModeMenuOpen(false);
+    }
+  }, [mode]);
+
+  // Close the trigger-mode menu on outside click (composedPath for shadow DOM).
+  useEffect(() => {
+    if (!modeMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      const path = e.composedPath();
+      if (modeMenuRef.current && !path.includes(modeMenuRef.current)) {
+        setModeMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler, true);
+    return () => document.removeEventListener('mousedown', handler, true);
+  }, [modeMenuOpen]);
+
   const openPanelAt = (panelAnchor: { x: number; y: number }) => {
     pendingAnchorRef.current = panelAnchor;
     setMode('panel');
@@ -313,7 +374,7 @@ export function ContentApp({ onReady }: Props) {
   };
 
   const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close, .st-provider-select')) return;
+    if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close, .st-provider-select, .st-mode-picker')) return;
     event.preventDefault();
     const rect = panelRef.current?.getBoundingClientRect();
     const origin = rect
@@ -346,22 +407,26 @@ export function ContentApp({ onReady }: Props) {
   }, [panelPosition]);
 
   useEffect(() => {
-    if (mode !== 'trigger') return;
+    const isPinnedTrigger = mode === 'panel' && pinnedTrigger !== null;
+    if (mode !== 'trigger' && !isPinnedTrigger) return;
 
     const syncTriggerPosition = () => {
       const selection = window.getSelection();
       const text = selection?.toString().trim() ?? '';
       if (!text || text !== selectedTextRef.current || !selection?.rangeCount) {
-        setMode('hidden');
+        // Lost selection: dismiss the trigger, but never the pinned panel.
+        if (isPinnedTrigger) setPinnedTrigger(null);
+        else setMode('hidden');
         return;
       }
       const range = selection.getRangeAt(0);
-      const { x, y } = computeTriggerPosition(
+      const pos = computeTriggerPosition(
         range,
         triggerMouseRef.current.x,
         triggerMouseRef.current.y,
       );
-      setAnchor({ x, y });
+      if (isPinnedTrigger) setPinnedTrigger(pos);
+      else setAnchor(pos);
     };
 
     document.addEventListener('scroll', syncTriggerPosition, { capture: true, passive: true });
@@ -370,7 +435,7 @@ export function ContentApp({ onReady }: Props) {
       document.removeEventListener('scroll', syncTriggerPosition, { capture: true });
       window.removeEventListener('resize', syncTriggerPosition);
     };
-  }, [mode]);
+  }, [mode, pinnedTrigger]);
 
   // Re-register handle when startPageTranslation changes (displayMode).
   useEffect(() => {
@@ -389,7 +454,14 @@ export function ContentApp({ onReady }: Props) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         selectedTextRef.current = text;
         triggerMouseRef.current = { x: mouseX, y: mouseY };
-        setAnchor(computeTriggerPosition(range, mouseX, mouseY));
+        const pos = computeTriggerPosition(range, mouseX, mouseY);
+        // Pinned panel stays open: show a floating trigger for the new
+        // selection rather than replacing the panel with the trigger.
+        if (pinnedRef.current && modeRef.current === 'panel') {
+          setPinnedTrigger(pos);
+          return;
+        }
+        setAnchor(pos);
         setMode('trigger');
         setTranslation('');
         setError(null);
@@ -407,17 +479,24 @@ export function ContentApp({ onReady }: Props) {
           return;
         }
         selectedTextRef.current = t;
+        setTranslation('');
+        setError(null);
+        setCopied(false);
+        // Pinned panel stays in place: translate the new selection into it.
+        if (pinnedRef.current && modeRef.current === 'panel') {
+          setPinnedTrigger(null);
+          queueMicrotask(() => void doTranslate());
+          return;
+        }
         const panelAnchor = {
           x: window.innerWidth / 2,
           y: window.innerHeight / 3,
         };
         setAnchor(panelAnchor);
-        setTranslation('');
-        setError(null);
-        setCopied(false);
         queueMicrotask(() => void runSelectionTranslate(panelAnchor));
       },
       hide() {
+        if (pinnedRef.current) return;
         setMode('hidden');
       },
       isPageTranslationActive() {
@@ -464,14 +543,24 @@ export function ContentApp({ onReady }: Props) {
         onToggleCollapse={() => setStatusCollapsed((c) => !c)}
       />
 
-      {/* Selection trigger button */}
-      {mode === 'trigger' && (
+      {/* Selection trigger button (normal, or floating over a pinned panel) */}
+      {(mode === 'trigger' || pinnedTrigger) && (
         <button
-          onClick={() => void runSelectionTranslate(anchor)}
+          onClick={() => {
+            if (pinnedTrigger) {
+              // Panel is already open and pinned in place: translate the new
+              // selection into it without moving the panel.
+              setPinnedTrigger(null);
+              setCopied(false);
+              void doTranslate();
+            } else {
+              void runSelectionTranslate(anchor);
+            }
+          }}
           style={{
             position: 'fixed',
-            left: anchor.x,
-            top: anchor.y,
+            left: (pinnedTrigger ?? anchor).x,
+            top: (pinnedTrigger ?? anchor).y,
             zIndex: 2147483647,
             pointerEvents: 'auto',
           }}
@@ -486,6 +575,19 @@ export function ContentApp({ onReady }: Props) {
       {mode === 'panel' && (
         <div
           ref={panelRef}
+          tabIndex={-1}
+          onKeyDown={(e) => {
+            if (e.key !== 'Escape') return;
+            if (modeMenuOpen) {
+              e.stopPropagation();
+              setModeMenuOpen(false);
+              return;
+            }
+            if (!pinned) {
+              e.stopPropagation();
+              setMode('hidden');
+            }
+          }}
           style={{
             position: 'fixed',
             left: panelPosition.left,
@@ -512,11 +614,64 @@ export function ContentApp({ onReady }: Props) {
               ))}
               {!settings && <option value="">—</option>}
             </select>
-            <button onClick={() => setMode('hidden')} className="st-panel-close">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-              </svg>
-            </button>
+            <div className="st-header-actions">
+              <div className="st-mode-picker" ref={modeMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setModeMenuOpen((v) => !v)}
+                  className={`st-panel-close ${modeMenuOpen ? 'st-pin-active' : ''}`}
+                  title={t('popup.selectionMode')}
+                  aria-haspopup="menu"
+                  aria-expanded={modeMenuOpen}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" /><line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" /><line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" /><line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" />
+                  </svg>
+                </button>
+                {modeMenuOpen && (
+                  <div className="st-mode-menu" role="menu">
+                    {([
+                      { m: 'icon' as SelectionTriggerMode, icon: '🔘', labelKey: 'options.triggerModeIcon' },
+                      { m: 'instant' as SelectionTriggerMode, icon: '⚡', labelKey: 'options.triggerModeInstant' },
+                      { m: 'modifier' as SelectionTriggerMode, icon: '⌨', labelKey: 'options.triggerModeModifier' },
+                      { m: 'off' as SelectionTriggerMode, icon: '○', labelKey: 'options.triggerModeOff' },
+                    ]).map(({ m, icon, labelKey }) => {
+                      const active = (settings?.selectionTriggerMode ?? 'icon') === m;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={active}
+                          className={`st-mode-option ${active ? 'st-mode-active' : ''}`}
+                          onClick={() => selectTriggerMode(m)}
+                        >
+                          <span className="st-mode-icon">{icon}</span>
+                          <span className="st-mode-label">{t(labelKey)}</span>
+                          {active && <span className="st-mode-check">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPinned((v) => !v)}
+                className={`st-panel-close ${pinned ? 'st-pin-active' : ''}`}
+                title={pinned ? t('content.unpin') : t('content.pin')}
+                aria-pressed={pinned}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 17v5" /><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                </svg>
+              </button>
+              <button onClick={() => setMode('hidden')} className="st-panel-close" title={t('content.close')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="st-panel-body">
             {loading && (

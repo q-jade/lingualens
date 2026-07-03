@@ -115,7 +115,10 @@
     "modeSwitchedInstant": "즉시 번역 모드",
     "modeSwitchedModifier": "보조 키 모드 ({{key}})",
     "modeSwitchedOff": "선택 트리거 꺼짐",
-    "retry": "재시도"
+    "retry": "재시도",
+    "pin": "패널 고정",
+    "unpin": "고정 해제",
+    "close": "닫기"
   },
   "statusBar": {
     "translatingProgress": "번역 중… {{done}}/{{total}} ({{percent}}%)",

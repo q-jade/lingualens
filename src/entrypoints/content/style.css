@@ -69,6 +69,10 @@
   @apply w-4 h-4 shrink-0;
 }
 
+.st-header-actions {
+  @apply flex items-center gap-0.5 shrink-0;
+}
+
 .st-panel-close {
   @apply flex items-center justify-center w-6 h-6 rounded-full
          text-white/80 hover:text-white hover:bg-white/20
@@ -76,6 +80,16 @@
   border: none;
   background: none;
   padding: 0;
+}
+
+.st-panel-close.st-pin-active,
+.st-panel-close.st-pin-active:hover {
+  color: #fbbf24 !important;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.st-panel:focus {
+  outline: none;
 }
 
 .st-panel-body {
@@ -142,6 +156,55 @@
   background: white;
 }
 
+.st-mode-picker {
+  position: relative;
+  display: inline-flex;
+}
+
+.st-mode-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  padding: 4px;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.st-mode-option {
+  @apply flex items-center gap-2 w-full px-2 py-1.5 rounded-md
+         text-sm text-gray-700 cursor-pointer transition-colors;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.st-mode-option:hover {
+  @apply bg-gray-100;
+}
+
+.st-mode-active {
+  @apply text-blue-600 bg-blue-50;
+}
+
+.st-mode-icon {
+  @apply w-4 text-center shrink-0;
+}
+
+.st-mode-label {
+  @apply flex-1;
+}
+
+.st-mode-check {
+  @apply text-blue-600 shrink-0;
+}
+
 /*
  * Shield overlay UI from page compositing (e.g. huggingface.co global opacity / mix-blend).
  * :host targets the lingua-lens custom element; inner rules cover the translation panel.
@@ -169,7 +232,8 @@
 .st-panel-footer,
 .st-translation,
 .st-error,
-.st-loading {
+.st-loading,
+.st-mode-menu {
   opacity: 1 !important;
   mix-blend-mode: normal !important;
   filter: none !important;
