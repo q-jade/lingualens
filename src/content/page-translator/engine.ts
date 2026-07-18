@@ -148,7 +148,7 @@ export class PageTranslateEngine {
     } else {
       const marker = document.createElement('div');
       marker.className = 'st-translated';
-      marker.style.cssText = 'display:block;color:#1a73e8;margin:4px 0 0;font-size:inherit';
+      marker.style.cssText = 'display:block;color:#1a73e8;margin:4px 0 0;font-size:max(12px,1em)';
       marker.textContent = translated;
       const lastNode = textNodes[textNodes.length - 1];
       if (this.insertMarkerAfterText(lastNode, marker)) {

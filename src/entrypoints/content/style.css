@@ -50,7 +50,7 @@
 }
 
 .st-panel-header {
-  @apply flex flex-none items-center justify-between px-3 py-2;
+  @apply flex flex-none items-center justify-between px-[12px] py-[8px];
   background: linear-gradient(135deg, #3b82f6, #6366f1);
   color: white;
   cursor: grab;
@@ -62,19 +62,19 @@
 }
 
 .st-panel-title {
-  @apply text-sm font-semibold tracking-wide;
+  @apply font-semibold tracking-wide;
 }
 
 .st-header-logo {
-  @apply w-4 h-4 shrink-0;
+  @apply w-[16px] h-[16px] shrink-0;
 }
 
 .st-header-actions {
-  @apply flex items-center gap-0.5 shrink-0;
+  @apply flex items-center gap-[2px] shrink-0;
 }
 
 .st-panel-close {
-  @apply flex items-center justify-center w-6 h-6 rounded-full
+  @apply flex items-center justify-center w-[24px] h-[24px] rounded-full
          text-white/80 hover:text-white hover:bg-white/20
          cursor-pointer transition-colors;
   border: none;
@@ -93,16 +93,16 @@
 }
 
 .st-panel-body {
-  @apply p-3 min-h-0 flex-1 overflow-y-auto;
+  @apply p-[12px] min-h-0 flex-1 overflow-y-auto;
   background-color: #ffffff;
 }
 
 .st-loading {
-  @apply flex items-center text-sm text-gray-400 py-2;
+  @apply flex items-center text-gray-400 py-[8px];
 }
 
 .st-dot {
-  @apply inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mx-0.5;
+  @apply inline-block w-[6px] h-[6px] rounded-full bg-blue-400 mx-[2px];
   animation: st-bounce 1.4s infinite ease-in-out both;
 }
 
@@ -116,24 +116,25 @@
 }
 
 .st-error {
-  @apply text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2 flex items-center justify-between gap-2;
+  @apply text-red-500 bg-red-50 rounded-lg px-[12px] py-[8px] flex items-center justify-between gap-[8px];
 }
 
 .st-retry-btn {
-  @apply shrink-0 text-xs text-blue-500 hover:text-blue-600 underline cursor-pointer;
+  @apply shrink-0 text-blue-500 hover:text-blue-600 underline cursor-pointer;
 }
 
 .st-translation p {
-  @apply text-sm text-gray-800 leading-relaxed whitespace-pre-wrap;
+  @apply text-gray-800 leading-relaxed whitespace-pre-wrap;
+  font-size: 16px;
 }
 
 .st-panel-footer {
-  @apply flex flex-none items-center justify-start px-3 py-2 border-t border-gray-100;
+  @apply flex flex-none items-center justify-start px-[12px] py-[8px] border-t border-gray-100;
   background-color: #ffffff;
 }
 
 .st-copy-btn {
-  @apply flex items-center justify-center w-7 h-7
+  @apply flex items-center justify-center w-[28px] h-[28px]
          text-gray-400 hover:text-blue-500 cursor-pointer rounded transition-colors;
   border: none;
   background: none;
@@ -141,7 +142,7 @@
 }
 
 .st-provider-select {
-  @apply text-sm font-semibold tracking-wide max-w-[140px] truncate;
+  @apply font-semibold tracking-wide max-w-[140px] truncate;
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.9);
@@ -178,8 +179,8 @@
 }
 
 .st-mode-option {
-  @apply flex items-center gap-2 w-full px-2 py-1.5 rounded-md
-         text-sm text-gray-700 cursor-pointer transition-colors;
+  @apply flex items-center gap-[8px] w-full px-[8px] py-[6px] rounded-md
+         text-gray-700 cursor-pointer transition-colors;
   border: none;
   background: none;
   text-align: left;
@@ -194,7 +195,7 @@
 }
 
 .st-mode-icon {
-  @apply w-4 text-center shrink-0;
+  @apply w-[16px] text-center shrink-0;
 }
 
 .st-mode-label {
@@ -286,7 +287,7 @@
 
 /* Page translation status bar */
 .st-status-bar {
-  @apply fixed top-0 left-0 right-0 flex items-center gap-3 px-4 py-2
+  @apply fixed top-0 left-0 right-0 flex items-center gap-[12px] px-[16px] py-[8px]
          border-b border-gray-200 shadow-sm;
   background-color: #ffffff;
   z-index: 2147483646;
@@ -295,7 +296,7 @@
 }
 
 .st-status-left {
-  @apply flex items-center gap-2;
+  @apply flex items-center gap-[8px];
 }
 
 .st-status-icon {
@@ -335,7 +336,7 @@
 }
 
 .st-status-progress {
-  @apply flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden min-w-[80px] max-w-[300px];
+  @apply flex-1 h-[6px] bg-gray-100 rounded-full overflow-hidden min-w-[80px] max-w-[300px];
 }
 
 .st-status-progress-fill {
@@ -344,11 +345,11 @@
 }
 
 .st-status-actions {
-  @apply flex items-center gap-2 ml-auto;
+  @apply flex items-center gap-[8px] ml-auto;
 }
 
 .st-status-btn {
-  @apply px-3 py-1 text-xs rounded-md border border-gray-200
+  @apply px-[12px] py-[4px] rounded-md border border-gray-200
          text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors;
   background: white;
 }
@@ -358,7 +359,7 @@
 }
 
 .st-status-btn-icon {
-  @apply flex items-center justify-center w-7 h-7 rounded-md
+  @apply flex items-center justify-center w-[28px] h-[28px] rounded-md
          text-gray-400 hover:text-gray-600 hover:bg-gray-100
          cursor-pointer transition-colors;
   border: none;
