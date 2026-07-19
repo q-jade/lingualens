@@ -113,10 +113,43 @@ export function ContentApp({ onReady }: Props) {
   // (instead of replacing the panel) so the user can translate into it.
   const [pinnedTrigger, setPinnedTrigger] = useState<{ x: number; y: number } | null>(null);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
+  const modeTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const computeMenuPosition = () => {
+    const btn = modeTriggerRef.current;
+    if (!btn) return null;
+    const rect = btn.getBoundingClientRect();
+    // Position below the button, right-aligned (matching original right: 0 behavior)
+    const menuWidth = 180;
+    let left = rect.right - menuWidth;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = window.innerWidth - menuWidth - 8;
+    }
+    return { left, top: rect.bottom + 4 };
+  };
+
+  const openModeMenu = () => {
+    const pos = computeMenuPosition();
+    if (pos) setMenuPosition(pos);
+    setModeMenuOpen(true);
+  };
+
+  const closeModeMenu = () => {
+    setModeMenuOpen(false);
+    setMenuPosition(null);
+  };
+
+  const repositionModeMenu = () => {
+    if (!modeMenuOpen) return;
+    const pos = computeMenuPosition();
+    if (pos) setMenuPosition(pos);
+  };
 
   const selectTriggerMode = (m: SelectionTriggerMode) => {
-    setModeMenuOpen(false);
+    closeModeMenu();
     if (selectionTriggerModeRef.current === m) return;
     selectionTriggerModeRef.current = m;
     setSettings((s) => (s ? { ...s, selectionTriggerMode: m } : s));
@@ -290,10 +323,11 @@ export function ContentApp({ onReady }: Props) {
       setPanelPosition((prev) =>
         clampPanelPosition(prev, getViewport(), readPanelSize(panelRef.current)),
       );
+      repositionModeMenu();
     };
     window.addEventListener('resize', sync);
     return () => window.removeEventListener('resize', sync);
-  }, [mode]);
+  }, [mode, modeMenuOpen]);
 
   // Focus management: move focus into the panel on open (so Escape works and
   // keyboard users land inside it), restore the previous focus on close.
@@ -315,21 +349,32 @@ export function ContentApp({ onReady }: Props) {
     if (mode === 'hidden') {
       setPinned(false);
       setPinnedTrigger(null);
-      setModeMenuOpen(false);
+      closeModeMenu();
     }
   }, [mode]);
 
-  // Close the trigger-mode menu on outside click (composedPath for shadow DOM).
+  // Close the trigger-mode menu on outside click or window blur
   useEffect(() => {
     if (!modeMenuOpen) return;
-    const handler = (e: MouseEvent) => {
+
+    const onOutsideClick = (e: MouseEvent) => {
       const path = e.composedPath();
+      // Don't close if the click is on the toggle button (onClick will handle it)
+      if (modeTriggerRef.current && path.includes(modeTriggerRef.current)) return;
       if (modeMenuRef.current && !path.includes(modeMenuRef.current)) {
-        setModeMenuOpen(false);
+        closeModeMenu();
       }
     };
-    document.addEventListener('mousedown', handler, true);
-    return () => document.removeEventListener('mousedown', handler, true);
+
+    const onWindowBlur = () => closeModeMenu();
+
+    document.addEventListener('mousedown', onOutsideClick, true);
+    window.addEventListener('blur', onWindowBlur);
+
+    return () => {
+      document.removeEventListener('mousedown', onOutsideClick, true);
+      window.removeEventListener('blur', onWindowBlur);
+    };
   }, [modeMenuOpen]);
 
   const openPanelAt = (panelAnchor: { x: number; y: number }) => {
@@ -580,7 +625,7 @@ export function ContentApp({ onReady }: Props) {
             if (e.key !== 'Escape') return;
             if (modeMenuOpen) {
               e.stopPropagation();
-              setModeMenuOpen(false);
+              closeModeMenu();
               return;
             }
             if (!pinned) {
@@ -615,10 +660,17 @@ export function ContentApp({ onReady }: Props) {
               {!settings && <option value="">—</option>}
             </select>
             <div className="st-header-actions">
-              <div className="st-mode-picker" ref={modeMenuRef}>
+              <div className="st-mode-picker">
                 <button
+                  ref={modeTriggerRef}
                   type="button"
-                  onClick={() => setModeMenuOpen((v) => !v)}
+                  onClick={() => {
+                    if (modeMenuOpen) {
+                      closeModeMenu();
+                    } else {
+                      openModeMenu();
+                    }
+                  }}
                   className={`st-panel-close ${modeMenuOpen ? 'st-pin-active' : ''}`}
                   title={t('popup.selectionMode')}
                   aria-haspopup="menu"
@@ -628,32 +680,7 @@ export function ContentApp({ onReady }: Props) {
                     <line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" /><line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" /><line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" /><line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" />
                   </svg>
                 </button>
-                {modeMenuOpen && (
-                  <div className="st-mode-menu" role="menu">
-                    {([
-                      { m: 'icon' as SelectionTriggerMode, icon: '🔘', labelKey: 'options.triggerModeIcon' },
-                      { m: 'instant' as SelectionTriggerMode, icon: '⚡', labelKey: 'options.triggerModeInstant' },
-                      { m: 'modifier' as SelectionTriggerMode, icon: '⌨', labelKey: 'options.triggerModeModifier' },
-                      { m: 'off' as SelectionTriggerMode, icon: '○', labelKey: 'options.triggerModeOff' },
-                    ]).map(({ m, icon, labelKey }) => {
-                      const active = (settings?.selectionTriggerMode ?? 'icon') === m;
-                      return (
-                        <button
-                          key={m}
-                          type="button"
-                          role="menuitemradio"
-                          aria-checked={active}
-                          className={`st-mode-option ${active ? 'st-mode-active' : ''}`}
-                          onClick={() => selectTriggerMode(m)}
-                        >
-                          <span className="st-mode-icon">{icon}</span>
-                          <span className="st-mode-label">{t(labelKey)}</span>
-                          {active && <span className="st-mode-check">✓</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Mode menu rendered as sibling outside the panel to avoid overflow: hidden clipping */}
               </div>
               <button
                 type="button"
@@ -703,6 +730,45 @@ export function ContentApp({ onReady }: Props) {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Mode menu rendered outside the panel to avoid overflow: hidden clipping */}
+      {mode === 'panel' && modeMenuOpen && menuPosition && (
+        <div
+          ref={modeMenuRef}
+          className="st-mode-menu"
+          role="menu"
+          style={{
+            position: 'fixed',
+            left: menuPosition.left,
+            top: menuPosition.top,
+            zIndex: 2147483647,
+            pointerEvents: 'auto',
+          }}
+        >
+          {([
+            { m: 'icon' as SelectionTriggerMode, icon: '🔘', labelKey: 'options.triggerModeIcon' },
+            { m: 'instant' as SelectionTriggerMode, icon: '⚡', labelKey: 'options.triggerModeInstant' },
+            { m: 'modifier' as SelectionTriggerMode, icon: '⌨', labelKey: 'options.triggerModeModifier' },
+            { m: 'off' as SelectionTriggerMode, icon: '○', labelKey: 'options.triggerModeOff' },
+          ]).map(({ m, icon, labelKey }) => {
+            const active = (settings?.selectionTriggerMode ?? 'icon') === m;
+            return (
+              <button
+                key={m}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                className={`st-mode-option ${active ? 'st-mode-active' : ''}`}
+                onClick={() => selectTriggerMode(m)}
+              >
+                <span className="st-mode-icon">{icon}</span>
+                <span className="st-mode-label">{t(labelKey)}</span>
+                {active && <span className="st-mode-check">✓</span>}
+              </button>
+            );
+          })}
         </div>
       )}
 
