@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.1] - 2026-07-20
+
+### Added
+
+- Page translation status now shows "Preparing…" while scanning the page for translatable text, instead of misleading 0/0 progress.
+- `ProviderPicker` dropdown listens to `window.blur` for more consistent dismiss behavior.
+
+### Fixed
+
+- Content UI font sizes are now independent of the host page's root `font-size`, preventing layout breakage on pages with non-standard scaling.
+- Selection trigger mode dropdown no longer gets clipped by panel overflow.
+- DOM walker: copy sub-segment array before mutating to avoid side effects on input.
+- Cache: replaced weak 32-bit hash with FNV-1a 64-bit dual hash to eliminate collision risk.
+- Selection translation panel drag callback stabilized to avoid jitter.
+
 ## [0.5.0] - 2026-07-03
 
 ### Added
@@ -97,6 +112,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.5.1]: https://github.com/q-jade/lingualens/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/q-jade/lingualens/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/q-jade/lingualens/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/q-jade/lingualens/compare/v0.2.0...v0.3.0
