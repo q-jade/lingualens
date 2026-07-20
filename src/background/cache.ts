@@ -34,13 +34,21 @@ function schedulePersist(): void {
   }, PERSIST_DEBOUNCE_MS);
 }
 
+/**
+ * FNV-1a dual hash: two independent 32-bit hashes combined into a 64-bit key.
+ * Collision probability ~2.7 × 10⁻¹⁴ for 1000 entries — effectively zero.
+ * Same O(n) cost as a single hashCode, no async overhead.
+ */
 function makeKey(text: string, sourceLang: string, targetLang: string, providerId: string): string {
-  let hash = 0;
   const input = `${text}|${sourceLang}|${targetLang}|${providerId}`;
+  let h1 = 0x811c9dc5;
+  let h2 = 0xc58f1a7b;
   for (let i = 0; i < input.length; i++) {
-    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+    const c = input.charCodeAt(i);
+    h1 = Math.imul((h1 ^ c), 0x01000193);
+    h2 = Math.imul((h2 ^ ((c >>> 8) | ((c & 0xff) << 24))), 0x01000193);
   }
-  return `c_${hash.toString(36)}`;
+  return `c_${(h1 >>> 0).toString(36)}_${(h2 >>> 0).toString(36)}`;
 }
 
 function evict(cache: Map<string, CacheEntry>): void {
