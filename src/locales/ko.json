@@ -121,6 +121,7 @@
     "close": "닫기"
   },
   "statusBar": {
+    "preparing": "준비 중…",
     "translatingProgress": "번역 중… {{done}}/{{total}} ({{percent}}%)",
     "translatedProgress": "번역 완료 {{done}}/{{total}}",
     "errors": "· {{count}}개 오류",

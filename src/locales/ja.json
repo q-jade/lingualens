@@ -121,6 +121,7 @@
     "close": "閉じる"
   },
   "statusBar": {
+    "preparing": "準備中…",
     "translatingProgress": "翻訳中… {{done}}/{{total}} ({{percent}}%)",
     "translatedProgress": "翻訳済み {{done}}/{{total}}",
     "errors": "· {{count}} 件のエラー",

@@ -121,6 +121,7 @@
     "close": "关闭"
   },
   "statusBar": {
+    "preparing": "准备中…",
     "translatingProgress": "翻译中… {{done}}/{{total}} ({{percent}}%)",
     "translatedProgress": "已翻译 {{done}}/{{total}}",
     "errors": "· {{count}} 个错误",

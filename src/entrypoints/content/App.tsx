@@ -424,7 +424,7 @@ export function ContentApp({ onReady }: Props) {
     const rect = panelRef.current?.getBoundingClientRect();
     const origin = rect
       ? { left: rect.left, top: rect.top }
-      : panelPosition;
+      : { left: 0, top: 0 };
     panelDragRef.current = { startX: event.clientX, startY: event.clientY, origin };
 
     const onMouseMove = (moveEvent: MouseEvent) => {
@@ -449,7 +449,7 @@ export function ContentApp({ onReady }: Props) {
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-  }, [panelPosition]);
+  }, []);
 
   useEffect(() => {
     const isPinnedTrigger = mode === 'panel' && pinnedTrigger !== null;

@@ -121,6 +121,7 @@
     "close": "Fermer"
   },
   "statusBar": {
+    "preparing": "Préparation…",
     "translatingProgress": "Traduction… {{done}}/{{total}} ({{percent}} %)",
     "translatedProgress": "Traduit {{done}}/{{total}}",
     "errors": "· {{count}} erreurs",

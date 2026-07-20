@@ -21,6 +21,8 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
   const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
   const finished = !running && (progress.done > 0 || progress.errors > 0);
   const allFailed = finished && progress.done === 0 && progress.errors > 0;
+  // Before extraction finishes, total is still 0 — showing 0/0 (0%) would be misleading.
+  const preparing = running && progress.total === 0;
 
   if (collapsed) {
     return (
@@ -29,7 +31,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
           <AppLogo className="st-status-collapsed-icon" />
         </span>
         {running && (
-          <span className="st-status-collapsed-badge">{percent}%</span>
+          <span className="st-status-collapsed-badge">{preparing ? '…' : `${percent}%`}</span>
         )}
       </button>
     );
@@ -39,7 +41,9 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
     <div className="st-status-bar">
       <div className="st-status-left">
         <AppLogo className="st-status-icon" />
-        {running ? (
+        {preparing ? (
+          <span className="st-status-text">{t('statusBar.preparing')}</span>
+        ) : running ? (
           <span className="st-status-text">
             {t('statusBar.translatingProgress', { done: progress.done, total: progress.total, percent })}
             {progress.errors > 0 && <span className="st-status-err"> {t('statusBar.errors', { count: progress.errors })}</span>}
@@ -56,7 +60,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
         ) : null}
       </div>
 
-      {running && (
+      {running && !preparing && (
         <div className="st-status-progress">
           <div className="st-status-progress-fill" style={{ width: `${percent}%` }} />
         </div>
