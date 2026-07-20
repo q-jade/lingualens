@@ -375,7 +375,9 @@ function mergeSmallSegments(segments: TextSegment[], limit: number): TextSegment
   for (const seg of segments) {
     if (!pending) {
       pending = { ...seg };
-      pendingSubs = getSubSegments(seg);
+      // Copy the array: getSubSegments may return seg.subSegments by reference,
+      // and pendingSubs.push(...) later must not mutate the input segments.
+      pendingSubs = [...getSubSegments(seg)];
       continue;
     }
 
@@ -391,7 +393,7 @@ function mergeSmallSegments(segments: TextSegment[], limit: number): TextSegment
     } else {
       flush();
       pending = { ...seg };
-      pendingSubs = getSubSegments(seg);
+      pendingSubs = [...getSubSegments(seg)];
     }
   }
   flush();
