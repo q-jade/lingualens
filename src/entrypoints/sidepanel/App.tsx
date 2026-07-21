@@ -123,7 +123,20 @@ export function App() {
       );
       const updated = [entry, ...deduplicated].slice(0, 50);
       setHistory(updated);
-      browser.storage.local.set({ translationHistory: updated });
+      try {
+        await browser.storage.local.set({ translationHistory: updated });
+      } catch (err) {
+        if (err instanceof Error && /quota/i.test(err.message)) {
+          // Quota exceeded — keep only the most recent half
+          const trimmed = updated.slice(0, Math.max(1, Math.floor(updated.length / 2)));
+          setHistory(trimmed);
+          try {
+            await browser.storage.local.set({ translationHistory: trimmed });
+          } catch {
+            // Give up — in-memory history still works this session
+          }
+        }
+      }
     } else {
       setError(translateError(res.error));
     }

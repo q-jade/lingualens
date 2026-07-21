@@ -21,16 +21,44 @@ async function getMemoryCache(): Promise<Map<string, CacheEntry>> {
   return memoryCache;
 }
 
-function schedulePersist(): void {
-  if (persistTimer) return;
-  dirty = true;
-  persistTimer = setTimeout(async () => {
-    persistTimer = null;
-    if (!dirty || !memoryCache) return;
-    dirty = false;
+function isQuotaError(err: unknown): boolean {
+  return err instanceof Error && /quota/i.test(err.message);
+}
+
+async function flushCache(): Promise<void> {
+  if (!dirty || !memoryCache) return;
+  dirty = false;
+  try {
     await browser.storage.local.set({
       [STORAGE_KEY]: Object.fromEntries(memoryCache),
     });
+  } catch (err) {
+    if (!memoryCache || !isQuotaError(err)) return;
+    // Quota exceeded — aggressively evict oldest 50% and retry once
+    const entries = [...memoryCache.entries()].sort(
+      (a, b) => a[1].accessedAt - b[1].accessedAt,
+    );
+    const keep = Math.max(1, Math.floor(entries.length / 2));
+    const toRemove = entries.slice(0, entries.length - keep);
+    for (const [key] of toRemove) {
+      memoryCache.delete(key);
+    }
+    try {
+      await browser.storage.local.set({
+        [STORAGE_KEY]: Object.fromEntries(memoryCache),
+      });
+    } catch {
+      // Give up — in-memory cache still works this session
+    }
+  }
+}
+
+function schedulePersist(): void {
+  if (persistTimer) return;
+  dirty = true;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    void flushCache();
   }, PERSIST_DEBOUNCE_MS);
 }
 
