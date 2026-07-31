@@ -7,7 +7,7 @@ export default defineConfig({
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
     default_locale: 'en',
-    permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus', 'scripting'],
+    permissions: ['storage', 'activeTab', 'sidePanel', 'contextMenus', 'scripting', 'tabs'],
     host_permissions: [
       // Chrome Web Store rejects `http://localhost:*/*`; omit port to match all local ports.
       'http://localhost/*',
