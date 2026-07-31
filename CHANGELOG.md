@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.2] - 2026-07-31
+
+### Fixed
+
+- Page translate context menu item was always disabled (greyed out) in production builds due to missing `tabs` permission. The context menu now correctly enables on translatable pages.
+- Handle quota exceeded errors when persisting cache and translation history, preventing silent data loss when storage is full.
+
 ## [0.5.1] - 2026-07-20
 
 ### Added
