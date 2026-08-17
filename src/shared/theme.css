@@ -1,0 +1,204 @@
+/*
+ * LinguaLens design system — shared tokens + component classes.
+ *
+ * Imported by popup / sidepanel / options / content stylesheets (plain CSS,
+ * no Tailwind dependencies). Tokens are declared on both `:root` (light-DOM
+ * pages) and `:host` (the content-script shadow root) so every surface can
+ * consume them. Component classes are intentionally unlayered so they always
+ * win over Tailwind's layered utilities — combine them with layout utilities
+ * (w-full, flex-1, mt-2 …) but avoid duplicating the properties they set.
+ */
+
+:root,
+:host {
+  /* Brand — blue → indigo, matching the existing product gradient */
+  --ll-blue-50: #eff6ff;
+  --ll-blue-100: #dbeafe;
+  --ll-blue-500: #3b82f6;
+  --ll-blue-600: #2563eb;
+  --ll-indigo-50: #eef2ff;
+  --ll-indigo-100: #e0e7ff;
+  --ll-indigo-300: #a5b4fc;
+  --ll-indigo-500: #6366f1;
+  --ll-indigo-600: #4f46e5;
+  --ll-indigo-700: #4338ca;
+
+  /* Neutrals (Tailwind gray scale) */
+  --ll-gray-50: #f9fafb;
+  --ll-gray-100: #f3f4f6;
+  --ll-gray-200: #e5e7eb;
+  --ll-gray-300: #d1d5db;
+  --ll-gray-400: #9ca3af;
+  --ll-gray-500: #6b7280;
+  --ll-gray-600: #4b5563;
+  --ll-gray-700: #374151;
+  --ll-gray-800: #1f2937;
+  --ll-gray-900: #111827;
+
+  /* Semantic */
+  --ll-success: #16a34a;
+  --ll-success-bg: #f0fdf4;
+  --ll-warn: #b45309;
+  --ll-warn-bg: #fffbeb;
+  --ll-danger: #dc2626;
+  --ll-danger-bg: #fef2f2;
+
+  /* Shape & elevation */
+  --ll-radius-sm: 6px;
+  --ll-radius: 8px;
+  --ll-radius-lg: 12px;
+  --ll-focus-ring: 0 0 0 3px rgb(99 102 241 / 0.25);
+  --ll-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+  --ll-shadow: 0 4px 12px rgb(15 23 42 / 0.08), 0 1px 3px rgb(15 23 42 / 0.06);
+
+  /* Type */
+  --ll-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  --ll-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas,
+    'Liberation Mono', monospace;
+}
+
+body {
+  font-family: var(--ll-font);
+  color: var(--ll-gray-800);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--ll-indigo-100);
+  color: var(--ll-indigo-700);
+}
+
+/*
+ * Shared field — base for text inputs, textareas and (combined with
+ * .ll-select) selects. Does NOT set width so layout utilities keep working.
+ */
+.input {
+  padding: 7px 12px;
+  border: 1px solid var(--ll-gray-200);
+  border-radius: var(--ll-radius);
+  background: #fff;
+  color: var(--ll-gray-800);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  transition: border-color 120ms ease, box-shadow 120ms ease,
+    background-color 120ms ease;
+}
+.input::placeholder {
+  color: var(--ll-gray-400);
+}
+.input:hover:not(:disabled) {
+  border-color: var(--ll-gray-300);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--ll-indigo-500);
+  box-shadow: var(--ll-focus-ring);
+}
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Select — drop the native arrow, draw a chevron. Pair with `.input`. */
+.ll-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px 14px;
+  cursor: pointer;
+}
+
+/* Primary action button — the product's blue→indigo gradient. */
+.ll-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ll-radius);
+  background: linear-gradient(135deg, var(--ll-blue-500), var(--ll-indigo-500));
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  box-shadow: var(--ll-shadow-sm);
+  transition: filter 120ms ease, transform 60ms ease, box-shadow 120ms ease;
+}
+.ll-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow: 0 2px 6px rgb(79 70 229 / 0.3);
+}
+.ll-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.ll-btn-primary:focus-visible {
+  outline: none;
+  box-shadow: var(--ll-focus-ring);
+}
+.ll-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ll-btn-lg {
+  padding: 10px 22px;
+  font-size: 14px;
+}
+
+.ll-btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+/* Pill badges */
+.ll-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.ll-badge-brand {
+  color: var(--ll-indigo-600);
+  background: var(--ll-indigo-50);
+}
+.ll-badge-warn {
+  color: var(--ll-warn);
+  background: var(--ll-warn-bg);
+}
+
+/* Small muted helper text */
+.ll-hint {
+  font-size: 12px;
+  color: var(--ll-gray-400);
+}
+
+/* Loading spinner */
+.ll-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--ll-indigo-100);
+  border-top-color: var(--ll-indigo-500);
+  animation: ll-spin 0.7s linear infinite;
+}
+
+@keyframes ll-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

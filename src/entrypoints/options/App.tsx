@@ -184,7 +184,7 @@ export function App() {
         <div className="flex items-center gap-3 mb-8">
           <AppLogo className="w-10 h-10 shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">LinguaLens</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">LinguaLens</h1>
             <p className="text-sm text-gray-400">{t('options.settings')}</p>
           </div>
         </div>
@@ -194,7 +194,7 @@ export function App() {
           <select
             value={uiLang}
             onChange={(e) => void handleUiLangChange(e.target.value)}
-            className="input"
+            className="input ll-select w-full"
           >
             {AVAILABLE_UI_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>{l.name}</option>
@@ -209,12 +209,12 @@ export function App() {
           </p>
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('options.sourceLanguage')}>
-              <select value={settings.defaultSourceLang} onChange={(e) => { setSettings((s) => ({ ...s, defaultSourceLang: e.target.value })); setSaved(false); }} className="input">
+              <select value={settings.defaultSourceLang} onChange={(e) => { setSettings((s) => ({ ...s, defaultSourceLang: e.target.value })); setSaved(false); }} className="input ll-select w-full">
                 {SUPPORTED_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
               </select>
             </Field>
             <Field label={t('options.targetLanguage')}>
-              <select value={settings.defaultTargetLang} onChange={(e) => { setSettings((s) => ({ ...s, defaultTargetLang: e.target.value })); setSaved(false); }} className="input">
+              <select value={settings.defaultTargetLang} onChange={(e) => { setSettings((s) => ({ ...s, defaultTargetLang: e.target.value })); setSaved(false); }} className="input ll-select w-full">
                 {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
               </select>
             </Field>
@@ -223,7 +223,7 @@ export function App() {
           <hr className="my-4 border-gray-200" />
 
           <Field label={t('options.selectionTriggerMode')}>
-            <p className="text-xs text-gray-400 mb-2">{t('options.selectionTriggerModeDesc')}</p>
+            <p className="ll-hint mb-2">{t('options.selectionTriggerModeDesc')}</p>
             <div className="space-y-2 mt-1">
               {([
                 { value: 'icon' as SelectionTriggerMode, labelKey: 'options.triggerModeIcon', descKey: 'options.triggerModeIconDesc' },
@@ -241,7 +241,7 @@ export function App() {
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-700">{t(opt.labelKey)}</span>
-                    <p className="text-xs text-gray-400 mt-0.5">{t(opt.descKey)}</p>
+                    <p className="ll-hint mt-0.5">{t(opt.descKey)}</p>
                   </div>
                 </label>
               ))}
@@ -249,11 +249,11 @@ export function App() {
             {settings.selectionTriggerMode === 'modifier' && (
               <div className="mt-3 ml-7">
                 <label className="block text-sm font-medium text-gray-500 mb-1.5">{t('options.selectionModifierKey')}</label>
-                <p className="text-xs text-gray-400 mb-2">{t('options.selectionModifierKeyDesc')}</p>
+                <p className="ll-hint mb-2">{t('options.selectionModifierKeyDesc')}</p>
                 <select
                   value={settings.selectionModifierKey}
                   onChange={(e) => { setSettings((s) => ({ ...s, selectionModifierKey: e.target.value as SelectionModifierKey })); setSaved(false); }}
-                  className="input w-32"
+                  className="input ll-select w-32"
                 >
                   {(['ctrl', 'alt', 'shift'] as SelectionModifierKey[]).map((k) => (
                     <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
@@ -270,7 +270,7 @@ export function App() {
             <select
               value={settings.defaultProvider}
               onChange={(e) => setDefaultProvider(e.target.value)}
-              className="input"
+              className="input ll-select w-full"
             >
               {settings.providers.map((p) => (
                 <option key={p.id} value={p.id}>{p.name} ({t(`providerTypes.${p.type}`)})</option>
@@ -282,7 +282,7 @@ export function App() {
         {/* Fallback Providers */}
         {settings.providers.length > 1 && (
           <Section title={t('options.fallbackProviders')}>
-            <p className="text-xs text-gray-400 mb-3">
+            <p className="ll-hint mb-3">
               {t('options.fallbackDesc')}
             </p>
             {settings.fallbackProviders.length === 0 ? (
@@ -303,7 +303,7 @@ export function App() {
                         <span className="ml-2 text-xs text-gray-400">{t(`providerTypes.${provider.type}`)}</span>
                       </span>
                       {!provider.enabled && (
-                        <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">{t('options.disabled')}</span>
+                        <span className="ll-badge ll-badge-warn shrink-0">{t('options.disabled')}</span>
                       )}
                       <button
                         type="button"
@@ -342,7 +342,7 @@ export function App() {
                 onChange={(e) => {
                   if (e.target.value) addFallbackProvider(e.target.value);
                 }}
-                className="input"
+                className="input ll-select w-full"
               >
                 <option value="">{t('options.addFallback')}</option>
                 {availableFallbackProviders.map((p) => (
@@ -411,7 +411,7 @@ export function App() {
                       <span className="ml-2 text-xs text-gray-400">{t(`providerTypes.${provider.type}`)}</span>
                     </div>
                     {settings.defaultProvider === provider.id && (
-                      <span className="text-[10px] font-medium text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">{t('options.default')}</span>
+                      <span className="ll-badge ll-badge-brand">{t('options.default')}</span>
                     )}
                     <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
                   </div>
@@ -420,7 +420,7 @@ export function App() {
                   {expanded && (
                     <div className="px-4 pb-4 pt-1 border-t border-gray-100 space-y-3">
                       <Field label={t('options.providerName')}>
-                        <input type="text" value={provider.name} onChange={(e) => updateProvider(provider.id, { name: e.target.value })} className="input" />
+                        <input type="text" value={provider.name} onChange={(e) => updateProvider(provider.id, { name: e.target.value })} className="input w-full" />
                       </Field>
                       <Field label={provider.type === 'lmstudio' ? t('options.serverUrl') : t('options.apiBaseUrl')}>
                         <input
@@ -428,20 +428,20 @@ export function App() {
                           value={provider.baseUrl}
                           onChange={(e) => updateProvider(provider.id, { baseUrl: e.target.value })}
                           placeholder={provider.type === 'lmstudio' ? 'http://localhost:1234' : undefined}
-                          className="input font-mono text-xs"
+                          className="input font-mono w-full"
                         />
                       </Field>
                       {provider.type === 'lmstudio' && (
-                        <p className="text-xs text-gray-400 -mt-1" dangerouslySetInnerHTML={{ __html: t('options.lmStudioNote') }} />
+                        <p className="ll-hint -mt-1" dangerouslySetInnerHTML={{ __html: t('options.lmStudioNote') }} />
                       )}
                       {needsApiKey(provider.type) && (
                         <Field label={t('options.apiKey')}>
-                          <input type="password" value={provider.apiKey || ''} onChange={(e) => updateProvider(provider.id, { apiKey: e.target.value })} placeholder="sk-…" className="input font-mono text-xs" />
+                          <input type="password" value={provider.apiKey || ''} onChange={(e) => updateProvider(provider.id, { apiKey: e.target.value })} placeholder="sk-…" className="input font-mono w-full" />
                         </Field>
                       )}
                       {needsModel(provider.type) && (
                         <Field label={t('options.model')}>
-                          <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'llama3' : provider.type === 'lmstudio' ? 'loaded model' : 'gpt-4o-mini'} className="input font-mono text-xs" />
+                          <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'llama3' : provider.type === 'lmstudio' ? 'loaded model' : 'gpt-4o-mini'} className="input font-mono w-full" />
                         </Field>
                       )}
                       {isLlmProvider(provider.type) && (
@@ -454,7 +454,7 @@ export function App() {
                           />
                           <div>
                             <span className="text-sm font-medium text-gray-700">{t('options.disableThinking')}</span>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="ll-hint mt-0.5">
                               {t('options.disableThinkingDesc')}
                             </p>
                           </div>
@@ -487,14 +487,14 @@ export function App() {
 
         {/* Prompt Template */}
         <Section title={t('options.promptTemplate')}>
-          <p className="text-xs text-gray-400 mb-3">
+          <p className="ll-hint mb-3">
             {t('options.promptTemplateDesc')} <code className="bg-gray-100 px-1 rounded">{'{sourceLang}'}</code>, <code className="bg-gray-100 px-1 rounded">{'{targetLang}'}</code>
           </p>
           <textarea
             value={settings.promptTemplate ?? 'You are a professional translator. Translate the following text from {sourceLang} to {targetLang}. Preserve the original formatting, tone, and style. Only output the translated text, nothing else.'}
             onChange={(e) => { setSettings((s) => ({ ...s, promptTemplate: e.target.value })); setSaved(false); }}
             rows={4}
-            className="input font-mono text-xs leading-relaxed"
+            className="input font-mono leading-relaxed w-full"
           />
           <button
             onClick={() => { setSettings((s) => ({ ...s, promptTemplate: undefined })); setSaved(false); }}
@@ -522,7 +522,7 @@ export function App() {
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-700">{t(opt.labelKey)}</span>
-                    <p className="text-xs text-gray-400 mt-0.5">{t(opt.descKey)}</p>
+                    <p className="ll-hint mt-0.5">{t(opt.descKey)}</p>
                   </div>
                 </label>
               ))}
@@ -544,7 +544,7 @@ export function App() {
 
         {/* Save */}
         <div className="flex items-center gap-3 mt-6">
-          <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 transition-all shadow-sm">
+          <button onClick={handleSave} disabled={saving} className="ll-btn-primary ll-btn-lg">
             {saving ? t('options.saving') : t('options.save')}
           </button>
           {saved && (

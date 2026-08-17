@@ -4,6 +4,7 @@ import type { AppSettings, MessageResponse, SelectionTriggerMode, SelectionModif
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
 import { StatusBar } from '../../content/page-translator/StatusBar';
 import { AppLogo } from '../../shared/AppLogo';
+import { ModeIcon } from '../../shared/ModeIcon';
 import { computeTriggerPosition } from '../../content/trigger-position';
 import {
   isPageTranslateStarted,
@@ -748,11 +749,11 @@ export function ContentApp({ onReady }: Props) {
           }}
         >
           {([
-            { m: 'icon' as SelectionTriggerMode, icon: '🔘', labelKey: 'options.triggerModeIcon' },
-            { m: 'instant' as SelectionTriggerMode, icon: '⚡', labelKey: 'options.triggerModeInstant' },
-            { m: 'modifier' as SelectionTriggerMode, icon: '⌨', labelKey: 'options.triggerModeModifier' },
-            { m: 'off' as SelectionTriggerMode, icon: '○', labelKey: 'options.triggerModeOff' },
-          ]).map(({ m, icon, labelKey }) => {
+            { m: 'icon' as SelectionTriggerMode, labelKey: 'options.triggerModeIcon' },
+            { m: 'instant' as SelectionTriggerMode, labelKey: 'options.triggerModeInstant' },
+            { m: 'modifier' as SelectionTriggerMode, labelKey: 'options.triggerModeModifier' },
+            { m: 'off' as SelectionTriggerMode, labelKey: 'options.triggerModeOff' },
+          ]).map(({ m, labelKey }) => {
             const active = (settings?.selectionTriggerMode ?? 'icon') === m;
             return (
               <button
@@ -763,7 +764,7 @@ export function ContentApp({ onReady }: Props) {
                 className={`st-mode-option ${active ? 'st-mode-active' : ''}`}
                 onClick={() => selectTriggerMode(m)}
               >
-                <span className="st-mode-icon">{icon}</span>
+                <span className="st-mode-icon"><ModeIcon mode={m} size={14} /></span>
                 <span className="st-mode-label">{t(labelKey)}</span>
                 {active && <span className="st-mode-check">✓</span>}
               </button>

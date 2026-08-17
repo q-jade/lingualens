@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { AppSettings, TranslateResult, MessageResponse, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
+import { ModeIcon } from '../../shared/ModeIcon';
 import { getTranslatorLanguages, updateTranslatorLanguages } from '../../shared/translator-languages';
 import { isTranslatableTabUrl } from '../../shared/translatable-tab';
 import { ProviderPicker } from '../../shared/ProviderPicker';
@@ -108,7 +109,12 @@ export function App() {
   };
 
   return (
-    <div className="p-4 bg-white min-h-[200px]">
+    <div className="relative p-4 bg-white min-h-[200px]">
+      {/* Brand accent bar */}
+      <div
+        aria-hidden="true"
+        className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-blue-500 to-indigo-500"
+      />
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
         <AppLogo className="w-7 h-7 shrink-0" />
@@ -141,9 +147,7 @@ export function App() {
           setTargetLang(next);
           void updateTranslatorLanguages({ targetLang: next });
         }}
-        className="w-full mb-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm
-                   bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400
-                   disabled:opacity-60 disabled:cursor-wait"
+        className="input ll-select w-full mb-2"
       >
         {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((lang) => (
           <option key={lang.code} value={lang.code}>{lang.name}</option>
@@ -155,8 +159,7 @@ export function App() {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={t('popup.placeholder')}
-        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none
-                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400"
+        className="input w-full resize-none"
         rows={3}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleTranslate();
@@ -167,9 +170,7 @@ export function App() {
       <button
         onClick={handleTranslate}
         disabled={loading || !text.trim() || targetLang === null}
-        className="w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium text-white
-                   bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600
-                   disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="ll-btn-primary w-full mt-2"
       >
         {loading
           ? t('popup.translating')
@@ -183,7 +184,7 @@ export function App() {
 
       {/* Result */}
       {result && (
-        <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+        <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200/70">
           <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{result}</p>
           <button
             onClick={() => {
@@ -261,11 +262,11 @@ export function App() {
           </div>
           <div className="flex items-center gap-1">
             {([
-              { mode: 'icon' as SelectionTriggerMode, label: t('options.triggerModeIcon'), icon: '🔘' },
-              { mode: 'instant' as SelectionTriggerMode, label: t('options.triggerModeInstant'), icon: '⚡' },
-              { mode: 'modifier' as SelectionTriggerMode, label: t('options.triggerModeModifier'), icon: '⌨' },
-              { mode: 'off' as SelectionTriggerMode, label: t('options.triggerModeOff'), icon: '○' },
-            ]).map(({ mode: m, label, icon }) => (
+              { mode: 'icon' as SelectionTriggerMode, label: t('options.triggerModeIcon') },
+              { mode: 'instant' as SelectionTriggerMode, label: t('options.triggerModeInstant') },
+              { mode: 'modifier' as SelectionTriggerMode, label: t('options.triggerModeModifier') },
+              { mode: 'off' as SelectionTriggerMode, label: t('options.triggerModeOff') },
+            ]).map(({ mode: m, label }) => (
               <button
                 key={m}
                 type="button"
@@ -284,11 +285,11 @@ export function App() {
                 title={label}
                 className={`flex-1 py-1 rounded-md text-xs font-medium transition-colors
                   ${settings.selectionTriggerMode === m
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-300'
                     : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
                   }`}
               >
-                <span className="block text-center">{icon}</span>
+                <span className="flex justify-center"><ModeIcon mode={m} /></span>
                 <span className="block text-center text-[10px] leading-tight mt-0.5 truncate">{label}</span>
               </button>
             ))}
@@ -314,7 +315,7 @@ export function App() {
                   }}
                   className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase transition-colors
                     ${settings.selectionModifierKey === k
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-300'
                       : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
                     }`}
                 >

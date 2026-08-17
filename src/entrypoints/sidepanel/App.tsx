@@ -179,9 +179,14 @@ export function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="relative flex flex-col h-screen bg-white">
+      {/* Brand accent bar */}
+      <div
+        aria-hidden="true"
+        className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-blue-500 to-indigo-500"
+      />
       {/* Language bar */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50">
+      <div className="flex items-center gap-1 px-3 pt-2 pb-2 border-b border-gray-100 bg-gray-50">
         <select
           value={sourceLang ?? ''}
           disabled={!langsReady}
@@ -190,8 +195,7 @@ export function App() {
             setSourceLang(next);
             if (targetLang) void setTranslatorLanguages({ sourceLang: next, targetLang });
           }}
-          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400
-                     disabled:opacity-60 disabled:cursor-wait"
+          className="input ll-select flex-1"
         >
           {SUPPORTED_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
@@ -213,8 +217,7 @@ export function App() {
             setTargetLang(next);
             if (sourceLang) void setTranslatorLanguages({ sourceLang, targetLang: next });
           }}
-          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400
-                     disabled:opacity-60 disabled:cursor-wait"
+          className="input ll-select flex-1"
         >
           {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
@@ -240,7 +243,7 @@ export function App() {
               />
               <div className="flex items-center justify-between px-4 py-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-300">{t('sidepanel.chars', { count: sourceText.length })}</span>
+                  <span className="text-[10px] text-gray-400">{t('sidepanel.chars', { count: sourceText.length })}</span>
                   {sourceText && (
                     <button
                       onClick={() => {
@@ -250,7 +253,7 @@ export function App() {
                         setCopied(false);
                         textareaRef.current?.focus();
                       }}
-                      className="text-[10px] text-gray-300 hover:text-red-400 transition-colors"
+                      className="text-[10px] text-gray-400 hover:text-red-400 transition-colors"
                     >
                       {t('sidepanel.clear')}
                     </button>
@@ -259,10 +262,7 @@ export function App() {
                 <button
                   onClick={handleTranslate}
                   disabled={loading || !sourceText.trim() || !langsReady}
-                  className="px-4 py-1.5 rounded-lg text-xs font-medium text-white
-                             bg-gradient-to-r from-blue-500 to-indigo-500
-                             hover:from-blue-600 hover:to-indigo-600
-                             disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="ll-btn-primary ll-btn-sm"
                 >
                   {loading
                     ? t('sidepanel.translating')
@@ -283,10 +283,10 @@ export function App() {
             <div className="flex flex-col min-h-0" style={{ flex: `${1 - splitRatio} 1 0%` }}>
               {error && <div className="px-4 py-3 text-sm text-red-500 bg-red-50">{error}</div>}
               {!error && (
-                <div className="flex-1 overflow-y-auto px-4 py-3">
+                <div className="flex-1 overflow-y-auto px-4 py-3 bg-gray-50/60">
                   {loading ? (
                     <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      <span className="ll-spinner" />
                       {t('sidepanel.translating')}
                     </div>
                   ) : translation ? (
@@ -383,7 +383,7 @@ function HistoryPanel({
           onClick={() => onSelect(entry)}
           className="px-4 py-3 border-b border-gray-50 hover:bg-blue-50/50 cursor-pointer transition-colors"
         >
-          <p className="text-xs text-gray-400 truncate">{entry.source}</p>
+          <p className="ll-hint truncate">{entry.source}</p>
           <p className="text-sm text-gray-800 truncate mt-0.5">{entry.translated}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[10px] text-gray-300">{entry.provider}</span>

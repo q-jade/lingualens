@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Introduced a shared design system (`src/shared/theme.css`): unified brand/neutral/semantic color tokens, font stack, focus rings, and reusable `.input` / `.ll-select` / `.ll-btn-primary` / `.ll-badge` / `.ll-spinner` component classes now used across popup, sidepanel, options, and content stylesheets.
+- Popup: added a brand accent bar, custom-styled language select with chevron, shared field styling for the textarea, primary button class, and replaced emoji selection-mode icons with SVG icons (indigo active states).
+- Sidepanel: added a brand accent bar, custom-styled language selects, a spinner loading indicator, and a subtle container background for the translation result pane.
+- Options: gradient brand title, custom-styled selects, explicit input widths, and unified save button styling.
+- Content overlay: selection-mode menu now uses the shared SVG mode icons instead of emoji.
+
 ## [0.5.2] - 2026-07-31
 
 ### Fixed
