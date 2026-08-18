@@ -93,6 +93,7 @@
     "save": "設定を保存",
     "saving": "保存中…",
     "saved": "保存しました",
+    "unsavedChanges": "未保存の変更があります",
     "welcomeTitle": "LinguaLens へようこそ",
     "welcomeDesc": "翻訳を始める前に、以下からプロバイダーを少なくとも1つ設定してください。Ollama と LM Studio はローカルで動作します。クラウド API にはベース URL、モデル、API キーが必要です。",
     "welcomeStep1": "プロバイダーを有効にし、URL とモデルを確認",

@@ -93,6 +93,7 @@
     "save": "Guardar configuración",
     "saving": "Guardando…",
     "saved": "Guardado",
+    "unsavedChanges": "Cambios sin guardar",
     "welcomeTitle": "Bienvenido a LinguaLens",
     "welcomeDesc": "Antes de traducir, configure al menos un proveedor a continuación. Ollama y LM Studio funcionan localmente; las APIs en la nube necesitan una URL base, modelo y clave API.",
     "welcomeStep1": "Active un proveedor y verifique su URL y modelo",

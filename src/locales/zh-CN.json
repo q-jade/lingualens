@@ -93,6 +93,7 @@
     "save": "保存设置",
     "saving": "保存中…",
     "saved": "已保存",
+    "unsavedChanges": "有未保存的更改",
     "welcomeTitle": "欢迎使用 LinguaLens",
     "welcomeDesc": "翻译前，请先在下方设置至少一个提供者。Ollama 和 LM Studio 可在本地运行；云端 API 需要基础 URL、模型和 API 密钥。",
     "welcomeStep1": "启用一个提供者并检查其 URL 和模型",

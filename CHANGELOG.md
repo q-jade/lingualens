@@ -4,13 +4,21 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Options page: sidebar section navigation with scroll-spy highlighting, sticky save bar with an "unsaved changes" indicator, `Ctrl/Cmd+S` to save, and a before-unload guard that warns when closing the tab with unsaved changes.
+- Options page: provider cards now show a provider-type icon chip and an enabled/disabled status dot; the save button displays its `Ctrl/Cmd+S` shortcut.
+- Provider icons: the DeepSeek preset shows a whale brand mark (provider-icon override by name).
+- Sidepanel: an amber "no provider configured" banner linking to settings, language badges on history entries, and an icon for the empty-history state.
+- Content overlay: the floating selection trigger is now a proper button (white rounded surface with border and hover shadow), and the page-translation status bar gets a brand gradient top edge.
+
 ### Changed
 
-- Introduced a shared design system (`src/shared/theme.css`): unified brand/neutral/semantic color tokens, font stack, focus rings, and reusable `.input` / `.ll-select` / `.ll-btn-primary` / `.ll-badge` / `.ll-spinner` component classes now used across popup, sidepanel, options, and content stylesheets.
+- Introduced a shared design system (`src/shared/theme.css`): unified brand/neutral/semantic color tokens, font stack, focus rings, and reusable `.input` / `.ll-select` / `.ll-btn-primary` / `.ll-badge` / `.ll-hint` / `.ll-spinner` component classes now used across popup, sidepanel, options, and content stylesheets.
 - Popup: added a brand accent bar, custom-styled language select with chevron, shared field styling for the textarea, primary button class, and replaced emoji selection-mode icons with SVG icons (indigo active states).
 - Sidepanel: added a brand accent bar, custom-styled language selects, a spinner loading indicator, and a subtle container background for the translation result pane.
-- Options: gradient brand title, custom-styled selects, explicit input widths, and unified save button styling.
-- Content overlay: selection-mode menu now uses the shared SVG mode icons instead of emoji.
+- Options: gradient brand title, custom-styled selects, explicit input widths, unified save button styling, and new `ProviderIcon` set for provider types.
+- Content overlay: selection-mode menu now uses the shared SVG mode icons instead of emoji; panel header gradients and shadows now consume design-system tokens.
 
 ## [0.5.2] - 2026-07-31
 

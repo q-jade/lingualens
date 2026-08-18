@@ -186,7 +186,7 @@ export function App() {
         className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-blue-500 to-indigo-500"
       />
       {/* Language bar */}
-      <div className="flex items-center gap-1 px-3 pt-2 pb-2 border-b border-gray-100 bg-gray-50">
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50">
         <select
           value={sourceLang ?? ''}
           disabled={!langsReady}
@@ -222,6 +222,20 @@ export function App() {
           {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
       </div>
+
+      {/* No-provider guidance */}
+      {settings && settings.providers.length === 0 && (
+        <div className="px-3 py-2 bg-amber-50 border-b border-amber-100 text-xs text-amber-700 flex items-center gap-2">
+          <span className="flex-1">{t('sidepanel.noProvider')}</span>
+          <button
+            type="button"
+            onClick={() => browser.runtime.openOptionsPage()}
+            className="font-medium text-amber-800 hover:underline shrink-0"
+          >
+            {t('sidepanel.settings')}
+          </button>
+        </div>
+      )}
 
       {/* Main content */}
       <div ref={contentRef} className="flex-1 flex flex-col overflow-hidden">
@@ -357,7 +371,12 @@ function HistoryPanel({
 
   if (history.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3">
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <svg className="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+          <path d="M12 7v5l4 2" />
+        </svg>
         <p className="text-sm text-gray-400">{t('sidepanel.noHistory')}</p>
         <button onClick={onBack} className="text-xs text-blue-500 hover:text-blue-600">
           ← {t('sidepanel.backToTranslate')}
@@ -385,10 +404,14 @@ function HistoryPanel({
         >
           <p className="ll-hint truncate">{entry.source}</p>
           <p className="text-sm text-gray-800 truncate mt-0.5">{entry.translated}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] text-gray-300">{entry.provider}</span>
-            <span className="text-[10px] text-gray-300">·</span>
-            <span className="text-[10px] text-gray-300">{new Date(entry.timestamp).toLocaleString()}</span>
+          <div className="flex items-center gap-2 mt-1 min-w-0">
+            {(() => {
+              const lang = SUPPORTED_LANGUAGES.find((l) => l.code === entry.targetLang);
+              return lang ? <span className="ll-badge ll-badge-brand shrink-0">{lang.name}</span> : null;
+            })()}
+            <span className="text-[10px] text-gray-400 shrink-0">{entry.provider}</span>
+            <span className="text-[10px] text-gray-400 shrink-0">·</span>
+            <span className="text-[10px] text-gray-400 truncate">{new Date(entry.timestamp).toLocaleString()}</span>
           </div>
         </div>
       ))}
