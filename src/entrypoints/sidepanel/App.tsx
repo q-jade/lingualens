@@ -4,6 +4,7 @@ import type { AppSettings, TranslateResult, MessageResponse } from '../../shared
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { getTranslatorLanguages, setTranslatorLanguages, subscribeTranslatorLanguages } from '../../shared/translator-languages';
 import { ProviderPicker } from '../../shared/ProviderPicker';
+import { shortcutLabel } from '../../shared/shortcut';
 
 interface HistoryEntry {
   id: number;
@@ -280,7 +281,7 @@ export function App() {
                 >
                   {loading
                     ? t('sidepanel.translating')
-                    : `${t('sidepanel.translate')} ${/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl'}↵`}
+                    : `${t('sidepanel.translate')} ${shortcutLabel('↵')}`}
                 </button>
               </div>
             </div>

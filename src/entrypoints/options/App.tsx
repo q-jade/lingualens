@@ -6,6 +6,7 @@ import { clearOnboardingPending, isOnboardingPending } from '../../shared/onboar
 import { isLlmProvider } from '../../providers/thinking';
 import { AppLogo } from '../../shared/AppLogo';
 import { ProviderIcon } from '../../shared/ProviderIcon';
+import { shortcutLabel } from '../../shared/shortcut';
 import { AVAILABLE_UI_LANGUAGES, setUILanguage, getUILanguage } from '../../shared/i18n';
 
 export function App() {
@@ -659,12 +660,7 @@ export function App() {
                 </span>
               ) : null}
               <button onClick={handleSave} disabled={saving} className="ll-btn-primary ll-btn-lg ml-auto">
-                {saving ? t('options.saving') : t('options.save')}
-                {!saving && (
-                  <kbd className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold leading-none">
-                    {/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl'}S
-                  </kbd>
-                )}
+                {saving ? t('options.saving') : `${t('options.save')} ${shortcutLabel('S')}`}
               </button>
             </div>
           </div>

@@ -4,6 +4,7 @@ import type { AppSettings, TranslateResult, MessageResponse, SelectionTriggerMod
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
 import { ModeIcon } from '../../shared/ModeIcon';
+import { shortcutLabel } from '../../shared/shortcut';
 import { getTranslatorLanguages, updateTranslatorLanguages } from '../../shared/translator-languages';
 import { isTranslatableTabUrl } from '../../shared/translatable-tab';
 import { ProviderPicker } from '../../shared/ProviderPicker';
@@ -174,7 +175,7 @@ export function App() {
       >
         {loading
           ? t('popup.translating')
-          : `${t('popup.translate')} ${/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl'}↵`}
+          : `${t('popup.translate')} ${shortcutLabel('↵')}`}
       </button>
 
       {/* Error */}
