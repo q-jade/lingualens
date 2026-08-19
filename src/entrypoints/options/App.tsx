@@ -53,6 +53,7 @@ export function App() {
 
   useEffect(() => {
     if (showWelcome) {
+      setActiveSection('providers');
       welcomeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [showWelcome]);
@@ -260,31 +261,6 @@ export function App() {
           </div>
         </div>
 
-        {showWelcome && (
-          <div
-            ref={welcomeRef}
-            className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5"
-            role="status"
-          >
-            <h2 className="text-base font-semibold text-blue-900">{t('options.welcomeTitle')}</h2>
-            <p className="mt-2 text-sm text-blue-800/90 leading-relaxed">
-              {t('options.welcomeDesc')}
-            </p>
-            <ol className="mt-3 space-y-1.5 text-sm text-blue-900/90 list-decimal list-inside">
-              <li>{t('options.welcomeStep1')}</li>
-              <li dangerouslySetInnerHTML={{ __html: t('options.welcomeStep2') }} />
-              <li dangerouslySetInnerHTML={{ __html: t('options.welcomeStep3') }} />
-            </ol>
-            <button
-              type="button"
-              onClick={dismissWelcome}
-              className="mt-4 text-sm font-medium text-blue-700 hover:text-blue-900"
-            >
-              {t('options.dismiss')}
-            </button>
-          </div>
-        )}
-
         <div className="lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-8 lg:items-start">
           {/* Section navigation */}
           <nav className="lg:sticky lg:top-8 mb-6 lg:mb-0" aria-label={t('options.settings')}>
@@ -297,8 +273,8 @@ export function App() {
                     type="button"
                     onClick={() => scrollToSection(item.id)}
                     className={`shrink-0 text-left text-sm rounded-lg px-3 py-1.5 whitespace-nowrap lg:whitespace-normal transition-colors ${active
-                        ? 'bg-indigo-50 text-indigo-700 font-medium'
-                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                      ? 'bg-indigo-50 text-indigo-700 font-medium'
+                      : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
                       }`}
                   >
                     {t(item.labelKey)}
@@ -473,6 +449,31 @@ export function App() {
                     </select>
                   )}
                 </Section>
+              )}
+
+              {showWelcome && (
+                <div
+                  ref={welcomeRef}
+                  className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5"
+                  role="status"
+                >
+                  <h2 className="text-base font-semibold text-blue-900">{t('options.welcomeTitle')}</h2>
+                  <p className="mt-2 text-sm text-blue-800/90 leading-relaxed">
+                    {t('options.welcomeDesc')}
+                  </p>
+                  <ol className="mt-3 space-y-1.5 text-sm text-blue-900/90 list-decimal list-inside">
+                    <li>{t('options.welcomeStep1')}</li>
+                    <li dangerouslySetInnerHTML={{ __html: t('options.welcomeStep2') }} />
+                    <li dangerouslySetInnerHTML={{ __html: t('options.welcomeStep3') }} />
+                  </ol>
+                  <button
+                    type="button"
+                    onClick={dismissWelcome}
+                    className="mt-4 text-sm font-medium text-blue-700 hover:text-blue-900"
+                  >
+                    {t('options.dismiss')}
+                  </button>
+                </div>
               )}
 
               {/* Providers */}
