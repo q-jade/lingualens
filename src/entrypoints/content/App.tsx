@@ -612,6 +612,7 @@ export function ContentApp({ onReady }: Props) {
           }}
           className="st-trigger-btn"
           title={t('popup.translate')}
+          aria-label={t('popup.translate')}
         >
           <AppLogo className="st-trigger-icon" />
         </button>
@@ -674,6 +675,7 @@ export function ContentApp({ onReady }: Props) {
                   }}
                   className={`st-panel-close ${modeMenuOpen ? 'st-pin-active' : ''}`}
                   title={t('popup.selectionMode')}
+                  aria-label={t('popup.selectionMode')}
                   aria-haspopup="menu"
                   aria-expanded={modeMenuOpen}
                 >
@@ -688,13 +690,14 @@ export function ContentApp({ onReady }: Props) {
                 onClick={() => setPinned((v) => !v)}
                 className={`st-panel-close ${pinned ? 'st-pin-active' : ''}`}
                 title={pinned ? t('content.unpin') : t('content.pin')}
+                aria-label={pinned ? t('content.unpin') : t('content.pin')}
                 aria-pressed={pinned}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 17v5" /><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
                 </svg>
               </button>
-              <button onClick={() => setMode('hidden')} className="st-panel-close" title={t('content.close')}>
+              <button onClick={() => setMode('hidden')} className="st-panel-close" title={t('content.close')} aria-label={t('content.close')}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                 </svg>
@@ -704,7 +707,7 @@ export function ContentApp({ onReady }: Props) {
           <div className="st-panel-body">
             {loading && (
               <div className="st-loading">
-                <span className="st-dot" /><span className="st-dot" /><span className="st-dot" />
+                <span className="ll-spinner" />
                 <span style={{ marginLeft: 6 }}>{t('content.translating')}</span>
               </div>
             )}
@@ -722,7 +725,7 @@ export function ContentApp({ onReady }: Props) {
           </div>
           {!loading && !error && translation && (
             <div className="st-panel-footer">
-              <button onClick={handleCopy} className="st-copy-btn" title={t('content.copy')}>
+              <button onClick={handleCopy} className="st-copy-btn" title={t('content.copy')} aria-label={t('content.copy')}>
                 {copied ? (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                 ) : (

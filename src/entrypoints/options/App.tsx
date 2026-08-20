@@ -7,6 +7,7 @@ import { isLlmProvider } from '../../providers/thinking';
 import { AppLogo } from '../../shared/AppLogo';
 import { ProviderIcon } from '../../shared/ProviderIcon';
 import { shortcutLabel } from '../../shared/shortcut';
+import { version as EXT_VERSION, repository } from '../../../package.json';
 import { AVAILABLE_UI_LANGUAGES, setUILanguage, getUILanguage } from '../../shared/i18n';
 
 export function App() {
@@ -648,20 +649,37 @@ export function App() {
             </Section>
 
             {/* Save bar — sticky so unsaved changes never get lost off-screen */}
-            <div className="sticky bottom-0 z-10 -mx-6 mt-6 px-6 py-3 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex flex-wrap items-center gap-3">
+            <div className="sticky bottom-0 z-10 -mx-6 mt-6 px-6 py-3 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex items-center gap-3">
               {dirty ? (
-                <span className="text-xs font-medium text-amber-600 flex items-center gap-1.5">
+                <span className="text-xs font-medium text-amber-600 flex items-center gap-1.5 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />
                   {t('options.unsavedChanges')}
                 </span>
               ) : saved ? (
-                <span className="text-xs font-medium text-green-600 flex items-center gap-1">
+                <span className="text-xs font-medium text-green-600 flex items-center gap-1 shrink-0">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5" /></svg>
                   {t('options.saved')}
                 </span>
               ) : null}
-              <button onClick={handleSave} disabled={saving} className="ll-btn-primary ll-btn-lg ml-auto">
-                {saving ? t('options.saving') : `${t('options.save')} ${shortcutLabel('S')}`}
+              <span className="flex-1 text-center text-xs text-gray-400 min-w-0 truncate">
+                LinguaLens v{EXT_VERSION}
+                <span className="mx-1.5 text-gray-300">·</span>
+                <a
+                  href={repository.url.replace(/\.git$/, '')}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-gray-500 hover:text-blue-600"
+                >
+                  GitHub
+                </a>
+              </span>
+              <button onClick={handleSave} disabled={saving} className="ll-btn-primary ll-btn-lg shrink-0">
+                {saving ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="ll-spinner-light" />
+                    {t('options.saving')}
+                  </span>
+                ) : `${t('options.save')} ${shortcutLabel('S')}`}
               </button>
             </div>
           </div>
@@ -699,7 +717,7 @@ function AddProviderMenu({ onAdd }: { onAdd: (type: ProviderConfig['type']) => v
             <button
               key={key}
               onClick={() => { onAdd(key as ProviderConfig['type']); setOpen(false); }}
-              className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors"
             >
               <span className="text-gray-400 shrink-0"><ProviderIcon type={key as ProviderConfig['type']} name={preset.name} size={14} /></span>
               {preset.name}

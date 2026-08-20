@@ -197,8 +197,25 @@ body {
   animation: ll-spin 0.7s linear infinite;
 }
 
+/* Spinner variant for use on brand-colored (gradient) surfaces */
+.ll-spinner-light {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: ll-spin 0.7s linear infinite;
+}
+
 @keyframes ll-spin {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Consistent keyboard-focus indicator for buttons across all surfaces
+   (including the content-script shadow root). */
+button:focus-visible {
+  outline: 2px solid var(--ll-indigo-500);
+  outline-offset: 2px;
 }

@@ -139,6 +139,20 @@ export function App() {
         </button>
       </div>
 
+      {/* No-provider guidance */}
+      {settings && settings.providers.length === 0 && (
+        <div className="mb-2 p-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700 flex items-center gap-2">
+          <span className="flex-1">{t('popup.noProvider')}</span>
+          <button
+            type="button"
+            onClick={() => browser.runtime.openOptionsPage()}
+            className="font-medium text-amber-800 hover:underline shrink-0"
+          >
+            {t('popup.settings')}
+          </button>
+        </div>
+      )}
+
       {/* Target language */}
       <select
         value={targetLang ?? ''}
@@ -173,9 +187,12 @@ export function App() {
         disabled={loading || !text.trim() || targetLang === null}
         className="ll-btn-primary w-full mt-2"
       >
-        {loading
-          ? t('popup.translating')
-          : `${t('popup.translate')} ${shortcutLabel('↵')}`}
+        {loading ? (
+          <span className="flex items-center gap-1.5">
+            <span className="ll-spinner-light" />
+            {t('popup.translating')}
+          </span>
+        ) : `${t('popup.translate')} ${shortcutLabel('↵')}`}
       </button>
 
       {/* Error */}

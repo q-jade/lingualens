@@ -26,7 +26,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
 
   if (collapsed) {
     return (
-      <button onClick={onToggleCollapse} className="st-status-collapsed" title={t('statusBar.expand')}>
+      <button onClick={onToggleCollapse} className="st-status-collapsed" title={t('statusBar.expand')} aria-label={t('statusBar.expand')}>
         <span className="st-status-collapsed-mark">
           <AppLogo className="st-status-collapsed-icon" />
         </span>
@@ -82,7 +82,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
             {t('statusBar.restore')}
           </button>
         )}
-        <button onClick={onToggleCollapse} className="st-status-btn-icon" title={t('statusBar.minimize')}>
+        <button onClick={onToggleCollapse} className="st-status-btn-icon" title={t('statusBar.minimize')} aria-label={t('statusBar.minimize')}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             <path d="M5 12h14" />
           </svg>
