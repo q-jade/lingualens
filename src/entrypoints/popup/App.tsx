@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppSettings, TranslateResult, MessageResponse, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
@@ -49,6 +49,12 @@ export function App() {
   const [copied, setCopied] = useState(false);
   const [pageTranslatePhase, setPageTranslatePhase] = useState<'idle' | 'running' | 'done'>('idle');
   const [pageTranslateSupported, setPageTranslateSupported] = useState(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Focus the input as soon as the popup opens so the user can start typing immediately.
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     browser.runtime.sendMessage({ type: 'GET_SETTINGS' }).then(
@@ -171,6 +177,7 @@ export function App() {
 
       {/* Input */}
       <textarea
+        ref={textareaRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={t('popup.placeholder')}

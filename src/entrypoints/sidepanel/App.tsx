@@ -41,6 +41,11 @@ export function App() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Focus the input as soon as the panel opens so the user can start typing immediately.
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
+
   const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const container = contentRef.current;
