@@ -5,29 +5,22 @@
 @tailwind utilities;
 
 .st-trigger-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   cursor: pointer;
-  background: #ffffff;
-  border: 1px solid var(--ll-gray-200);
-  border-radius: 10px;
-  box-shadow:
-    0 2px 8px rgba(15, 23, 42, 0.14),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
-  padding: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
   line-height: 0;
-  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  /* drop-shadow follows the transparent PNG's silhouette (not a box) */
+  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.39));
+  transition: transform 150ms ease, filter 150ms ease;
   /* Stay above aggressive site overlays (e.g. huggingface right rail). */
   z-index: 2147483647;
 }
 
 .st-trigger-btn:hover {
   transform: scale(1.06);
-  border-color: var(--ll-indigo-500);
-  box-shadow:
-    0 4px 14px rgba(99, 102, 241, 0.25),
-    0 0 0 1px rgba(99, 102, 241, 0.18);
+  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.75)) drop-shadow(0 5px 16px rgba(99, 102, 241, 0.39));
 }
 
 .st-trigger-btn:active {
