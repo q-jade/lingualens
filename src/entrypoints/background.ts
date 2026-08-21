@@ -11,6 +11,30 @@ export default defineBackground(() => {
   registerInstallOnboarding();
   const pageTranslatePhaseByTab = new Map<number, PageTranslatePhase>();
 
+  /**
+   * Context menu items persist across service-worker restarts (and WXT dev-mode
+   * HMR reloads), so `create` with an existing id rejects with "duplicate id".
+   * Remove all first to keep creation idempotent; menu updates below await this
+   * promise so they never race the remove/create cycle.
+   */
+  const contextMenusReady = (async () => {
+    await browser.contextMenus.removeAll();
+    await Promise.all([
+      browser.contextMenus.create({
+        id: 'translate-selection',
+        title: browser.i18n.getMessage('contextMenuTranslateSelection', ['%s']) || 'Translate "%s"',
+        contexts: ['selection'],
+      }),
+      browser.contextMenus.create({
+        id: 'translate-page',
+        title: browser.i18n.getMessage('contextMenuTranslatePage') || 'Translate This Page',
+        contexts: ['page'],
+      }),
+    ]);
+  })().catch((err) => {
+    console.warn('[LinguaLens] Failed to create context menus', err);
+  });
+
   function rememberPageTranslatePhase(tabId: number, phase: PageTranslatePhase): void {
     if (isPageTranslateStarted(phase)) pageTranslatePhaseByTab.set(tabId, phase);
     else pageTranslatePhaseByTab.delete(tabId);
@@ -27,6 +51,7 @@ export default defineBackground(() => {
 
   async function applyPageContextMenu(tabId: number, phase: PageTranslatePhase): Promise<void> {
     try {
+      await contextMenusReady;
       const tab = await browser.tabs.get(tabId);
       if (!isTranslatableTabUrl(tab.url)) {
         await browser.contextMenus.update('translate-page', { enabled: false });
@@ -260,18 +285,6 @@ export default defineBackground(() => {
         break;
       }
     }
-  });
-
-  browser.contextMenus.create({
-    id: 'translate-selection',
-    title: browser.i18n.getMessage('contextMenuTranslateSelection', ['%s']) || 'Translate "%s"',
-    contexts: ['selection'],
-  });
-
-  browser.contextMenus.create({
-    id: 'translate-page',
-    title: browser.i18n.getMessage('contextMenuTranslatePage') || 'Translate This Page',
-    contexts: ['page'],
   });
 
   browser.tabs.onActivated.addListener(({ tabId }) => {
