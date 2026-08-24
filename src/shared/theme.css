@@ -38,8 +38,12 @@
   /* Semantic */
   --ll-success: #16a34a;
   --ll-success-bg: #f0fdf4;
+  --ll-success-border: #86efac;
+  --ll-success-bg-hover: #dcfce7;
   --ll-warn: #b45309;
   --ll-warn-bg: #fffbeb;
+  --ll-warn-border: #fcd34d;
+  --ll-warn-bg-hover: #fef3c7;
   --ll-danger: #dc2626;
   --ll-danger-bg: #fef2f2;
 
@@ -181,6 +185,32 @@ body {
   background: var(--ll-warn-bg);
 }
 
+/*
+ * Semantic surfaces — inline alerts and state buttons. Color, background and
+ * border come from tokens; pair with layout utilities for padding and radius.
+ * Hover variants exist for interactive warn/success states.
+ */
+.ll-error {
+  color: var(--ll-danger);
+  background: var(--ll-danger-bg);
+}
+.ll-warn {
+  color: var(--ll-warn);
+  background: var(--ll-warn-bg);
+  border-color: var(--ll-warn-border);
+}
+.ll-warn:hover {
+  background: var(--ll-warn-bg-hover);
+}
+.ll-success {
+  color: var(--ll-success);
+  background: var(--ll-success-bg);
+  border-color: var(--ll-success-border);
+}
+.ll-success:hover {
+  background: var(--ll-success-bg-hover);
+}
+
 /* Small muted helper text */
 .ll-hint {
   font-size: 12px;
@@ -218,4 +248,22 @@ body {
 button:focus-visible {
   outline: 2px solid var(--ll-indigo-500);
   outline-offset: 2px;
+}
+
+/*
+ * Reduced motion — respect the OS accessibility preference on every surface
+ * (popup / sidepanel / options / content shadow root; never leaks to host
+ * pages since content styles live in the shadow root). Animations and
+ * transitions collapse to near-instant; the spinner settles on the static
+ * ring instead of rotating.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -305,7 +305,7 @@ export function App() {
 
             {/* Translation result */}
             <div className="flex flex-col min-h-0" style={{ flex: `${1 - splitRatio} 1 0%` }}>
-              {error && <div className="px-4 py-3 text-sm text-red-500 bg-red-50">{error}</div>}
+              {error && <div className="ll-error px-4 py-3 text-sm">{error}</div>}
               {!error && (
                 <div className="flex-1 overflow-y-auto px-4 py-3 bg-gray-50/60">
                   {loading ? (

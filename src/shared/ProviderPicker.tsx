@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppSettings } from './types';
+import { ProviderIcon } from './ProviderIcon';
 
 export function ProviderPicker({
   settings,
@@ -44,6 +45,14 @@ export function ProviderPicker({
         onClick={() => setOpen((v) => !v)}
         className={`flex min-w-0 items-center gap-1 text-left text-[11px] text-gray-400 hover:text-blue-500 disabled:cursor-default disabled:hover:text-gray-400 ${triggerClassName}`}
       >
+        {currentProvider && (
+          <ProviderIcon
+            type={currentProvider.type}
+            name={currentProvider.name}
+            size={14}
+            className="shrink-0"
+          />
+        )}
         <span className="truncate">{currentProvider?.name ?? '-'}</span>
         {providers.length > 0 && (
           <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -63,13 +72,20 @@ export function ProviderPicker({
                   setOpen(false);
                   if (!active) onChange(provider.id);
                 }}
-                className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm ${active
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm ${active
                   ? 'bg-blue-50 text-blue-600'
                   : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
                   }`}
               >
-                <span className="truncate">{provider.name}</span>
-                {active && <span className="text-xs">✓</span>}
+                <span className="flex w-3.5 shrink-0 items-center justify-center">
+                  <ProviderIcon
+                    type={provider.type}
+                    name={provider.name}
+                    size={14}
+                  />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-left">{provider.name}</span>
+                {active && <span className="shrink-0 text-xs">✓</span>}
               </button>
             );
           })}

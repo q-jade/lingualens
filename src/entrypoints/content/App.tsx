@@ -5,6 +5,7 @@ import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '.
 import { StatusBar } from '../../content/page-translator/StatusBar';
 import { AppLogo } from '../../shared/AppLogo';
 import { ModeIcon } from '../../shared/ModeIcon';
+import { ProviderIcon } from '../../shared/ProviderIcon';
 import { computeTriggerPosition } from '../../content/trigger-position';
 import {
   isPageTranslateStarted,
@@ -117,6 +118,10 @@ export function ContentApp({ onReady }: Props) {
   const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const modeTriggerRef = useRef<HTMLButtonElement>(null);
+  const [providerMenuOpen, setProviderMenuOpen] = useState(false);
+  const [providerMenuPosition, setProviderMenuPosition] = useState<{ left: number; top: number } | null>(null);
+  const providerMenuRef = useRef<HTMLDivElement>(null);
+  const providerTriggerRef = useRef<HTMLButtonElement>(null);
 
   const computeMenuPosition = () => {
     const btn = modeTriggerRef.current;
@@ -147,6 +152,36 @@ export function ContentApp({ onReady }: Props) {
     if (!modeMenuOpen) return;
     const pos = computeMenuPosition();
     if (pos) setMenuPosition(pos);
+  };
+
+  const computeProviderMenuPosition = () => {
+    const btn = providerTriggerRef.current;
+    if (!btn) return null;
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = 220;
+    let left = rect.left;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = window.innerWidth - menuWidth - 8;
+    }
+    if (left < 8) left = 8;
+    return { left, top: rect.bottom + 4 };
+  };
+
+  const openProviderMenu = () => {
+    const pos = computeProviderMenuPosition();
+    if (pos) setProviderMenuPosition(pos);
+    setProviderMenuOpen(true);
+  };
+
+  const closeProviderMenu = () => {
+    setProviderMenuOpen(false);
+    setProviderMenuPosition(null);
+  };
+
+  const repositionProviderMenu = () => {
+    if (!providerMenuOpen) return;
+    const pos = computeProviderMenuPosition();
+    if (pos) setProviderMenuPosition(pos);
   };
 
   const selectTriggerMode = (m: SelectionTriggerMode) => {
@@ -325,10 +360,11 @@ export function ContentApp({ onReady }: Props) {
         clampPanelPosition(prev, getViewport(), readPanelSize(panelRef.current)),
       );
       repositionModeMenu();
+      repositionProviderMenu();
     };
     window.addEventListener('resize', sync);
     return () => window.removeEventListener('resize', sync);
-  }, [mode, modeMenuOpen]);
+  }, [mode, modeMenuOpen, providerMenuOpen]);
 
   // Focus management: move focus into the panel on open (so Escape works and
   // keyboard users land inside it), restore the previous focus on close.
@@ -351,6 +387,7 @@ export function ContentApp({ onReady }: Props) {
       setPinned(false);
       setPinnedTrigger(null);
       closeModeMenu();
+      closeProviderMenu();
     }
   }, [mode]);
 
@@ -377,6 +414,30 @@ export function ContentApp({ onReady }: Props) {
       window.removeEventListener('blur', onWindowBlur);
     };
   }, [modeMenuOpen]);
+
+  // Close the provider menu on outside click or window blur
+  useEffect(() => {
+    if (!providerMenuOpen) return;
+
+    const onOutsideClick = (e: MouseEvent) => {
+      const path = e.composedPath();
+      // Don't close if the click is on the toggle button (onClick will handle it)
+      if (providerTriggerRef.current && path.includes(providerTriggerRef.current)) return;
+      if (providerMenuRef.current && !path.includes(providerMenuRef.current)) {
+        closeProviderMenu();
+      }
+    };
+
+    const onWindowBlur = () => closeProviderMenu();
+
+    document.addEventListener('mousedown', onOutsideClick, true);
+    window.addEventListener('blur', onWindowBlur);
+
+    return () => {
+      document.removeEventListener('mousedown', onOutsideClick, true);
+      window.removeEventListener('blur', onWindowBlur);
+    };
+  }, [providerMenuOpen]);
 
   const openPanelAt = (panelAnchor: { x: number; y: number }) => {
     pendingAnchorRef.current = panelAnchor;
@@ -420,7 +481,7 @@ export function ContentApp({ onReady }: Props) {
   };
 
   const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close, .st-provider-select, .st-mode-picker')) return;
+    if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close, .st-provider-trigger, .st-mode-picker')) return;
     event.preventDefault();
     const rect = panelRef.current?.getBoundingClientRect();
     const origin = rect
@@ -575,6 +636,8 @@ export function ContentApp({ onReady }: Props) {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const currentProvider = (settings?.providers ?? []).find((p) => p.id === settings?.defaultProvider);
+
   return (
     <>
       {/* Page translation status bar */}
@@ -625,6 +688,11 @@ export function ContentApp({ onReady }: Props) {
           tabIndex={-1}
           onKeyDown={(e) => {
             if (e.key !== 'Escape') return;
+            if (providerMenuOpen) {
+              e.stopPropagation();
+              closeProviderMenu();
+              return;
+            }
             if (modeMenuOpen) {
               e.stopPropagation();
               closeModeMenu();
@@ -651,16 +719,39 @@ export function ContentApp({ onReady }: Props) {
             onMouseDown={handlePanelHeaderMouseDown}
           >
             <AppLogo className="st-header-logo" />
-            <select
-              className="st-provider-select"
-              value={settings?.defaultProvider ?? ''}
-              onChange={(e) => switchProvider(e.target.value)}
-            >
-              {(settings?.providers ?? []).map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-              {!settings && <option value="">—</option>}
-            </select>
+            <div className="st-provider-picker">
+              <button
+                ref={providerTriggerRef}
+                type="button"
+                onClick={() => {
+                  if (providerMenuOpen) {
+                    closeProviderMenu();
+                  } else {
+                    openProviderMenu();
+                  }
+                }}
+                className="st-provider-trigger"
+                title={t('options.providers')}
+                aria-label={t('options.providers')}
+                aria-haspopup="menu"
+                aria-expanded={providerMenuOpen}
+              >
+                {currentProvider && (
+                  <ProviderIcon
+                    type={currentProvider.type}
+                    name={currentProvider.name}
+                    size={14}
+                    className="st-provider-trigger-icon"
+                  />
+                )}
+                <span className="st-provider-name">{currentProvider?.name ?? '—'}</span>
+                {/* Same geometry as the .ll-select chevron (m6 9 6 6 6-6, stroke-width 2);
+                    currentColor instead of the baked-in gray so it works on the gradient header. */}
+                <svg className="st-provider-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+            </div>
             <div className="st-header-actions">
               <div className="st-mode-picker">
                 <button
@@ -769,6 +860,43 @@ export function ContentApp({ onReady }: Props) {
               >
                 <span className="st-mode-icon"><ModeIcon mode={m} size={14} /></span>
                 <span className="st-mode-label">{t(labelKey)}</span>
+                {active && <span className="st-mode-check">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Provider menu rendered outside the panel to avoid overflow: hidden clipping */}
+      {mode === 'panel' && providerMenuOpen && providerMenuPosition && (
+        <div
+          ref={providerMenuRef}
+          className="st-mode-menu st-provider-menu"
+          role="menu"
+          style={{
+            position: 'fixed',
+            left: providerMenuPosition.left,
+            top: providerMenuPosition.top,
+            zIndex: 2147483647,
+            pointerEvents: 'auto',
+          }}
+        >
+          {(settings?.providers ?? []).map((p) => {
+            const active = p.id === settings?.defaultProvider;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                className={`st-mode-option ${active ? 'st-mode-active' : ''}`}
+                onClick={() => {
+                  closeProviderMenu();
+                  void switchProvider(p.id);
+                }}
+              >
+                <span className="st-mode-icon"><ProviderIcon type={p.type} name={p.name} size={14} /></span>
+                <span className="st-mode-label">{p.name}</span>
                 {active && <span className="st-mode-check">✓</span>}
               </button>
             );

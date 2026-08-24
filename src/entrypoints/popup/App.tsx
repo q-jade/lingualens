@@ -204,7 +204,7 @@ export function App() {
 
       {/* Error */}
       {error && (
-        <div className="mt-2 p-2 bg-red-50 text-red-600 text-xs rounded-lg">{error}</div>
+        <div className="ll-error mt-2 p-2 text-xs rounded-lg">{error}</div>
       )}
 
       {/* Result */}
@@ -260,14 +260,14 @@ export function App() {
         }}
         disabled={!pageTranslateSupported}
         title={!pageTranslateSupported ? t('popup.pageTranslateUnavailable') : undefined}
-        className={`w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
+        className={`w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border
                    ${!pageTranslateSupported
-            ? 'border border-gray-200 text-gray-400 opacity-50 cursor-not-allowed'
+            ? 'border-gray-200 text-gray-400 opacity-50 cursor-not-allowed'
             : pageTranslatePhase === 'running'
-              ? 'border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100'
+              ? 'll-warn'
               : pageTranslatePhase === 'done'
-                ? 'border border-green-300 text-green-700 bg-green-50 hover:bg-green-100'
-                : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                ? 'll-success'
+                : 'border-gray-200 text-gray-700 hover:bg-gray-50'
           }`}
       >
         {!pageTranslateSupported
