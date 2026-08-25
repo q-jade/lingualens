@@ -1,4 +1,5 @@
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useId } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppSettings, MessageResponse, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
@@ -6,6 +7,7 @@ import { StatusBar } from '../../content/page-translator/StatusBar';
 import { AppLogo } from '../../shared/AppLogo';
 import { ModeIcon } from '../../shared/ModeIcon';
 import { ProviderIcon } from '../../shared/ProviderIcon';
+import { CopyButton } from '../../shared/CopyButton';
 import { computeTriggerPosition } from '../../content/trigger-position';
 import {
   isPageTranslateStarted,
@@ -28,6 +30,19 @@ function notifyPageTranslatePhase(phase: PageTranslatePhase) {
 function phaseAfterPageTranslateEnds(progress: TranslateProgress | null): PageTranslatePhase {
   if (!progress) return 'idle';
   return (progress.done > 0 || progress.errors > 0) ? 'done' : 'idle';
+}
+
+/**
+ * The content UI lives in a shadow root: `document.activeElement` returns the
+ * shadow host (the lingua-lens element) instead of the focused element inside
+ * the shadow tree. Descend through nested shadow roots to find the real one.
+ */
+function getDeepActiveElement(): Element | null {
+  let el: Element | null = document.activeElement;
+  while (el?.shadowRoot?.activeElement) {
+    el = el.shadowRoot.activeElement;
+  }
+  return el;
 }
 
 export interface ContentAppHandle {
@@ -109,19 +124,20 @@ export function ContentApp({ onReady }: Props) {
   const [translation, setTranslation] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [pinned, setPinned] = useState(false);
   // When the panel is pinned, a new selection shows this floating trigger
   // (instead of replacing the panel) so the user can translate into it.
   const [pinnedTrigger, setPinnedTrigger] = useState<{ x: number; y: number } | null>(null);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
+  const [modeMenuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const modeTriggerRef = useRef<HTMLButtonElement>(null);
   const [providerMenuOpen, setProviderMenuOpen] = useState(false);
   const [providerMenuPosition, setProviderMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const providerMenuRef = useRef<HTMLDivElement>(null);
   const providerTriggerRef = useRef<HTMLButtonElement>(null);
+  const modeMenuId = useId();
+  const providerMenuId = useId();
 
   const computeMenuPosition = () => {
     const btn = modeTriggerRef.current;
@@ -184,8 +200,40 @@ export function ContentApp({ onReady }: Props) {
     if (pos) setProviderMenuPosition(pos);
   };
 
+  /**
+   * Shared keyboard handling for the panel's floating menus: Escape closes and
+   * returns focus to the trigger, Tab closes (focus stays with the trigger),
+   * ArrowDown/Up and Home/End move between items.
+   */
+  const handleFloatingMenuKeyDown = (
+    e: ReactKeyboardEvent<HTMLDivElement>,
+    menuRef: RefObject<HTMLDivElement | null>,
+    close: () => void,
+    triggerRef: RefObject<HTMLButtonElement | null>,
+  ) => {
+    if (e.key === 'Escape' || e.key === 'Tab') {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+      triggerRef.current?.focus();
+      return;
+    }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') return;
+    e.preventDefault();
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? []);
+    if (items.length === 0) return;
+    const idx = items.indexOf(getDeepActiveElement() as HTMLButtonElement);
+    let next = 0;
+    if (e.key === 'ArrowDown') next = idx < 0 ? 0 : (idx + 1) % items.length;
+    else if (e.key === 'ArrowUp') next = idx < 0 ? items.length - 1 : (idx - 1 + items.length) % items.length;
+    else if (e.key === 'Home') next = 0;
+    else next = items.length - 1;
+    items[next].focus({ preventScroll: true });
+  };
+
   const selectTriggerMode = (m: SelectionTriggerMode) => {
     closeModeMenu();
+    modeTriggerRef.current?.focus();
     if (selectionTriggerModeRef.current === m) return;
     selectionTriggerModeRef.current = m;
     setSettings((s) => (s ? { ...s, selectionTriggerMode: m } : s));
@@ -265,6 +313,9 @@ export function ContentApp({ onReady }: Props) {
   const finishPageTranslateSession = (progress: TranslateProgress | null) => {
     const phase = phaseAfterPageTranslateEnds(progress);
     if (phase === 'idle') setPageProgress(null);
+    if (phase === 'done' && progress && progress.done > 0) {
+      showToast(t('content.pageTranslated'));
+    }
     applyPageTranslatePhase(phase);
   };
 
@@ -439,6 +490,24 @@ export function ContentApp({ onReady }: Props) {
     };
   }, [providerMenuOpen]);
 
+  // Focus the active item when a floating menu opens so keyboard users can
+  // navigate it immediately.
+  useEffect(() => {
+    if (!modeMenuOpen) return;
+    const items = modeMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]');
+    if (!items?.length) return;
+    const active = Array.from(items).find((el) => el.getAttribute('aria-checked') === 'true');
+    (active ?? items[0]).focus({ preventScroll: true });
+  }, [modeMenuOpen]);
+
+  useEffect(() => {
+    if (!providerMenuOpen) return;
+    const items = providerMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]');
+    if (!items?.length) return;
+    const active = Array.from(items).find((el) => el.getAttribute('aria-checked') === 'true');
+    (active ?? items[0]).focus({ preventScroll: true });
+  }, [providerMenuOpen]);
+
   const openPanelAt = (panelAnchor: { x: number; y: number }) => {
     pendingAnchorRef.current = panelAnchor;
     setMode('panel');
@@ -572,7 +641,6 @@ export function ContentApp({ onReady }: Props) {
         setMode('trigger');
         setTranslation('');
         setError(null);
-        setCopied(false);
       },
       translateNow(text) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
@@ -588,7 +656,6 @@ export function ContentApp({ onReady }: Props) {
         selectedTextRef.current = t;
         setTranslation('');
         setError(null);
-        setCopied(false);
         // Pinned panel stays in place: translate the new selection into it.
         if (pinnedRef.current && modeRef.current === 'panel') {
           setPinnedTrigger(null);
@@ -630,12 +697,6 @@ export function ContentApp({ onReady }: Props) {
     });
   }, [onReady, startPageTranslation]);
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(translation);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
   const currentProvider = (settings?.providers ?? []).find((p) => p.id === settings?.defaultProvider);
 
   return (
@@ -660,7 +721,6 @@ export function ContentApp({ onReady }: Props) {
               // Panel is already open and pinned in place: translate the new
               // selection into it without moving the panel.
               setPinnedTrigger(null);
-              setCopied(false);
               void doTranslate();
             } else {
               void runSelectionTranslate(anchor);
@@ -730,11 +790,24 @@ export function ContentApp({ onReady }: Props) {
                     openProviderMenu();
                   }
                 }}
+                onKeyDown={(e) => {
+                  // Match ProviderPicker: ↑/↓ opens the menu directly (Enter/Space
+                  // already work via native button activation).
+                  if (
+                    (e.key === 'ArrowDown' || e.key === 'ArrowUp') &&
+                    !providerMenuOpen &&
+                    (settings?.providers.length ?? 0) > 0
+                  ) {
+                    e.preventDefault();
+                    openProviderMenu();
+                  }
+                }}
                 className="st-provider-trigger"
                 title={t('options.providers')}
                 aria-label={t('options.providers')}
                 aria-haspopup="menu"
                 aria-expanded={providerMenuOpen}
+                aria-controls={providerMenuId}
               >
                 {currentProvider && (
                   <ProviderIcon
@@ -764,11 +837,19 @@ export function ContentApp({ onReady }: Props) {
                       openModeMenu();
                     }
                   }}
+                  onKeyDown={(e) => {
+                    // Match ProviderPicker: ↑/↓ opens the menu directly.
+                    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !modeMenuOpen) {
+                      e.preventDefault();
+                      openModeMenu();
+                    }
+                  }}
                   className={`st-panel-close ${modeMenuOpen ? 'st-pin-active' : ''}`}
                   title={t('popup.selectionMode')}
                   aria-label={t('popup.selectionMode')}
                   aria-haspopup="menu"
                   aria-expanded={modeMenuOpen}
+                  aria-controls={modeMenuId}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" /><line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" /><line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" /><line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" />
@@ -816,28 +897,24 @@ export function ContentApp({ onReady }: Props) {
           </div>
           {!loading && !error && translation && (
             <div className="st-panel-footer">
-              <button onClick={handleCopy} className="st-copy-btn" title={t('content.copy')} aria-label={t('content.copy')}>
-                {copied ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                )}
-              </button>
+              <CopyButton text={translation} label={t('content.copy')} variant="icon" />
             </div>
           )}
         </div>
       )}
 
       {/* Mode menu rendered outside the panel to avoid overflow: hidden clipping */}
-      {mode === 'panel' && modeMenuOpen && menuPosition && (
+      {mode === 'panel' && modeMenuOpen && modeMenuPosition && (
         <div
           ref={modeMenuRef}
+          id={modeMenuId}
           className="st-mode-menu"
           role="menu"
+          onKeyDown={(e) => handleFloatingMenuKeyDown(e, modeMenuRef, closeModeMenu, modeTriggerRef)}
           style={{
             position: 'fixed',
-            left: menuPosition.left,
-            top: menuPosition.top,
+            left: modeMenuPosition.left,
+            top: modeMenuPosition.top,
             zIndex: 2147483647,
             pointerEvents: 'auto',
           }}
@@ -855,6 +932,7 @@ export function ContentApp({ onReady }: Props) {
                 type="button"
                 role="menuitemradio"
                 aria-checked={active}
+                tabIndex={-1}
                 className={`st-mode-option ${active ? 'st-mode-active' : ''}`}
                 onClick={() => selectTriggerMode(m)}
               >
@@ -871,8 +949,10 @@ export function ContentApp({ onReady }: Props) {
       {mode === 'panel' && providerMenuOpen && providerMenuPosition && (
         <div
           ref={providerMenuRef}
+          id={providerMenuId}
           className="st-mode-menu st-provider-menu"
           role="menu"
+          onKeyDown={(e) => handleFloatingMenuKeyDown(e, providerMenuRef, closeProviderMenu, providerTriggerRef)}
           style={{
             position: 'fixed',
             left: providerMenuPosition.left,
@@ -889,9 +969,11 @@ export function ContentApp({ onReady }: Props) {
                 type="button"
                 role="menuitemradio"
                 aria-checked={active}
+                tabIndex={-1}
                 className={`st-mode-option ${active ? 'st-mode-active' : ''}`}
                 onClick={() => {
                   closeProviderMenu();
+                  providerTriggerRef.current?.focus();
                   void switchProvider(p.id);
                 }}
               >

@@ -112,6 +112,7 @@
     "translationFailed": "翻譯失敗",
     "noProvider": "未設定可用的翻譯提供者。請開啟設定新增一個。",
     "copy": "複製翻譯",
+    "pageTranslated": "頁面翻譯完成",
     "modeSwitchedIcon": "觸發圖示模式",
     "modeSwitchedInstant": "即時翻譯模式",
     "modeSwitchedModifier": "按鍵觸發模式 ({{key}})",

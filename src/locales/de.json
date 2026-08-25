@@ -112,6 +112,7 @@
     "translationFailed": "Übersetzung fehlgeschlagen",
     "noProvider": "Kein aktiver Anbieter konfiguriert. Öffnen Sie die Einstellungen, um einen hinzuzufügen.",
     "copy": "Übersetzung kopieren",
+    "pageTranslated": "Seitenübersetzung abgeschlossen",
     "modeSwitchedIcon": "Auslösesymbol-Modus",
     "modeSwitchedInstant": "Sofortmodus",
     "modeSwitchedModifier": "Modifikatortaste-Modus ({{key}})",

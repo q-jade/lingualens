@@ -112,6 +112,7 @@
     "translationFailed": "Translation failed",
     "noProvider": "No active provider configured. Open Settings to add one.",
     "copy": "Copy translation",
+    "pageTranslated": "Page translation finished",
     "modeSwitchedIcon": "Trigger icon mode",
     "modeSwitchedInstant": "Instant mode",
     "modeSwitchedModifier": "Modifier key mode ({{key}})",

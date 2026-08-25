@@ -126,14 +126,6 @@
   background-color: #ffffff;
 }
 
-.st-copy-btn {
-  @apply flex items-center justify-center w-[28px] h-[28px]
-         text-gray-400 hover:text-blue-500 cursor-pointer rounded transition-colors;
-  border: none;
-  background: none;
-  padding: 0;
-}
-
 /*
  * Provider picker in the panel header — custom button + menu (a native
  * <select> cannot render brand icons inside its options). The menu reuses

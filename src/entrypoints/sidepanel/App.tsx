@@ -4,6 +4,7 @@ import type { AppSettings, TranslateResult, MessageResponse } from '../../shared
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { getTranslatorLanguages, setTranslatorLanguages, subscribeTranslatorLanguages } from '../../shared/translator-languages';
 import { ProviderPicker } from '../../shared/ProviderPicker';
+import { CopyButton } from '../../shared/CopyButton';
 import { shortcutLabel } from '../../shared/shortcut';
 
 interface HistoryEntry {
@@ -36,7 +37,6 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -271,7 +271,6 @@ export function App() {
                         setSourceText('');
                         setTranslation('');
                         setError(null);
-                        setCopied(false);
                         textareaRef.current?.focus();
                       }}
                       className="text-[10px] text-gray-400 hover:text-red-400 transition-colors"
@@ -321,17 +320,12 @@ export function App() {
                 </div>
               )}
               {translation && !loading && (
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(translation).then(() => {
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 1500);
-                    }).catch(() => { });
-                  }}
-                  className={`self-start mt-1 mb-2 px-4 text-xs ${copied ? 'text-green-500' : 'text-blue-500 hover:text-blue-600'}`}
-                >
-                  {copied ? '✓' : t('sidepanel.copy')}
-                </button>
+                <CopyButton
+                  key={translation}
+                  text={translation}
+                  label={t('sidepanel.copy')}
+                  className="self-start mt-1 mb-2 px-4"
+                />
               )}
             </div>
           </>

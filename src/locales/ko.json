@@ -112,6 +112,7 @@
     "translationFailed": "번역 실패",
     "noProvider": "활성화된 공급자가 없습니다. 설정을 열어 추가하세요.",
     "copy": "번역 복사",
+    "pageTranslated": "페이지 번역 완료",
     "modeSwitchedIcon": "트리거 아이콘 모드",
     "modeSwitchedInstant": "즉시 번역 모드",
     "modeSwitchedModifier": "보조 키 모드 ({{key}})",

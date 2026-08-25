@@ -112,6 +112,7 @@
     "translationFailed": "Ошибка перевода",
     "noProvider": "Нет активного провайдера. Откройте настройки, чтобы добавить.",
     "copy": "Копировать перевод",
+    "pageTranslated": "Перевод страницы завершён",
     "modeSwitchedIcon": "Режим значка-триггера",
     "modeSwitchedInstant": "Мгновенный режим",
     "modeSwitchedModifier": "Режим клавиши-модификатора ({{key}})",

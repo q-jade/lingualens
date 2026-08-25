@@ -8,6 +8,7 @@ import { shortcutLabel } from '../../shared/shortcut';
 import { getTranslatorLanguages, updateTranslatorLanguages } from '../../shared/translator-languages';
 import { isTranslatableTabUrl } from '../../shared/translatable-tab';
 import { ProviderPicker } from '../../shared/ProviderPicker';
+import { CopyButton } from '../../shared/CopyButton';
 
 async function openExtensionSidePanel(): Promise<string | null> {
   type ChromeSidePanel = {
@@ -46,7 +47,6 @@ export function App() {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [pageTranslatePhase, setPageTranslatePhase] = useState<'idle' | 'running' | 'done'>('idle');
   const [pageTranslateSupported, setPageTranslateSupported] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -137,8 +137,7 @@ export function App() {
             window.close();
           }}
           className="shrink-0 px-2 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide
-                     border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100
-                     focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                     border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
           title={t('popup.sidePanelTitle')}
         >
           {t('popup.sidePanel')}
@@ -211,17 +210,7 @@ export function App() {
       {result && (
         <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200/70">
           <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{result}</p>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(result).then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              }).catch(() => { });
-            }}
-            className={`mt-1 text-xs ${copied ? 'text-green-500' : 'text-blue-500 hover:text-blue-600'}`}
-          >
-            {copied ? '✓' : t('popup.copy')}
-          </button>
+          <CopyButton key={result} text={result} label={t('popup.copy')} className="mt-1" />
         </div>
       )}
 

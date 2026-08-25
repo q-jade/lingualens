@@ -112,6 +112,7 @@
     "translationFailed": "Échec de la traduction",
     "noProvider": "Aucun fournisseur actif configuré. Ouvrez les paramètres pour en ajouter un.",
     "copy": "Copier la traduction",
+    "pageTranslated": "Traduction de la page terminée",
     "modeSwitchedIcon": "Mode icône de déclenchement",
     "modeSwitchedInstant": "Mode instantané",
     "modeSwitchedModifier": "Mode touche modificatrice ({{key}})",

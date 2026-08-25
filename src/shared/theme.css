@@ -186,6 +186,48 @@ body {
 }
 
 /*
+ * Unified copy action (CopyButton) — 'text' variant = icon + label,
+ * 'icon' variant = icon-only. Flips to a green check via .ll-copied on success.
+ */
+.ll-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ll-blue-500);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.ll-copy:hover {
+  color: var(--ll-blue-600);
+}
+.ll-copy-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--ll-gray-400);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.ll-copy-icon:hover {
+  color: var(--ll-blue-500);
+}
+.ll-copy.ll-copied,
+.ll-copy-icon.ll-copied {
+  color: var(--ll-success);
+}
+
+/*
  * Semantic surfaces — inline alerts and state buttons. Color, background and
  * border come from tokens; pair with layout utilities for padding and radius.
  * Hover variants exist for interactive warn/success states.

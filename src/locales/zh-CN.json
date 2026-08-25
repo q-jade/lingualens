@@ -112,6 +112,7 @@
     "translationFailed": "翻译失败",
     "noProvider": "未配置可用的翻译提供者。请打开设置添加一个。",
     "copy": "复制翻译",
+    "pageTranslated": "页面翻译完成",
     "modeSwitchedIcon": "触发图标模式",
     "modeSwitchedInstant": "即时翻译模式",
     "modeSwitchedModifier": "按键触发模式 ({{key}})",
