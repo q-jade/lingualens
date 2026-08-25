@@ -2,28 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.6.0] - 2026-08-25
 
 ### Added
 
-- Options page: sidebar section navigation with scroll-spy highlighting, sticky save bar with an "unsaved changes" indicator, `Ctrl/Cmd+S` to save, and a before-unload guard that warns when closing the tab with unsaved changes.
-- Options page: provider cards now show a provider-type icon chip and an enabled/disabled status dot; the save button displays its `Ctrl/Cmd+S` shortcut.
-- Provider icons: the DeepSeek preset shows a whale brand mark (provider-icon override by name).
-- Sidepanel: an amber "no provider configured" banner linking to settings, language badges on history entries, and an icon for the empty-history state.
-- Content overlay: the floating selection trigger is now a proper button (white rounded surface with border and hover shadow), and the page-translation status bar gets a brand gradient top edge.
-- Popup: an amber "no active provider" banner linking to Settings appears when no provider is configured.
-- Options page: the sticky save bar now shows the extension version and a GitHub repository link in its spare space (no separate footer).
+- Shared design system with brand tokens and reusable input, select, button, badge, and spinner classes, used across popup, sidepanel, options, and the page overlay.
+- Options page: sidebar navigation with scroll-spy, sticky save bar with unsaved-changes guard and `Ctrl/Cmd+S` shortcut.
+- Brand icons for OpenAI, Ollama, LM Studio, DeepL, and Google Translate in provider pickers, menus, and options cards.
+- "No provider configured" banners in popup and sidepanel linking to Settings.
+- Auto-focused translation inputs in popup and sidepanel, and a page-translation completion toast.
+- `prefers-reduced-motion` support.
 
 ### Changed
 
-- Loading states: the primary translate/save buttons in popup, sidepanel, and options now show a spinner while busy (new `.ll-spinner-light` variant for brand-colored buttons); the floating selection panel replaced its bouncing-dot animation with the shared `.ll-spinner`.
-- Accessibility: icon-only buttons across popup, sidepanel, options, and the content overlay gained `aria-label`s; all buttons now share a consistent `focus-visible` outline ring; the sidepanel translation placeholder was brightened from `gray-300` to `gray-400`.
+- Popup, sidepanel, and options restyled: brand accent bars, custom-styled selects, primary gradient buttons, and unified spinners and keyboard-shortcut labels.
+- Selection trigger and collapsed status-bar icons share layered depth and an indigo hover glow.
+- Provider pickers rebuilt with brand icons, full keyboard navigation, and ARIA menu roles (selection-panel provider and mode menus included).
+- Unified copy button (icon + label, or icon-only in the selection panel) with green check feedback.
+- Semantic state colors (error/warn/success) consolidated into design tokens.
 
-- Introduced a shared design system (`src/shared/theme.css`): unified brand/neutral/semantic color tokens, font stack, focus rings, and reusable `.input` / `.ll-select` / `.ll-btn-primary` / `.ll-badge` / `.ll-hint` / `.ll-spinner` component classes now used across popup, sidepanel, options, and content stylesheets.
-- Popup: added a brand accent bar, custom-styled language select with chevron, shared field styling for the textarea, primary button class, and replaced emoji selection-mode icons with SVG icons (indigo active states).
-- Sidepanel: added a brand accent bar, custom-styled language selects, a spinner loading indicator, and a subtle container background for the translation result pane.
-- Options: gradient brand title, custom-styled selects, explicit input widths, unified save button styling, and new `ProviderIcon` set for provider types.
-- Content overlay: selection-mode menu now uses the shared SVG mode icons instead of emoji; panel header gradients and shadows now consume design-system tokens.
+### Fixed
+
+- Context menus are created idempotently, avoiding duplicate-ID errors after the background service worker restarts.
 
 ## [0.5.2] - 2026-07-31
 
