@@ -25,7 +25,7 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 | **Chrome / Edge** (Chromium 114+) | Primary target. Side panel requires Chromium 114+. |
 | **Firefox** | `npm run build:firefox` produces an MV2 build. Side panel is not available; other features should be tested separately. |
 
-Content scripts do **not** run on restricted pages (for example `chrome://`, `edge://`, or the browser extension gallery).
+Content scripts do **not** run on restricted pages (for example `chrome://`, `edge://`, or the browser extension gallery). On such pages, where the context menu appears, selection translation still works via the side panel (Chrome/Edge). See [Known limitations](#known-limitations) for PDF notes.
 
 ## Install
 
@@ -82,9 +82,11 @@ If translation fails with *“No active provider configured”*, enable a provid
 
 ### Selection translation
 
-1. Select text on a normal web page (not `chrome://` URLs).
+1. Select text on any page — including PDF documents open in the browser.
 2. Click the floating LinguaLens trigger, or right-click → **Translate "…"**.
 3. **Shortcut (default):** `Alt+T` — translates the selection directly in the panel.
+
+On pages where content scripts cannot run (`chrome://`, `edge://`, etc.), right-click → **Translate "…"** opens the side panel and translates the selection there instead.
 
 ### Full-page translation
 
@@ -179,9 +181,10 @@ LinguaLens does not run its own translation servers; text is sent only to provid
 
 ## Known limitations
 
-- Content scripts cannot run on browser internal pages or the extension store.
+- Content scripts cannot run on browser internal pages or the extension store. On such pages the right-click menu routes the selection to the side panel; the `Alt+T` shortcut is not available there.
+- PDF viewer support depends on the browser: Chrome 141+ translates selections in-page via the floating panel; Edge's built-in PDF viewer routes them to the side panel. Firefox's PDF viewer does not expose selections to extensions.
 - Very large pages may take time and many API calls when using full-page translation.
-- Firefox build uses Manifest V2; feature parity with Chrome is not guaranteed.
+- Firefox build uses Manifest V2; feature parity with Chrome is not guaranteed (no side panel).
 - Side panel requires Chromium 114+.
 
 ## License

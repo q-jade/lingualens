@@ -40,6 +40,14 @@ export function App() {
   const [splitRatio, setSplitRatio] = useState(0.5);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  // Latest-state mirrors so the one-time runtime message listener can translate
+  // selections that arrive from the background at any point.
+  const sourceLangRef = useRef<string | null>(null);
+  const targetLangRef = useRef<string | null>(null);
+  const historyRef = useRef<HistoryEntry[]>([]);
+  sourceLangRef.current = sourceLang;
+  targetLangRef.current = targetLang;
+  historyRef.current = history;
 
   // Focus the input as soon as the panel opens so the user can start typing immediately.
   useEffect(() => {
@@ -100,9 +108,11 @@ export function App() {
     };
   }, []);
 
-  const handleTranslate = async () => {
-    const text = sourceText.trim();
-    if (!text || !langsReady) return;
+  const translateText = async (text: string) => {
+    const trimmed = text.trim();
+    const srcLang = sourceLangRef.current;
+    const dstLang = targetLangRef.current;
+    if (!trimmed || !srcLang || !dstLang) return;
 
     setLoading(true);
     setError(null);
@@ -110,7 +120,7 @@ export function App() {
 
     const res: MessageResponse<TranslateResult> = await browser.runtime.sendMessage({
       type: 'TRANSLATE',
-      payload: { text, sourceLang, targetLang },
+      payload: { text: trimmed, sourceLang: srcLang, targetLang: dstLang },
     });
 
     setLoading(false);
@@ -118,14 +128,14 @@ export function App() {
       setTranslation(res.data.translated);
       const entry: HistoryEntry = {
         id: Date.now(),
-        source: text,
+        source: trimmed,
         translated: res.data.translated,
-        targetLang,
+        targetLang: dstLang,
         provider: res.data.provider,
         timestamp: Date.now(),
       };
-      const deduplicated = history.filter(
-        (h) => h.source !== text || h.targetLang !== targetLang || h.provider !== res.data.provider,
+      const deduplicated = historyRef.current.filter(
+        (h) => h.source !== trimmed || h.targetLang !== dstLang || h.provider !== res.data.provider,
       );
       const updated = [entry, ...deduplicated].slice(0, 50);
       setHistory(updated);
@@ -134,10 +144,10 @@ export function App() {
       } catch (err) {
         if (err instanceof Error && /quota/i.test(err.message)) {
           // Quota exceeded — keep only the most recent half
-          const trimmed = updated.slice(0, Math.max(1, Math.floor(updated.length / 2)));
-          setHistory(trimmed);
+          const trimmedHistory = updated.slice(0, Math.max(1, Math.floor(updated.length / 2)));
+          setHistory(trimmedHistory);
           try {
-            await browser.storage.local.set({ translationHistory: trimmed });
+            await browser.storage.local.set({ translationHistory: trimmedHistory });
           } catch {
             // Give up — in-memory history still works this session
           }
@@ -147,6 +157,62 @@ export function App() {
       setError(translateError(res.error));
     }
   };
+
+  const handleTranslate = () => void translateText(sourceText);
+
+  // Selection routed from the background but languages not loaded yet — flush it
+  // once the pair is known so the routed text always gets translated.
+  const pendingRouteRef = useRef<string | null>(null);
+
+  /** Fill the input with a routed selection; translate once languages are known. */
+  const routeSelectionToInput = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setSourceText(trimmed);
+    textareaRef.current?.focus();
+    if (sourceLangRef.current && targetLangRef.current) {
+      void translateText(trimmed);
+    } else {
+      pendingRouteRef.current = trimmed;
+    }
+  };
+
+  useEffect(() => {
+    if (sourceLang === null || targetLang === null) return;
+    const pending = pendingRouteRef.current;
+    if (!pending) return;
+    pendingRouteRef.current = null;
+    void translateText(pending);
+  }, [sourceLang, targetLang]);
+
+  // Selections routed from the background on pages where content scripts cannot
+  // run (e.g. the browser PDF viewer): fill the input and translate immediately.
+  useEffect(() => {
+    const onMessage = (
+      message: Record<string, unknown>,
+      _sender: unknown,
+      sendResponse: (response: unknown) => void,
+    ) => {
+      if (message?.type !== 'TRANSLATE_SELECTION_VIA_SIDEPANEL') return;
+      const text = ((message.payload as { text?: string })?.text ?? '').trim();
+      if (text) routeSelectionToInput(text);
+      sendResponse({ success: true });
+    };
+    browser.runtime.onMessage.addListener(onMessage);
+
+    // Pull a selection that was routed here while this panel was still loading.
+    browser.runtime
+      .sendMessage({ type: 'SIDEPANEL_READY' })
+      .then((res: MessageResponse<string | null> | undefined) => {
+        const text = res?.success ? (res.data ?? '').trim() : '';
+        if (text) routeSelectionToInput(text);
+      })
+      .catch(() => {});
+
+    return () => {
+      browser.runtime.onMessage.removeListener(onMessage);
+    };
+  }, []);
 
   const swapLanguages = () => {
     if (!langsReady || sourceLang === 'auto') return;
