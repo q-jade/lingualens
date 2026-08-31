@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AppSettings, TranslateResult, MessageResponse } from '../../shared/types';
+import type { AppSettings, TranslateResult, MessageResponse, RoutedSidepanelSelection } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { getTranslatorLanguages, setTranslatorLanguages, subscribeTranslatorLanguages } from '../../shared/translator-languages';
 import { ProviderPicker } from '../../shared/ProviderPicker';
@@ -108,10 +108,14 @@ export function App() {
     };
   }, []);
 
-  const translateText = async (text: string) => {
+  const translateText = async (
+    text: string,
+    explicitSourceLang?: string,
+    explicitTargetLang?: string,
+  ) => {
     const trimmed = text.trim();
-    const srcLang = sourceLangRef.current;
-    const dstLang = targetLangRef.current;
+    const srcLang = explicitSourceLang || sourceLangRef.current;
+    const dstLang = explicitTargetLang || targetLangRef.current;
     if (!trimmed || !srcLang || !dstLang) return;
 
     setLoading(true);
@@ -165,13 +169,17 @@ export function App() {
   const pendingRouteRef = useRef<string | null>(null);
 
   /** Fill the input with a routed selection; translate once languages are known. */
-  const routeSelectionToInput = (text: string) => {
+  const routeSelectionToInput = (text: string, srcLang?: string, dstLang?: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
     setSourceText(trimmed);
+    // Adopt the page-translation language pair for this routed selection so
+    // the result matches what the page itself would have translated to.
+    if (srcLang) setSourceLang(srcLang);
+    if (dstLang) setTargetLang(dstLang);
     textareaRef.current?.focus();
-    if (sourceLangRef.current && targetLangRef.current) {
-      void translateText(trimmed);
+    if ((srcLang || sourceLangRef.current) && (dstLang || targetLangRef.current)) {
+      void translateText(trimmed, srcLang, dstLang);
     } else {
       pendingRouteRef.current = trimmed;
     }
@@ -194,8 +202,13 @@ export function App() {
       sendResponse: (response: unknown) => void,
     ) => {
       if (message?.type !== 'TRANSLATE_SELECTION_VIA_SIDEPANEL') return;
-      const text = ((message.payload as { text?: string })?.text ?? '').trim();
-      if (text) routeSelectionToInput(text);
+      const payload = message.payload as {
+        text?: string;
+        sourceLang?: string;
+        targetLang?: string;
+      };
+      const text = (payload?.text ?? '').trim();
+      if (text) routeSelectionToInput(text, payload?.sourceLang, payload?.targetLang);
       sendResponse({ success: true });
     };
     browser.runtime.onMessage.addListener(onMessage);
@@ -203,9 +216,9 @@ export function App() {
     // Pull a selection that was routed here while this panel was still loading.
     browser.runtime
       .sendMessage({ type: 'SIDEPANEL_READY' })
-      .then((res: MessageResponse<string | null> | undefined) => {
-        const text = res?.success ? (res.data ?? '').trim() : '';
-        if (text) routeSelectionToInput(text);
+      .then((res: MessageResponse<RoutedSidepanelSelection | null> | undefined) => {
+        const data = res?.success ? res.data : null;
+        if (data?.text) routeSelectionToInput(data.text, data.sourceLang, data.targetLang);
       })
       .catch(() => {});
 

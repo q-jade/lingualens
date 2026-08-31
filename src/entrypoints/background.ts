@@ -5,7 +5,8 @@ import {
   type PageTranslatePhase,
 } from '../shared/page-translate-phase';
 import { isTranslatableTabUrl } from '../shared/translatable-tab';
-import type { SelectionTriggerMode } from '../shared/types';
+import { setTranslatorLanguages } from '../shared/translator-languages';
+import type { SelectionTriggerMode, RoutedSidepanelSelection } from '../shared/types';
 
 export default defineBackground(() => {
   registerInstallOnboarding();
@@ -15,14 +16,15 @@ export default defineBackground(() => {
    * Selection routed to the side panel before it finished loading (e.g. from the
    * PDF viewer, where no content script can run). Pulled via SIDEPANEL_READY.
    */
-  let pendingSidepanelSelection: string | null = null;
+  let pendingSidepanelSelection: RoutedSidepanelSelection | null = null;
 
   /**
-   * True once a mounted side panel consumed the pending selection (via
-   * SIDEPANEL_READY or a direct delivery ack). Lets routeSelectionToSidePanel
-   * know whether re-stashing is needed or would ghost stale text.
+   * Text of the last selection delivered to a mounting side panel via
+   * SIDEPANEL_READY. Lets routeSelectionToSidePanel skip its own sync +
+   * delivery when the freshly mounted panel already pulled the selection
+   * (READY won the race and synced the language pair itself).
    */
-  let sidepanelConsumed = false;
+  let readyDeliveredText: string | null = null;
 
   /**
    * Whether the content script is reachable in a tab. Kept warm by
@@ -63,6 +65,30 @@ export default defineBackground(() => {
     return chromeApi.sidePanel.open({ windowId }).catch((err) => {
       console.warn('[LinguaLens] side panel open failed', err);
     });
+  }
+
+  /**
+   * Align the popup/sidepanel language pair with the page-translation settings
+   * before routing a selection there, so the routed text translates to the same
+   * target language the page itself would have used (page translate uses
+   * settings, popup/sidepanel use the separate translatorLanguages pair).
+   */
+  async function syncTranslatorLanguagesWithSettings(): Promise<{
+    sourceLang: string;
+    targetLang: string;
+  } | null> {
+    try {
+      const settings = await getSettings();
+      const langs = {
+        sourceLang: settings.defaultSourceLang,
+        targetLang: settings.defaultTargetLang,
+      };
+      await setTranslatorLanguages(langs);
+      return langs;
+    } catch {
+      // Non-fatal — the side panel falls back to its own language pair.
+      return null;
+    }
   }
 
   /**
@@ -260,7 +286,6 @@ export default defineBackground(() => {
 
     // Any stashed side-panel text is stale once the selection is handled in-page.
     pendingSidepanelSelection = null;
-    sidepanelConsumed = true;
 
     if (await shouldBlockSelectionTranslate(tabId, frameId)) return;
 
@@ -289,12 +314,30 @@ export default defineBackground(() => {
 
   /** Deliver a selection to the side panel (pages where no content script runs). */
   async function routeSelectionToSidePanel(text: string, windowId?: number): Promise<void> {
-    // The click fast path normally stashed this text already. Only stash here
-    // when nothing is pending AND no mounted panel has consumed a previous
-    // selection (cold-start path). Re-stashing after the panel pulled the text
-    // would ghost stale text into the next mount / duplicate the delivery.
-    if (pendingSidepanelSelection === null && !sidepanelConsumed) {
-      pendingSidepanelSelection = text;
+    // The freshly mounted panel may have already pulled this selection via
+    // SIDEPANEL_READY (which synced the language pair itself). Skip the
+    // redundant sync + delivery in that case.
+    if (pendingSidepanelSelection === null && readyDeliveredText === text) return;
+
+    // The side panel is only the vehicle here — the page context wins, so use
+    // the page-translation language pair (and persist it as the popup/sidepanel
+    // preference so the panel UI reflects what will actually be translated).
+    const langs = await syncTranslatorLanguagesWithSettings();
+
+    // READY may have consumed the selection while we were syncing.
+    if (pendingSidepanelSelection === null && readyDeliveredText === text) return;
+
+    if (pendingSidepanelSelection === null) {
+      // Cold start (the fast path did not stash): stash with the resolved pair
+      // so a panel mounting before the direct delivery can still pull it.
+      pendingSidepanelSelection = {
+        text,
+        sourceLang: langs?.sourceLang ?? '',
+        targetLang: langs?.targetLang ?? '',
+      };
+    } else if (langs) {
+      pendingSidepanelSelection.sourceLang = langs.sourceLang;
+      pendingSidepanelSelection.targetLang = langs.targetLang;
     }
 
     // Best effort: the click handler normally already opened the panel
@@ -305,15 +348,17 @@ export default defineBackground(() => {
     }
 
     // A freshly mounted panel already pulled the pending text via SIDEPANEL_READY.
-    if (pendingSidepanelSelection !== text) return;
+    if (pendingSidepanelSelection?.text !== text) return;
 
     // Panel already open — deliver directly; clear pending only when a live panel acked.
     const res = await browser.runtime
-      .sendMessage({ type: 'TRANSLATE_SELECTION_VIA_SIDEPANEL', payload: { text } })
+      .sendMessage({
+        type: 'TRANSLATE_SELECTION_VIA_SIDEPANEL',
+        payload: { text, sourceLang: langs?.sourceLang, targetLang: langs?.targetLang },
+      })
       .catch(() => null);
     if (res && typeof res === 'object' && (res as { success?: boolean }).success) {
       pendingSidepanelSelection = null;
-      sidepanelConsumed = true;
     }
   }
 
@@ -349,10 +394,36 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener((message: Record<string, unknown>, sender, sendResponse) => {
     if (message.type === 'SIDEPANEL_READY') {
-      sendResponse({ success: true, data: pendingSidepanelSelection });
-      pendingSidepanelSelection = null;
-      sidepanelConsumed = true;
-      return false;
+      const pending = pendingSidepanelSelection;
+      // Fast answer when there is nothing to route or the pair is already
+      // complete (routeSelectionToSidePanel filled it) — avoids a redundant
+      // settings read + translatorLanguages write on every panel mount.
+      if (!pending || (pending.sourceLang && pending.targetLang)) {
+        if (pending?.text) readyDeliveredText = pending.text;
+        sendResponse({ success: true, data: pending });
+        pendingSidepanelSelection = null;
+        return false;
+      }
+      // The click fast path stashed the selection with empty langs and the
+      // panel mounted before routeSelectionToSidePanel could fill them.
+      // Resolve the pair from settings before answering so the routed text
+      // always carries the page-translation language pair.
+      void (async () => {
+        const langs = await syncTranslatorLanguagesWithSettings();
+        const p = pendingSidepanelSelection;
+        const data =
+          p && langs
+            ? {
+              ...p,
+              sourceLang: p.sourceLang || langs.sourceLang,
+              targetLang: p.targetLang || langs.targetLang,
+            }
+            : p;
+        sendResponse({ success: true, data });
+        if (p?.text) readyDeliveredText = p.text;
+        pendingSidepanelSelection = null;
+      })();
+      return true;
     }
 
     if (message.type === 'PAGE_TRANSLATE_STATE_CHANGED') {
@@ -478,8 +549,10 @@ export default defineBackground(() => {
         reachableCache === false ||
         (reachableCache === undefined && INTERNAL_UNREACHABLE_SCHEMES.has(urlScheme));
       if (selected && knownUnreachable && typeof windowId === 'number') {
-        pendingSidepanelSelection = selected;
-        sidepanelConsumed = false;
+        // Placeholder langs — SIDEPANEL_READY resolves them from settings before
+        // answering, so a panel mounting before routeSelectionToSidePanel runs
+        // still receives the page-translation language pair.
+        pendingSidepanelSelection = { text: selected, sourceLang: '', targetLang: '' };
         void tryOpenSidePanel(windowId);
       }
       if (tabId === undefined) {

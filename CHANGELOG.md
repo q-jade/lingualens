@@ -6,7 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
-- Selection translation on pages where content scripts cannot run: right-click **Translate** on `chrome://`/`edge://` pages and PDF documents routes the selection to the side panel, which opens automatically and translates it (Chromium 114+).
+- Selection translation on pages where content scripts cannot run: right-click **Translate** on `chrome://`/`edge://` pages and PDF documents routes the selection to the side panel, which opens automatically and translates it with the page-translation language settings (Chromium 114+).
 - PDF viewer support: Chrome 141+ translates PDF selections in-page via the floating panel; Edge's built-in PDF viewer falls back to the side panel.
 
 ### Fixed

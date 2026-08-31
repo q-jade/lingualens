@@ -52,3 +52,10 @@ export type MessageType =
 export type MessageResponse<T = unknown> =
   | { success: true; data: T }
   | { success: false; error: string };
+
+/** A selection routed to the side panel from a page without a content script. */
+export interface RoutedSidepanelSelection {
+  text: string;
+  sourceLang: string;
+  targetLang: string;
+}
