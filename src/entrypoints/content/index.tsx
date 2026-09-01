@@ -115,6 +115,18 @@ export default defineContentScript({
 
     ui.mount();
 
+    // Report presence on right-click so the background can synchronously tell
+    // pages WITH a content script (in-page bubble) apart from pages without
+    // one (route to side panel) in the context-menu click handler. Capture
+    // phase fires before any page/PDF-viewer handler can stop the event.
+    const reportPresence = () => {
+      browser.runtime.sendMessage({ type: 'CONTEXT_MENU_PRESENCE' }).catch(() => {});
+    };
+    document.addEventListener('contextmenu', reportPresence, true);
+    document.addEventListener('mousedown', (e) => {
+      if (e.button === 2) reportPresence();
+    }, true);
+
     // Selection-based translation trigger (mode-aware)
     document.addEventListener('mouseup', (e) => {
       if (isInsideOurUI(e)) return;
@@ -144,7 +156,7 @@ export default defineContentScript({
               pendingTranslateNow.push(text);
             }
             break;
-        // 'modifier' and 'off': do nothing on mouseup
+          // 'modifier' and 'off': do nothing on mouseup
         }
       }, 10);
     });

@@ -4,7 +4,7 @@ import {
   isPageTranslateStarted,
   type PageTranslatePhase,
 } from '../shared/page-translate-phase';
-import { isTranslatableTabUrl } from '../shared/translatable-tab';
+import { isTranslatableTabUrl, isBrowserStoreUrl } from '../shared/translatable-tab';
 import { setTranslatorLanguages } from '../shared/translator-languages';
 import type { SelectionTriggerMode, RoutedSidepanelSelection } from '../shared/types';
 
@@ -27,19 +27,37 @@ export default defineBackground(() => {
   let readyDeliveredText: string | null = null;
 
   /**
-   * Whether the content script is reachable in a tab. Kept warm by
-   * getPageTranslatePhase (runs on tab switch / load / menu refresh), so the
-   * context-menu click handler can decide synchronously whether to open the
-   * side panel while the user gesture is still valid.
+   * Fresh presence report sent by the content script when the user opens the
+   * context menu (contextmenu event / right-button mousedown). Read
+   * synchronously in the click handler: a page WITHOUT a fresh report has no
+   * content script (store pages, restricted https pages, PDF viewers without
+   * injection), so the selection must go to the side panel.
+   * Replaces contextMenus.onShown, which Chromium does NOT implement
+   * (Firefox-only per MDN).
+   * Only meaningful for TOP-frame clicks: the content UI runs with
+   * allFrames=false, so a right-click inside an iframe (the PDF viewer is
+   * embedded as one) never fires the top-frame listener even when the script
+   * is alive — absence there must not be read as "unreachable".
    */
-  const contentScriptReachable = new Map<number, boolean>();
+  let contextMenuPresence: {
+    tabId: number;
+    url: string;
+    at: number;
+  } | null = null;
 
   /**
-   * Browser-internal schemes never host our content script, so they are
-   * synchronously identifiable as unreachable in the click handler — even on
-   * cold start when the reachability cache has no entry for the tab yet.
-   * (chrome-extension: is deliberately excluded: Chrome 141+ DOES inject
-   * content scripts into its PDF viewer, which lives under that scheme.)
+   * Unreachable-page signals the side-panel fast path trusts. All are either
+   * synchronous certainties or a fresh presence report from the right-click
+   * that opened the menu:
+   * - `tabId === undefined`: Edge's PDF viewer (browser-UI surface)
+   * - browser-internal schemes (chrome://, edge://, …)
+   * - browser extension gallery pages (https, but never injectable)
+   * - no fresh CONTEXT_MENU_PRESENCE report (http/https/file/chrome-extension)
+   * A long-lived reachability cache was dropped: it goes stale while the PDF
+   * viewer reloads (the viewer destroys and re-injects the content script,
+   * and probes during the churn record a false "unreachable"), which opened
+   * a spurious empty side panel next to a working in-page bubble. The PING
+   * probe in translateSelectionInTab still decides the actual route.
    */
   const INTERNAL_UNREACHABLE_SCHEMES = new Set([
     'chrome', 'edge', 'about', 'devtools', 'view-source',
@@ -150,11 +168,9 @@ export default defineBackground(() => {
     try {
       const response = await browser.tabs.sendMessage(tabId, { type: 'PAGE_TRANSLATE_STATUS' });
       const phase = (response as { phase?: PageTranslatePhase })?.phase ?? 'idle';
-      contentScriptReachable.set(tabId, true);
       rememberPageTranslatePhase(tabId, phase);
       return phase;
     } catch {
-      contentScriptReachable.set(tabId, false);
       return pageTranslatePhaseByTab.get(tabId) ?? 'idle';
     }
   }
@@ -272,7 +288,6 @@ export default defineBackground(() => {
       .sendMessage(tabId, { type: 'PING' })
       .then(() => true)
       .catch(() => false);
-    contentScriptReachable.set(tabId, reachable);
 
     if (!reachable) {
       const fallback = fallbackSelectionText?.trim() ?? '';
@@ -393,6 +408,15 @@ export default defineBackground(() => {
   }
 
   browser.runtime.onMessage.addListener((message: Record<string, unknown>, sender, sendResponse) => {
+    if (message.type === 'CONTEXT_MENU_PRESENCE') {
+      const tabId = sender.tab?.id;
+      if (typeof tabId === 'number' && tabId >= 0) {
+        contextMenuPresence = { tabId, url: sender.tab?.url ?? '', at: Date.now() };
+      }
+      sendResponse({ ok: true });
+      return false;
+    }
+
     if (message.type === 'SIDEPANEL_READY') {
       const pending = pendingSidepanelSelection;
       // Fast answer when there is nothing to route or the pair is already
@@ -500,7 +524,10 @@ export default defineBackground(() => {
   browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.status === 'loading') {
       pageTranslatePhaseByTab.delete(tabId);
-      contentScriptReachable.delete(tabId);
+      // The content script is destroyed on navigation/reload; any earlier
+      // right-click presence report is stale (tabId+url may match a reload).
+      if (contextMenuPresence?.tabId === tabId) contextMenuPresence = null;
+      if (pendingSidepanelSelection) pendingSidepanelSelection = null;
     }
     // Session restore after cold start often skips `loading`; `complete` carries the final URL.
     if (changeInfo.status === 'loading' || changeInfo.status === 'complete' || changeInfo.url) {
@@ -518,7 +545,6 @@ export default defineBackground(() => {
 
   browser.tabs.onRemoved.addListener((tabId) => {
     pageTranslatePhaseByTab.delete(tabId);
-    contentScriptReachable.delete(tabId);
   });
 
   browser.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -538,16 +564,35 @@ export default defineBackground(() => {
         typeof info.frameId === 'number' && info.frameId >= 0 ? info.frameId : undefined;
       const selected = info.selectionText?.trim() ?? '';
       // Fast path: open the side panel NOW, synchronously, while the click
-      // gesture is live. Known-unreachable via the cached map, no tab id at
-      // all (Edge PDF viewer), or a browser-internal URL scheme (covers cold
-      // start when the cache has no entry yet) — none can show a bubble.
-      const reachableCache =
-        tabId === undefined ? undefined : contentScriptReachable.get(tabId);
+      // gesture is live. Only synchronous certainties trigger it — no tab id
+      // (Edge's PDF viewer), an internal URL scheme, a known gallery page, or
+      // a missing fresh presence report for a TOP-frame click. The PING probe
+      // decides the actual route either way.
       const urlScheme = tab?.url ? tab.url.split(':')[0].toLowerCase() : '';
+      const presence = contextMenuPresence;
+      // One-shot consumption: a menu click is always preceded by a right-click
+      // that (re)reported presence if the content script is alive. Clearing it
+      // here binds the report to the current menu instance — a report can never
+      // outlive its menu, no matter how long the user lingers before clicking.
+      // Navigation (tabs.onUpdated loading) clears it as well.
+      contextMenuPresence = null;
+      const presenceUsable =
+        presence !== null &&
+        tabId !== undefined &&
+        presence.tabId === tabId &&
+        presence.url === (tab?.url ?? '');
+      // Presence only covers top-frame clicks on page-like schemes. Clicks
+      // inside an iframe (the PDF viewer embeds one) never fire the top-frame
+      // listener, so absence there proves nothing — PING decides. Internal
+      // schemes are already covered by the scheme set.
+      const presenceCovered =
+        (frameId === undefined || frameId === 0) &&
+        (urlScheme === 'http' || urlScheme === 'https' || urlScheme === 'file');
       const knownUnreachable =
         tabId === undefined ||
-        reachableCache === false ||
-        (reachableCache === undefined && INTERNAL_UNREACHABLE_SCHEMES.has(urlScheme));
+        INTERNAL_UNREACHABLE_SCHEMES.has(urlScheme) ||
+        isBrowserStoreUrl(tab?.url) ||
+        (presenceCovered && !presenceUsable);
       if (selected && knownUnreachable && typeof windowId === 'number') {
         // Placeholder langs — SIDEPANEL_READY resolves them from settings before
         // answering, so a panel mounting before routeSelectionToSidePanel runs

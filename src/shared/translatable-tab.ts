@@ -6,6 +6,22 @@ function isExtensionStoreUrl(hostname: string, pathname: string): boolean {
   return false;
 }
 
+/**
+ * Browser extension gallery pages (https) — content scripts can never run
+ * there. Exported for the side-panel fast path, which needs a synchronous
+ * "unreachable" answer in the context-menu click handler.
+ */
+export function isBrowserStoreUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const { protocol, hostname, pathname } = new URL(url);
+    if (protocol !== 'http:' && protocol !== 'https:') return false;
+    return isExtensionStoreUrl(hostname, pathname);
+  } catch {
+    return false;
+  }
+}
+
 /** Protocols where Chromium never injects extension content scripts. */
 const NON_TRANSLATABLE_PROTOCOLS = new Set([
   'about:',
