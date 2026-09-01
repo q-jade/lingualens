@@ -2,16 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.7.0] - 2026-09-01
 
 ### Added
 
-- Selection translation on pages where content scripts cannot run: right-click **Translate** on `chrome://`/`edge://` pages and PDF documents routes the selection to the side panel, which opens automatically and translates it with the page-translation language settings (Chromium 114+).
+- Selection translation on pages where content scripts cannot run: right-click **Translate** on `chrome://`/`edge://` pages, extension store pages, and PDF documents routes the selection to the side panel, which opens automatically and translates it with the page-translation language settings (Chromium 114+).
 - PDF viewer support: Chrome 141+ translates PDF selections in-page via the floating panel; Edge's built-in PDF viewer falls back to the side panel.
-
-### Fixed
-
-- Selection context-menu handler no longer fails silently when the tab cannot host a content script (e.g. the browser PDF viewer, which reports tab id `-1` in Edge); side-panel delivery now works on cold start and preserves the user gesture required by `sidePanel.open()`.
 
 ## [0.6.0] - 2026-08-25
 
@@ -153,6 +149,9 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.7.0]: https://github.com/q-jade/lingualens/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/q-jade/lingualens/compare/v0.5.2...v0.6.0
+[0.5.2]: https://github.com/q-jade/lingualens/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/q-jade/lingualens/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/q-jade/lingualens/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/q-jade/lingualens/compare/v0.3.0...v0.4.0
