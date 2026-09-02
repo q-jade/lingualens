@@ -581,13 +581,20 @@ export default defineBackground(() => {
         tabId !== undefined &&
         presence.tabId === tabId &&
         presence.url === (tab?.url ?? '');
-      // Presence only covers top-frame clicks on page-like schemes. Clicks
-      // inside an iframe (the PDF viewer embeds one) never fire the top-frame
-      // listener, so absence there proves nothing — PING decides. Internal
-      // schemes are already covered by the scheme set.
+      // Presence only covers top-frame clicks on schemes where a content
+      // script MAY exist. Clicks inside an iframe (the PDF viewer embeds one)
+      // never fire the top-frame listener, so absence there proves nothing —
+      // PING decides. Internal schemes are covered by the scheme set.
+      // chrome-extension: the extension's own pages (options, sidepanel, …)
+      // and other extensions' pages host no content script, so a missing
+      // report means unreachable; the built-in PDF viewer is the exception —
+      // Chrome 141+ injects our script into its TOP frame, so top-frame
+      // right-clicks report presence, and viewer-text clicks (frameId > 0)
+      // are excluded by the frame check above.
       const presenceCovered =
         (frameId === undefined || frameId === 0) &&
-        (urlScheme === 'http' || urlScheme === 'https' || urlScheme === 'file');
+        (urlScheme === 'http' || urlScheme === 'https' ||
+          urlScheme === 'file' || urlScheme === 'chrome-extension');
       const knownUnreachable =
         tabId === undefined ||
         INTERNAL_UNREACHABLE_SCHEMES.has(urlScheme) ||
