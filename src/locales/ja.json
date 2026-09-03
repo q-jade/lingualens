@@ -8,7 +8,7 @@
     "copy": "コピー",
     "settings": "設定",
     "selectionMode": "選択モード",
-    "translatePage": "このページを翻訳",
+    "translatePageTo": "このページを{{lang}}に翻訳",
     "stopPageTranslation": "ページ翻訳を停止",
     "restoreOriginalPage": "元のページに戻す",
     "notAvailable": "このページでは利用不可",

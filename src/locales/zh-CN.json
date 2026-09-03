@@ -8,7 +8,7 @@
     "copy": "复制",
     "settings": "设置",
     "selectionMode": "划词模式",
-    "translatePage": "翻译此页面",
+    "translatePageTo": "翻译此页面为 {{lang}}",
     "stopPageTranslation": "停止页面翻译",
     "restoreOriginalPage": "恢复原始页面",
     "notAvailable": "此页面不可用",

@@ -8,7 +8,8 @@
     "copy": "Copiar",
     "settings": "Configuración",
     "selectionMode": "Modo de activación",
-    "translatePage": "Traducir esta página",
+
+    "translatePageTo": "Traducir esta página al {{lang}}",
     "stopPageTranslation": "Detener traducción de página",
     "restoreOriginalPage": "Restaurar página original",
     "notAvailable": "No disponible en esta página",

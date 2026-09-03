@@ -8,7 +8,7 @@
     "copy": "Kopieren",
     "settings": "Einstellungen",
     "selectionMode": "Auswahlmodus",
-    "translatePage": "Diese Seite übersetzen",
+    "translatePageTo": "Diese Seite auf {{lang}} übersetzen",
     "stopPageTranslation": "Seitenübersetzung stoppen",
     "restoreOriginalPage": "Originalseite wiederherstellen",
     "notAvailable": "Auf dieser Seite nicht verfügbar",

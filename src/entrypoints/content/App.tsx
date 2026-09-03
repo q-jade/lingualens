@@ -14,6 +14,7 @@ import {
   type PageTranslatePhase,
 } from '../../shared/page-translate-phase';
 import { resolveDefaultTargetLang } from '../../shared/default-target-lang';
+import { SUPPORTED_LANGUAGES, getLanguageName } from '../../shared/languages';
 
 const ERROR_KEYS: Record<string, string> = {
   NO_PROVIDER: 'content.noProvider',
@@ -136,8 +137,13 @@ export function ContentApp({ onReady }: Props) {
   const [providerMenuPosition, setProviderMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const providerMenuRef = useRef<HTMLDivElement>(null);
   const providerTriggerRef = useRef<HTMLButtonElement>(null);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [langMenuPosition, setLangMenuPosition] = useState<{ left: number; top: number } | null>(null);
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  const langTriggerRef = useRef<HTMLButtonElement>(null);
   const modeMenuId = useId();
   const providerMenuId = useId();
+  const langMenuId = useId();
 
   const computeMenuPosition = () => {
     const btn = modeTriggerRef.current;
@@ -200,6 +206,37 @@ export function ContentApp({ onReady }: Props) {
     if (pos) setProviderMenuPosition(pos);
   };
 
+  const computeLangMenuPosition = () => {
+    const btn = langTriggerRef.current;
+    if (!btn) return null;
+    const rect = btn.getBoundingClientRect();
+    // Position below the button, right-aligned (matching the mode menu).
+    const menuWidth = 200;
+    let left = rect.right - menuWidth;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = window.innerWidth - menuWidth - 8;
+    }
+    return { left, top: rect.bottom + 4 };
+  };
+
+  const openLangMenu = () => {
+    const pos = computeLangMenuPosition();
+    if (pos) setLangMenuPosition(pos);
+    setLangMenuOpen(true);
+  };
+
+  const closeLangMenu = () => {
+    setLangMenuOpen(false);
+    setLangMenuPosition(null);
+  };
+
+  const repositionLangMenu = () => {
+    if (!langMenuOpen) return;
+    const pos = computeLangMenuPosition();
+    if (pos) setLangMenuPosition(pos);
+  };
+
   /**
    * Shared keyboard handling for the panel's floating menus: Escape closes and
    * returns focus to the trigger, Tab closes (focus stays with the trigger),
@@ -229,6 +266,12 @@ export function ContentApp({ onReady }: Props) {
     else if (e.key === 'Home') next = 0;
     else next = items.length - 1;
     items[next].focus({ preventScroll: true });
+    // Keep the focused item visible inside a scrollable menu (long language
+    // list). Only scroll menus that actually overflow — scrollIntoView on a
+    // fixed-position menu could otherwise scroll the page.
+    if (menuRef.current && menuRef.current.scrollHeight > menuRef.current.clientHeight) {
+      items[next].scrollIntoView({ block: 'nearest' });
+    }
   };
 
   const selectTriggerMode = (m: SelectionTriggerMode) => {
@@ -247,6 +290,20 @@ export function ContentApp({ onReady }: Props) {
     showToast(key);
   };
 
+  const selectTargetLang = (lang: string) => {
+    closeLangMenu();
+    langTriggerRef.current?.focus();
+    if (settingsRef.current?.defaultTargetLang === lang) return;
+    setSettings((s) => (s ? { ...s, defaultTargetLang: lang } : s));
+    // Fire-and-forget: the new language rides in the translate payload, so the
+    // save does not need to land before the re-translation starts.
+    void browser.runtime.sendMessage({
+      type: 'SAVE_SETTINGS',
+      payload: { defaultTargetLang: lang },
+    });
+    void doTranslate(lang);
+  };
+
   const switchProvider = async (providerId: string) => {
     if (!settings || providerId === settings.defaultProvider) return;
     const nextFallback = settings.fallbackProviders.filter((id) => id !== providerId);
@@ -256,7 +313,7 @@ export function ContentApp({ onReady }: Props) {
       type: 'SAVE_SETTINGS',
       payload: { defaultProvider: providerId, fallbackProviders: nextFallback },
     });
-    await doTranslate();
+    void doTranslate();
   };
 
   // Page translation state
@@ -412,10 +469,11 @@ export function ContentApp({ onReady }: Props) {
       );
       repositionModeMenu();
       repositionProviderMenu();
+      repositionLangMenu();
     };
     window.addEventListener('resize', sync);
     return () => window.removeEventListener('resize', sync);
-  }, [mode, modeMenuOpen, providerMenuOpen]);
+  }, [mode, modeMenuOpen, providerMenuOpen, langMenuOpen]);
 
   // Focus management: move focus into the panel on open (so Escape works and
   // keyboard users land inside it), restore the previous focus on close.
@@ -439,6 +497,7 @@ export function ContentApp({ onReady }: Props) {
       setPinnedTrigger(null);
       closeModeMenu();
       closeProviderMenu();
+      closeLangMenu();
     }
   }, [mode]);
 
@@ -490,6 +549,30 @@ export function ContentApp({ onReady }: Props) {
     };
   }, [providerMenuOpen]);
 
+  // Close the target-language menu on outside click or window blur
+  useEffect(() => {
+    if (!langMenuOpen) return;
+
+    const onOutsideClick = (e: MouseEvent) => {
+      const path = e.composedPath();
+      // Don't close if the click is on the toggle button (onClick will handle it)
+      if (langTriggerRef.current && path.includes(langTriggerRef.current)) return;
+      if (langMenuRef.current && !path.includes(langMenuRef.current)) {
+        closeLangMenu();
+      }
+    };
+
+    const onWindowBlur = () => closeLangMenu();
+
+    document.addEventListener('mousedown', onOutsideClick, true);
+    window.addEventListener('blur', onWindowBlur);
+
+    return () => {
+      document.removeEventListener('mousedown', onOutsideClick, true);
+      window.removeEventListener('blur', onWindowBlur);
+    };
+  }, [langMenuOpen]);
+
   // Focus the active item when a floating menu opens so keyboard users can
   // navigate it immediately.
   useEffect(() => {
@@ -508,16 +591,44 @@ export function ContentApp({ onReady }: Props) {
     (active ?? items[0]).focus({ preventScroll: true });
   }, [providerMenuOpen]);
 
+  useEffect(() => {
+    if (!langMenuOpen) return;
+    const items = langMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]');
+    if (!items?.length) return;
+    const active = Array.from(items).find((el) => el.getAttribute('aria-checked') === 'true');
+    const target = active ?? items[0];
+    target.focus({ preventScroll: true });
+    // The language menu is scrollable: bring the focused item into view.
+    target.scrollIntoView({ block: 'nearest' });
+  }, [langMenuOpen]);
+
+  // The language menu is tall: keep it inside the viewport by clamping its
+  // bottom edge (the menu itself scrolls when taller than the viewport).
+  useLayoutEffect(() => {
+    if (!langMenuOpen || !langMenuPosition) return;
+    const menu = langMenuRef.current;
+    if (!menu) return;
+    const rect = menu.getBoundingClientRect();
+    const margin = 8;
+    if (rect.bottom > window.innerHeight - margin) {
+      setLangMenuPosition((pos) =>
+        pos ? { ...pos, top: pos.top - (rect.bottom - (window.innerHeight - margin)) } : pos,
+      );
+    }
+  }, [langMenuOpen, langMenuPosition]);
+
   const openPanelAt = (panelAnchor: { x: number; y: number }) => {
     pendingAnchorRef.current = panelAnchor;
     setMode('panel');
   };
 
-  const doTranslate = async () => {
+  /** Re-translate the current selection. `targetLangOverride` is used when the
+   *  target language just changed — the settings ref updates only on re-render. */
+  const doTranslate = async (targetLangOverride?: string) => {
     const text = selectedTextRef.current;
     if (!text) return;
 
-    const targetLang = settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
+    const targetLang = targetLangOverride ?? settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
     setLoading(true);
@@ -543,10 +654,10 @@ export function ContentApp({ onReady }: Props) {
     }
   };
 
-  const runSelectionTranslate = async (panelAnchor: { x: number; y: number }) => {
+  const runSelectionTranslate = (panelAnchor: { x: number; y: number }) => {
     if (!selectedTextRef.current || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
     openPanelAt(panelAnchor);
-    await doTranslate();
+    void doTranslate();
   };
 
   const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
@@ -667,7 +778,7 @@ export function ContentApp({ onReady }: Props) {
           y: window.innerHeight / 3,
         };
         setAnchor(panelAnchor);
-        queueMicrotask(() => void runSelectionTranslate(panelAnchor));
+        queueMicrotask(() => runSelectionTranslate(panelAnchor));
       },
       hide() {
         if (pinnedRef.current) return;
@@ -698,6 +809,7 @@ export function ContentApp({ onReady }: Props) {
   }, [onReady, startPageTranslation]);
 
   const currentProvider = (settings?.providers ?? []).find((p) => p.id === settings?.defaultProvider);
+  const currentTargetLangName = settings ? getLanguageName(settings.defaultTargetLang) : '';
 
   return (
     <>
@@ -748,6 +860,11 @@ export function ContentApp({ onReady }: Props) {
           tabIndex={-1}
           onKeyDown={(e) => {
             if (e.key !== 'Escape') return;
+            if (langMenuOpen) {
+              e.stopPropagation();
+              closeLangMenu();
+              return;
+            }
             if (providerMenuOpen) {
               e.stopPropagation();
               closeProviderMenu();
@@ -826,6 +943,35 @@ export function ContentApp({ onReady }: Props) {
               </button>
             </div>
             <div className="st-header-actions">
+              <button
+                ref={langTriggerRef}
+                type="button"
+                onClick={() => {
+                  if (langMenuOpen) {
+                    closeLangMenu();
+                  } else {
+                    openLangMenu();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  // Match the mode trigger: ↑/↓ opens the menu directly.
+                  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !langMenuOpen) {
+                    e.preventDefault();
+                    openLangMenu();
+                  }
+                }}
+                className={`st-panel-close st-lang-trigger ${langMenuOpen ? 'st-pin-active' : ''}`}
+                title={t('options.targetLanguage')}
+                aria-label={t('options.targetLanguage')}
+                aria-haspopup="menu"
+                aria-expanded={langMenuOpen}
+                aria-controls={langMenuId}
+              >
+                <span className="st-lang-trigger-name">{currentTargetLangName || '—'}</span>
+                <svg className="st-provider-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
               <div className="st-mode-picker">
                 <button
                   ref={modeTriggerRef}
@@ -886,7 +1032,7 @@ export function ContentApp({ onReady }: Props) {
             {error && (
               <div className="st-error">
                 <span>{error}</span>
-                <button onClick={doTranslate} className="st-retry-btn">{t('content.retry')}</button>
+                <button onClick={() => void doTranslate()} className="st-retry-btn">{t('content.retry')}</button>
               </div>
             )}
             {!loading && !error && translation && (
@@ -938,6 +1084,42 @@ export function ContentApp({ onReady }: Props) {
               >
                 <span className="st-mode-icon"><ModeIcon mode={m} size={14} /></span>
                 <span className="st-mode-label">{t(labelKey)}</span>
+                {active && <span className="st-mode-check">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Target-language menu rendered outside the panel to avoid overflow: hidden clipping */}
+      {mode === 'panel' && langMenuOpen && langMenuPosition && (
+        <div
+          ref={langMenuRef}
+          id={langMenuId}
+          className="st-mode-menu st-lang-menu"
+          role="menu"
+          onKeyDown={(e) => handleFloatingMenuKeyDown(e, langMenuRef, closeLangMenu, langTriggerRef)}
+          style={{
+            position: 'fixed',
+            left: langMenuPosition.left,
+            top: langMenuPosition.top,
+            zIndex: 2147483647,
+            pointerEvents: 'auto',
+          }}
+        >
+          {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((l) => {
+            const active = (settings?.defaultTargetLang ?? '') === l.code;
+            return (
+              <button
+                key={l.code}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                tabIndex={-1}
+                className={`st-mode-option ${active ? 'st-mode-active' : ''}`}
+                onClick={() => selectTargetLang(l.code)}
+              >
+                <span className="st-mode-label">{l.name}</span>
                 {active && <span className="st-mode-check">✓</span>}
               </button>
             );

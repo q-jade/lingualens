@@ -8,7 +8,7 @@
     "copy": "Копировать",
     "settings": "Настройки",
     "selectionMode": "Режим триггера",
-    "translatePage": "Перевести эту страницу",
+    "translatePageTo": "Перевести эту страницу на {{lang}}",
     "stopPageTranslation": "Остановить перевод страницы",
     "restoreOriginalPage": "Восстановить оригинал",
     "notAvailable": "Недоступно на этой странице",

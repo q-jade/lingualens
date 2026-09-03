@@ -6,6 +6,7 @@ import { AppLogo } from '../../shared/AppLogo';
 import { ModeIcon } from '../../shared/ModeIcon';
 import { shortcutLabel } from '../../shared/shortcut';
 import { getTranslatorLanguages, updateTranslatorLanguages } from '../../shared/translator-languages';
+import { getLanguageName } from '../../shared/languages';
 import { isTranslatableTabUrl } from '../../shared/translatable-tab';
 import { ProviderPicker } from '../../shared/ProviderPicker';
 import { CopyButton } from '../../shared/CopyButton';
@@ -214,64 +215,63 @@ export function App() {
         </div>
       )}
 
-      {/* Page translate */}
-      <button
-        onClick={async () => {
-          if (!pageTranslateSupported) return;
-          const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-          if (!tab?.id || !isTranslatableTabUrl(tab.url)) {
-            setPageTranslateSupported(false);
-            setError(t('popup.pageTranslateUnavailable'));
-            return;
-          }
-          try {
-            if (pageTranslatePhase === 'running') {
-              await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_STOP' });
-              setPageTranslatePhase('done');
-            } else if (pageTranslatePhase === 'done') {
-              await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_RESTORE' });
-              setPageTranslatePhase('idle');
-            } else {
-              const res = await browser.runtime.sendMessage({
-                type: 'PAGE_TRANSLATE_PAGE',
-                payload: { tabId: tab.id },
-              });
-              if (res?.success) {
-                window.close();
-              } else {
-                if (res?.error === 'PAGE_TRANSLATE_ALREADY_ACTIVE') setPageTranslatePhase('running');
-                setError(t('popup.pageTranslateUnavailable'));
-              }
-            }
-          } catch {
-            setError(t('popup.pageTranslateUnavailable'));
-          }
-        }}
-        disabled={!pageTranslateSupported}
-        title={!pageTranslateSupported ? t('popup.pageTranslateUnavailable') : undefined}
-        className={`w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border
-                   ${!pageTranslateSupported
-            ? 'border-gray-200 text-gray-400 opacity-50 cursor-not-allowed'
-            : pageTranslatePhase === 'running'
-              ? 'll-warn'
-              : pageTranslatePhase === 'done'
-                ? 'll-success'
-                : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-          }`}
-      >
-        {!pageTranslateSupported
-          ? t('popup.notAvailable')
-          : pageTranslatePhase === 'running'
-            ? t('popup.stopPageTranslation')
-            : pageTranslatePhase === 'done'
-              ? t('popup.restoreOriginalPage')
-              : t('popup.translatePage')}
-      </button>
-
-      {/* Selection mode quick-toggle */}
+      {/* Selection mode quick-toggle & page translation */}
       {settings && (
         <div className="mt-3 pt-2 border-t border-gray-100">
-          <div className="flex items-center gap-2 mb-1.5">
+          {/* Page translate — uses the web-page language preference (defaultTargetLang) */}
+          <button
+            onClick={async () => {
+              if (!pageTranslateSupported) return;
+              const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+              if (!tab?.id || !isTranslatableTabUrl(tab.url)) {
+                setPageTranslateSupported(false);
+                setError(t('popup.pageTranslateUnavailable'));
+                return;
+              }
+              try {
+                if (pageTranslatePhase === 'running') {
+                  await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_STOP' });
+                  setPageTranslatePhase('done');
+                } else if (pageTranslatePhase === 'done') {
+                  await browser.tabs.sendMessage(tab.id, { type: 'PAGE_TRANSLATE_RESTORE' });
+                  setPageTranslatePhase('idle');
+                } else {
+                  const res = await browser.runtime.sendMessage({
+                    type: 'PAGE_TRANSLATE_PAGE',
+                    payload: { tabId: tab.id },
+                  });
+                  if (res?.success) {
+                    window.close();
+                  } else {
+                    if (res?.error === 'PAGE_TRANSLATE_ALREADY_ACTIVE') setPageTranslatePhase('running');
+                    setError(t('popup.pageTranslateUnavailable'));
+                  }
+                }
+              } catch {
+                setError(t('popup.pageTranslateUnavailable'));
+              }
+            }}
+            disabled={!pageTranslateSupported}
+            title={!pageTranslateSupported ? t('popup.pageTranslateUnavailable') : undefined}
+            className={`w-full mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border
+                       ${!pageTranslateSupported
+                ? 'border-gray-200 text-gray-400 opacity-50 cursor-not-allowed'
+                : pageTranslatePhase === 'running'
+                  ? 'll-warn'
+                  : pageTranslatePhase === 'done'
+                    ? 'll-success'
+                    : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+          >
+            {!pageTranslateSupported
+              ? t('popup.notAvailable')
+              : pageTranslatePhase === 'running'
+                ? t('popup.stopPageTranslation')
+                : pageTranslatePhase === 'done'
+                  ? t('popup.restoreOriginalPage')
+                  : t('popup.translatePageTo', { lang: getLanguageName(settings.defaultTargetLang) })}
+          </button>
+          <div className="flex items-center gap-2 mt-3 mb-1.5">
             <span className="text-[11px] font-medium text-gray-500">{t('popup.selectionMode')}</span>
           </div>
           <div className="flex items-center gap-1">

@@ -8,7 +8,7 @@
     "copy": "복사",
     "settings": "설정",
     "selectionMode": "선택 모드",
-    "translatePage": "이 페이지 번역",
+    "translatePageTo": "이 페이지를 {{lang}}로 번역",
     "stopPageTranslation": "페이지 번역 중지",
     "restoreOriginalPage": "원래 페이지 복원",
     "notAvailable": "이 페이지에서 사용 불가",
