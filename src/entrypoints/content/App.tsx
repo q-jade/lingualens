@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useId } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, RefObject, Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppSettings, MessageResponse, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
 import { PageTranslateEngine, type TranslateProgress, type DisplayMode } from '../../content/page-translator/engine';
@@ -68,8 +68,9 @@ interface Props {
 type Mode = 'hidden' | 'trigger' | 'panel';
 
 const SELECTION_PANEL_VIEW_MARGIN = 8;
-const PANEL_MIN_WIDTH = 280;
-const PANEL_WIDTH_RATIO = 0.3;
+/** Must match the panel width in style.css. */
+const PANEL_MIN_WIDTH = 390;
+const PANEL_WIDTH_RATIO = 0.35;
 const PANEL_MAX_HEIGHT_RATIO = 0.5;
 
 type PanelPosition = { left: number; top: number };
@@ -81,7 +82,7 @@ function getViewport() {
 
 function estimatePanelSize(viewport = getViewport()): PanelSize {
   return {
-    w: Math.max(PANEL_MIN_WIDTH, viewport.w * PANEL_WIDTH_RATIO),
+    w: Math.min(Math.max(PANEL_MIN_WIDTH, viewport.w * PANEL_WIDTH_RATIO), viewport.w - 16),
     h: viewport.h * PANEL_MAX_HEIGHT_RATIO,
   };
 }
@@ -115,6 +116,22 @@ function panelPositionFromAnchor(
     top = anchor.y + gap;
   }
   return clampPanelPosition({ left: anchor.x + 6, top }, viewport, panelSize);
+}
+
+/**
+ * Keep a floating menu's bottom edge inside the viewport by shifting it up.
+ * Menus open below the panel header, so a panel near the bottom of the viewport
+ * (or a tall provider list) can push the menu off-screen. The menu itself
+ * scrolls when capped by CSS max-height; this only fixes the position.
+ */
+function clampMenuBottom(
+  pos: { left: number; top: number },
+  menu: HTMLElement | null,
+): { left: number; top: number } {
+  if (!menu) return pos;
+  const margin = 8;
+  const overflow = menu.getBoundingClientRect().bottom - (window.innerHeight - margin);
+  return overflow > 0 ? { ...pos, top: pos.top - overflow } : pos;
 }
 
 export function ContentApp({ onReady }: Props) {
@@ -161,7 +178,7 @@ export function ContentApp({ onReady }: Props) {
 
   const openModeMenu = () => {
     const pos = computeMenuPosition();
-    if (pos) setMenuPosition(pos);
+    if (pos) setMenuPosition(clampMenuBottom(pos, modeMenuRef.current));
     setModeMenuOpen(true);
   };
 
@@ -173,7 +190,7 @@ export function ContentApp({ onReady }: Props) {
   const repositionModeMenu = () => {
     if (!modeMenuOpen) return;
     const pos = computeMenuPosition();
-    if (pos) setMenuPosition(pos);
+    if (pos) setMenuPosition(clampMenuBottom(pos, modeMenuRef.current));
   };
 
   const computeProviderMenuPosition = () => {
@@ -191,7 +208,7 @@ export function ContentApp({ onReady }: Props) {
 
   const openProviderMenu = () => {
     const pos = computeProviderMenuPosition();
-    if (pos) setProviderMenuPosition(pos);
+    if (pos) setProviderMenuPosition(clampMenuBottom(pos, providerMenuRef.current));
     setProviderMenuOpen(true);
   };
 
@@ -203,7 +220,7 @@ export function ContentApp({ onReady }: Props) {
   const repositionProviderMenu = () => {
     if (!providerMenuOpen) return;
     const pos = computeProviderMenuPosition();
-    if (pos) setProviderMenuPosition(pos);
+    if (pos) setProviderMenuPosition(clampMenuBottom(pos, providerMenuRef.current));
   };
 
   const computeLangMenuPosition = () => {
@@ -222,7 +239,7 @@ export function ContentApp({ onReady }: Props) {
 
   const openLangMenu = () => {
     const pos = computeLangMenuPosition();
-    if (pos) setLangMenuPosition(pos);
+    if (pos) setLangMenuPosition(clampMenuBottom(pos, langMenuRef.current));
     setLangMenuOpen(true);
   };
 
@@ -234,7 +251,7 @@ export function ContentApp({ onReady }: Props) {
   const repositionLangMenu = () => {
     if (!langMenuOpen) return;
     const pos = computeLangMenuPosition();
-    if (pos) setLangMenuPosition(pos);
+    if (pos) setLangMenuPosition(clampMenuBottom(pos, langMenuRef.current));
   };
 
   /**
@@ -602,20 +619,27 @@ export function ContentApp({ onReady }: Props) {
     target.scrollIntoView({ block: 'nearest' });
   }, [langMenuOpen]);
 
-  // The language menu is tall: keep it inside the viewport by clamping its
-  // bottom edge (the menu itself scrolls when taller than the viewport).
+  // Keep every floating menu inside the viewport by shifting the menu
+  // up so its bottom edge clears the viewport; the menu itself scrolls
+  // when capped by CSS max-height.
   useLayoutEffect(() => {
-    if (!langMenuOpen || !langMenuPosition) return;
-    const menu = langMenuRef.current;
-    if (!menu) return;
-    const rect = menu.getBoundingClientRect();
-    const margin = 8;
-    if (rect.bottom > window.innerHeight - margin) {
-      setLangMenuPosition((pos) =>
-        pos ? { ...pos, top: pos.top - (rect.bottom - (window.innerHeight - margin)) } : pos,
-      );
-    }
-  }, [langMenuOpen, langMenuPosition]);
+    const clamp = (
+      open: boolean,
+      pos: { left: number; top: number } | null,
+      menuRef: RefObject<HTMLDivElement | null>,
+      setPos: Dispatch<SetStateAction<{ left: number; top: number } | null>>,
+    ) => {
+      if (!open || !pos) return;
+      const menu = menuRef.current;
+      if (!menu) return;
+      const margin = 8;
+      const overflow = menu.getBoundingClientRect().bottom - (window.innerHeight - margin);
+      if (overflow > 0) setPos({ ...pos, top: pos.top - overflow });
+    };
+    clamp(modeMenuOpen, modeMenuPosition, modeMenuRef, setMenuPosition);
+    clamp(providerMenuOpen, providerMenuPosition, providerMenuRef, setProviderMenuPosition);
+    clamp(langMenuOpen, langMenuPosition, langMenuRef, setLangMenuPosition);
+  }, [modeMenuOpen, modeMenuPosition, providerMenuOpen, providerMenuPosition, langMenuOpen, langMenuPosition]);
 
   const openPanelAt = (panelAnchor: { x: number; y: number }) => {
     pendingAnchorRef.current = panelAnchor;

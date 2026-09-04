@@ -42,7 +42,7 @@
   pointer-events: auto;
   /* Stay above aggressive site overlays (e.g. huggingface right rail). */
   z-index: 2147483647;
-  width: max(280px, 30vw);
+  width: min(max(390px, 35vw), calc(100vw - 16px));
   max-height: min(50dvh, calc(100dvh - 16px));
   display: flex;
   flex-direction: column;
@@ -197,6 +197,28 @@
   flex-direction: column;
   gap: 2px;
   white-space: nowrap;
+  /* Cap at the viewport so a menu opened from a panel near the bottom of the
+     screen (or a long provider list) scrolls instead of overflowing. */
+  max-height: min(60dvh, calc(100dvh - 16px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.st-mode-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.st-mode-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.st-mode-menu::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.st-mode-menu::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 /*
@@ -205,7 +227,7 @@
  */
 .st-lang-trigger {
   width: auto;
-  max-width: 100px;
+  max-width: 120px;
   padding: 0 6px;
   border-radius: 4px;
   gap: 4px;
@@ -219,26 +241,6 @@
 
 .st-lang-menu {
   max-width: min(240px, calc(100vw - 16px));
-  max-height: min(60dvh, calc(100dvh - 16px));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.st-lang-menu::-webkit-scrollbar {
-  width: 6px;
-}
-
-.st-lang-menu::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.st-lang-menu::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
-}
-
-.st-lang-menu::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
 }
 
 .st-mode-option {
