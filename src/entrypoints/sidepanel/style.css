@@ -3,3 +3,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Full-height chain: the root app div uses h-full, so it tracks the real
+ * viewport height. 100vh (h-screen) misreports when a classic horizontal
+ * scrollbar appears (Chrome side panel) — the scrollbar shrinks the visible
+ * area but not vh, overflowing vertically and cascading a second scrollbar.
+ */
+html,
+body,
+#root {
+  height: 100%;
+}

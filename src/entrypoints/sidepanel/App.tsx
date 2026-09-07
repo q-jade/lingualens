@@ -264,14 +264,14 @@ export function App() {
   };
 
   return (
-    <div className="relative flex flex-col h-screen bg-white">
+    <div className="relative flex flex-col h-full bg-white">
       {/* Brand accent bar */}
       <div
         aria-hidden="true"
         className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-blue-500 to-indigo-500"
       />
       {/* Language bar */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50">
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50 min-w-0">
         <select
           value={sourceLang ?? ''}
           disabled={!langsReady}
@@ -280,7 +280,7 @@ export function App() {
             setSourceLang(next);
             if (targetLang) void setTranslatorLanguages({ sourceLang: next, targetLang });
           }}
-          className="input ll-select flex-1"
+          className="input ll-select flex-1 min-w-0"
         >
           {SUPPORTED_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
@@ -303,7 +303,7 @@ export function App() {
             setTargetLang(next);
             if (sourceLang) void setTranslatorLanguages({ sourceLang, targetLang: next });
           }}
-          className="input ll-select flex-1"
+          className="input ll-select flex-1 min-w-0"
         >
           {SUPPORTED_LANGUAGES.filter((l) => l.code !== 'auto').map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
@@ -341,8 +341,8 @@ export function App() {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleTranslate();
                 }}
               />
-              <div className="flex items-center justify-between px-4 py-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 px-4 py-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[10px] text-gray-400">{t('sidepanel.chars', { count: sourceText.length })}</span>
                   {sourceText && (
                     <button
@@ -361,7 +361,7 @@ export function App() {
                 <button
                   onClick={handleTranslate}
                   disabled={loading || !sourceText.trim() || !langsReady}
-                  className="ll-btn-primary ll-btn-sm"
+                  className="ll-btn-primary ll-btn-sm shrink-0"
                 >
                   {loading ? (
                     <span className="flex items-center gap-1.5">
