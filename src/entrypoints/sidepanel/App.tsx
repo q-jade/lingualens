@@ -268,7 +268,7 @@ export function App() {
       {/* Brand accent bar */}
       <div
         aria-hidden="true"
-        className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-blue-500 to-indigo-500"
+        className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-blue-400 to-indigo-400"
       />
       {/* Language bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50 min-w-0">

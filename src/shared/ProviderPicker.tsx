@@ -115,7 +115,7 @@ export function ProviderPicker({
           id={menuId}
           role="menu"
           onKeyDown={handleMenuKeyDown}
-          className="absolute bottom-full left-0 z-20 mb-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          className="absolute bottom-full left-0 z-20 mb-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-md"
         >
           {providers.map((provider) => {
             const active = provider.id === settings?.defaultProvider;

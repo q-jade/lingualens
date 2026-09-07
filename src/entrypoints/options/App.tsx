@@ -257,7 +257,7 @@ export function App() {
         <div className="flex items-center gap-3 mb-8">
           <AppLogo className="w-10 h-10 shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">LinguaLens</h1>
+            <h1 className="text-2xl font-bold text-gray-800">LinguaLens</h1>
             <p className="text-sm text-gray-400">{t('options.settings')}</p>
           </div>
         </div>
@@ -712,7 +712,7 @@ function AddProviderMenu({ onAdd }: { onAdd: (type: ProviderConfig['type']) => v
         {t('options.addProvider')}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-48 z-10">
+        <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-md border border-gray-200 py-1 w-48 z-10">
           {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
             <button
               key={key}
@@ -734,7 +734,7 @@ function Section({ id, registerRef, title, action, children }: { id?: string; re
     <section
       id={id}
       ref={id && registerRef ? (el) => registerRef(id, el) : undefined}
-      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 scroll-mt-4"
+      className="bg-white rounded-xl border border-gray-200 p-6 mb-6 scroll-mt-4"
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-800">{title}</h2>

@@ -14,14 +14,29 @@
   /* Brand — blue → indigo, matching the existing product gradient */
   --ll-blue-50: #eff6ff;
   --ll-blue-100: #dbeafe;
+  --ll-blue-400: #60a5fa;
   --ll-blue-500: #3b82f6;
   --ll-blue-600: #2563eb;
   --ll-indigo-50: #eef2ff;
   --ll-indigo-100: #e0e7ff;
   --ll-indigo-300: #a5b4fc;
+  --ll-indigo-400: #818cf8;
   --ll-indigo-500: #6366f1;
   --ll-indigo-600: #4f46e5;
   --ll-indigo-700: #4338ca;
+
+  /* Soft brand accent — decorative lines/bars only (400-step, airy).
+     Primary actions keep the stronger 500 gradient (.ll-btn-primary). */
+  --ll-brand-gradient: linear-gradient(
+    90deg,
+    var(--ll-blue-400),
+    var(--ll-indigo-400)
+  );
+  --ll-brand-gradient-135: linear-gradient(
+    135deg,
+    var(--ll-blue-400),
+    var(--ll-indigo-400)
+  );
 
   /* Neutrals (Tailwind gray scale) */
   --ll-gray-50: #f9fafb;
@@ -51,9 +66,9 @@
   --ll-radius-sm: 6px;
   --ll-radius: 8px;
   --ll-radius-lg: 12px;
-  --ll-focus-ring: 0 0 0 3px rgb(99 102 241 / 0.25);
-  --ll-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
-  --ll-shadow: 0 4px 12px rgb(15 23 42 / 0.08), 0 1px 3px rgb(15 23 42 / 0.06);
+  --ll-focus-ring: 0 0 0 3px rgb(99 102 241 / 0.2);
+  --ll-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
+  --ll-shadow: 0 2px 8px rgb(15 23 42 / 0.06), 0 1px 2px rgb(15 23 42 / 0.04);
 
   /* Type */
   --ll-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
@@ -139,11 +154,10 @@ body {
   transition: filter 120ms ease, transform 60ms ease, box-shadow 120ms ease;
 }
 .ll-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.07);
-  box-shadow: 0 2px 6px rgb(79 70 229 / 0.3);
+  filter: brightness(1.05);
 }
 .ll-btn-primary:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.99);
 }
 .ll-btn-primary:focus-visible {
   outline: none;

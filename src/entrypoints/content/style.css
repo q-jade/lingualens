@@ -12,15 +12,14 @@
   padding: 0;
   line-height: 0;
   /* drop-shadow follows the transparent PNG's silhouette (not a box) */
-  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.39));
-  transition: transform 150ms ease, filter 150ms ease;
+  filter: drop-shadow(0 1px 3px rgba(15, 23, 42, 0.18));
+  transition: transform 150ms ease;
   /* Stay above aggressive site overlays (e.g. huggingface right rail). */
   z-index: 2147483647;
 }
 
 .st-trigger-btn:hover {
-  transform: scale(1.06);
-  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.75)) drop-shadow(0 5px 16px rgba(99, 102, 241, 0.39));
+  transform: scale(1.04);
 }
 
 .st-trigger-btn:active {
@@ -36,6 +35,9 @@
 
 .st-panel {
   @apply rounded-xl border border-gray-200 overflow-hidden;
+  /* Query container so the header can switch layouts by panel width */
+  container-type: inline-size;
+  container-name: panel;
   box-shadow: var(--ll-shadow);
   position: fixed;
   isolation: isolate;
@@ -55,11 +57,37 @@
 }
 
 .st-panel-header {
-  @apply flex flex-none items-center justify-between px-[12px] py-[8px];
-  background: linear-gradient(135deg, var(--ll-blue-500), var(--ll-indigo-500));
-  color: white;
+  @apply flex flex-none items-center justify-between px-[12px] py-[7px];
+  position: relative;
+  background: #ffffff;
+  color: var(--ll-gray-700);
   cursor: grab;
   user-select: none;
+}
+
+/* Soft brand hairline — replaces the old full gradient header */
+.st-panel-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ll-brand-gradient);
+  pointer-events: none;
+}
+
+/* Header/body separator — same white-on-white needs a hairline to read as
+   two zones (mirrors the footer's border-t). */
+.st-panel-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--ll-gray-100);
+  pointer-events: none;
 }
 
 .st-panel-header:active {
@@ -67,11 +95,17 @@
 }
 
 .st-panel-title {
-  @apply font-semibold tracking-wide;
+  @apply font-medium min-w-0 truncate;
+  font-size: 13px;
+  color: var(--ll-gray-700);
 }
 
 .st-header-logo {
-  @apply w-[16px] h-[16px] shrink-0;
+  @apply w-[20px] h-[20px] shrink-0;
+}
+
+.st-header-left {
+  @apply flex items-center gap-[6px] min-w-0;
 }
 
 .st-header-actions {
@@ -79,9 +113,7 @@
 }
 
 .st-panel-close {
-  @apply flex items-center justify-center w-[24px] h-[24px] rounded-full
-         text-white/80 hover:text-white hover:bg-white/20
-         cursor-pointer transition-colors;
+  @apply flex items-center justify-center w-[24px] h-[24px] rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors;
   border: none;
   background: none;
   padding: 0;
@@ -89,8 +121,8 @@
 
 .st-panel-close.st-pin-active,
 .st-panel-close.st-pin-active:hover {
-  color: #fbbf24 !important;
-  background: rgba(255, 255, 255, 0.15);
+  color: var(--ll-indigo-500);
+  background: var(--ll-indigo-50);
 }
 
 .st-panel:focus {
@@ -122,7 +154,7 @@
 }
 
 .st-panel-footer {
-  @apply flex flex-none items-center justify-start px-[12px] py-[8px] border-t border-gray-100;
+  @apply flex flex-none items-center justify-start px-[12px] py-[3px] border-t border-gray-100;
   background-color: #ffffff;
 }
 
@@ -131,29 +163,51 @@
  * <select> cannot render brand icons inside its options). The menu reuses
  * .st-mode-menu / .st-mode-option and is rendered outside the panel.
  */
+/*
+ * Provider picker layout:
+ * - Base (panel < 500px): in-flow, packed between the sides by
+ *   justify-between — fits down to the 390px minimum with no overlap.
+ * - Wide panels (≥ 500px): lifted out of the flow and truly centered.
+ *   True centering needs inner-width ≥ 2×(widest side) + picker, which the
+ *   390px minimum cannot guarantee — hence the width-gated switch.
+ */
 .st-provider-picker {
   display: flex;
   min-width: 0;
 }
 
+@container panel (min-width: 500px) {
+  .st-provider-picker {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
 .st-provider-trigger {
-  @apply flex items-center gap-[6px] max-w-[160px] rounded-[4px];
+  @apply flex items-center gap-[6px] max-w-[120px] rounded-[4px] text-xs;
+  /* Allow the whole trigger to shrink below its content at the panel
+     minimum — the name truncates, icon/chevron stay visible. */
+  min-width: 0;
   background: transparent;
   border: none;
   padding: 1px 4px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--ll-gray-600);
   cursor: pointer;
 }
 
 .st-provider-trigger:hover {
-  color: #fff;
+  color: var(--ll-gray-800);
+  background: var(--ll-gray-100);
 }
 
-/* Soft fill instead of a ring — stays calm on the gradient header while
-   remaining visible for keyboard users (overrides the global button outline). */
-.st-provider-trigger:focus-visible {
-  outline: none;
-  background: rgba(255, 255, 255, 0.15);
+/* Menu-open state — same indigo tint as .st-panel-close.st-pin-active so
+   every header trigger signals "its menu is open" identically. */
+.st-provider-trigger.st-pin-active,
+.st-provider-trigger.st-pin-active:hover {
+  color: var(--ll-indigo-500);
+  background: var(--ll-indigo-50);
 }
 
 .st-provider-trigger-icon {
@@ -161,7 +215,7 @@
 }
 
 .st-provider-name {
-  @apply font-semibold tracking-wide truncate min-w-0;
+  @apply font-medium truncate min-w-0;
 }
 
 .st-provider-chevron {
@@ -192,7 +246,7 @@
   background: #ffffff !important;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--ll-shadow);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -227,12 +281,19 @@
  */
 .st-lang-trigger {
   width: auto;
-  max-width: 120px;
+  max-width: 100px;
   padding: 0 6px;
   border-radius: 4px;
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
+  /* Match the provider trigger — the gray-400 inherited from .st-panel-close
+     was tuned for the old gradient header. Later rule wins the tie. */
+  color: var(--ll-gray-600);
+}
+
+.st-lang-trigger:hover {
+  color: var(--ll-gray-800);
 }
 
 .st-lang-trigger-name {
@@ -244,8 +305,7 @@
 }
 
 .st-mode-option {
-  @apply flex items-center gap-[8px] w-full px-[8px] py-[6px] rounded-md
-         text-gray-700 cursor-pointer transition-colors;
+  @apply flex items-center gap-[8px] w-full px-[8px] py-[6px] rounded-md text-gray-700 cursor-pointer transition-colors;
   border: none;
   background: none;
   text-align: left;
@@ -337,23 +397,29 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: #fff;
-  background: rgba(30, 41, 59, 0.88);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  color: var(--ll-gray-700);
+  background: #ffffff;
+  border: 1px solid var(--ll-gray-200);
+  box-shadow: var(--ll-shadow-sm);
   white-space: nowrap;
   animation: st-toast-in 200ms ease-out;
 }
 
 @keyframes st-toast-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* Page translation status bar */
 .st-status-bar {
-  @apply fixed top-0 left-0 right-0 flex items-center gap-[12px] px-[16px] py-[8px]
-         border-b border-gray-200 shadow-sm;
+  @apply fixed top-0 left-0 right-0 flex items-center gap-[12px] px-[16px] py-[8px] border-b border-gray-200 shadow-sm;
   background-color: #ffffff;
   z-index: 2147483646;
   font-family: var(--ll-font);
@@ -367,8 +433,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--ll-blue-500), var(--ll-indigo-500));
+  height: 2px;
+  background: var(--ll-brand-gradient);
   pointer-events: none;
 }
 
@@ -379,8 +445,8 @@
 .st-status-icon {
   @apply flex-shrink-0;
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
 }
 
@@ -391,15 +457,10 @@
   padding: 5px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
-  /* Layered depth matching the selection trigger icon: contact shadow +
-     ambient shadow + hairline ring, plus inset highlights for a raised look. */
+  /* Single soft contact shadow + hairline ring — light, no glow. */
   box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.28),
-    0 6px 16px rgba(15, 23, 42, 0.16),
-    0 0 0 1px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 1px rgba(15, 23, 42, 0.06);
-  transition: box-shadow 150ms ease, transform 150ms ease;
+    0 1px 3px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(15, 23, 42, 0.05);
 }
 
 .st-status-collapsed-icon {
@@ -407,10 +468,6 @@
   width: 24px;
   height: 24px;
   object-fit: contain;
-  /* Emboss the brand mark slightly off the squircle, echoing the trigger
-     icon's silhouette drop-shadow. */
-  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.22));
-  transition: filter 150ms ease;
 }
 
 .st-status-text {
@@ -427,7 +484,7 @@
 
 .st-status-progress-fill {
   @apply h-full rounded-full transition-all duration-300;
-  background: linear-gradient(90deg, var(--ll-blue-500), var(--ll-indigo-500));
+  background: var(--ll-brand-gradient);
 }
 
 .st-status-actions {
@@ -435,8 +492,7 @@
 }
 
 .st-status-btn {
-  @apply px-[12px] py-[4px] rounded-md border border-gray-200
-         text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors;
+  @apply px-[12px] py-[4px] rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors;
   background: white;
 }
 
@@ -445,9 +501,7 @@
 }
 
 .st-status-btn-icon {
-  @apply flex items-center justify-center w-[28px] h-[28px] rounded-md
-         text-gray-400 hover:text-gray-600 hover:bg-gray-100
-         cursor-pointer transition-colors;
+  @apply flex items-center justify-center w-[28px] h-[28px] rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors;
   border: none;
   background: none;
   padding: 0;
@@ -470,23 +524,7 @@
 }
 
 .st-status-collapsed:hover {
-  transform: scale(1.05);
-}
-
-.st-status-collapsed:hover .st-status-collapsed-mark {
-  /* Same hover signature as the trigger icon: tight dark contact shadow +
-     indigo glow, plus a deeper ambient halo. */
-  box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.4),
-    0 5px 16px rgba(99, 102, 241, 0.39),
-    0 10px 28px rgba(99, 102, 241, 0.22),
-    0 0 0 1px rgba(99, 102, 241, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 1px rgba(15, 23, 42, 0.06);
-}
-
-.st-status-collapsed:hover .st-status-collapsed-icon {
-  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.28));
+  transform: scale(1.03);
 }
 
 .st-status-collapsed:active {
@@ -505,6 +543,5 @@
   min-width: 18px;
   text-align: center;
   line-height: 16px;
-  background: linear-gradient(135deg, var(--ll-blue-500), var(--ll-indigo-500));
-  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.35);
+  background: var(--ll-brand-gradient-135);
 }

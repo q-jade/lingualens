@@ -919,7 +919,12 @@ export function ContentApp({ onReady }: Props) {
             className="st-panel-header"
             onMouseDown={handlePanelHeaderMouseDown}
           >
-            <AppLogo className="st-header-logo" />
+            <div className="st-header-left">
+              <AppLogo className="st-header-logo" />
+              <span className="st-panel-title">
+                {browser.i18n.getMessage('extName')}
+              </span>
+            </div>
             <div className="st-provider-picker">
               <button
                 ref={providerTriggerRef}
@@ -943,7 +948,7 @@ export function ContentApp({ onReady }: Props) {
                     openProviderMenu();
                   }
                 }}
-                className="st-provider-trigger"
+                className={`st-provider-trigger ${providerMenuOpen ? 'st-pin-active' : ''}`}
                 title={t('options.providers')}
                 aria-label={t('options.providers')}
                 aria-haspopup="menu"

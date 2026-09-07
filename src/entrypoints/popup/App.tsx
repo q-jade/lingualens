@@ -121,7 +121,7 @@ export function App() {
       {/* Brand accent bar */}
       <div
         aria-hidden="true"
-        className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-blue-500 to-indigo-500"
+        className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-blue-400 to-indigo-400"
       />
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
