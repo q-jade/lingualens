@@ -1,4 +1,4 @@
-import { BaseProvider } from './base';
+import { BaseProvider, type PromptOverrides } from './base';
 import { getThinkingDisableRequestFields } from './thinking';
 import type { TranslateRequest, TranslateResult } from '../shared/types';
 
@@ -7,8 +7,8 @@ export class OllamaProvider extends BaseProvider {
     return this.config.baseUrl.replace(/\/+$/, '');
   }
 
-  async translate(request: TranslateRequest): Promise<TranslateResult> {
-    const { system, user } = this.buildPrompt(request);
+  async translate(request: TranslateRequest, prompts?: PromptOverrides): Promise<TranslateResult> {
+    const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
@@ -43,8 +43,8 @@ export class OllamaProvider extends BaseProvider {
     };
   }
 
-  async *translateStream(request: TranslateRequest): AsyncGenerator<string> {
-    const { system, user } = this.buildPrompt(request);
+  async *translateStream(request: TranslateRequest, prompts?: PromptOverrides): AsyncGenerator<string> {
+    const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',

@@ -4,6 +4,14 @@ import { resolveDefaultTargetLang } from './default-target-lang';
 export const DEFAULT_SYSTEM_PROMPT =
   'You are a professional translator. Translate the following text from {sourceLang} to {targetLang}. Preserve the original formatting, tone, and style. Only output the translated text, nothing else.';
 
+/**
+ * Supplementary prompt appended for selection/popup/side-panel translations.
+ * The model decides when it actually applies (e.g. only for single words), so
+ * the trigger condition must be phrased explicitly in the template.
+ */
+export const DEFAULT_ADDITIONAL_PROMPT =
+  'If the original text is a single word, output the original text and its pronunciation, along with a detailed translation, just like a real dictionary from {sourceLang} to {targetLang}. Otherwise, output only the translated text.';
+
 export { SUPPORTED_LANGUAGES } from './languages';
 
 export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabled'>> = {
@@ -59,6 +67,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   fallbackProviders: [],
   defaultTargetLang: resolveDefaultTargetLang(),
   defaultSourceLang: 'auto',
+  additionalPrompt: DEFAULT_ADDITIONAL_PROMPT,
   providers: [
     {
       id: 'ollama',

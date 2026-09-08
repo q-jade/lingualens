@@ -124,7 +124,7 @@ export function App() {
 
     const res: MessageResponse<TranslateResult> = await browser.runtime.sendMessage({
       type: 'TRANSLATE',
-      payload: { text: trimmed, sourceLang: srcLang, targetLang: dstLang },
+      payload: { text: trimmed, sourceLang: srcLang, targetLang: dstLang, applyAdditionalPrompt: true },
     });
 
     setLoading(false);

@@ -1,4 +1,4 @@
-import { BaseProvider } from './base';
+import { BaseProvider, type PromptOverrides } from './base';
 import { getOpenAICompatExtraBody } from './thinking';
 import type { TranslateRequest, TranslateResult } from '../shared/types';
 
@@ -27,8 +27,8 @@ export class OpenAICompatProvider extends BaseProvider {
     };
   }
 
-  async translate(request: TranslateRequest): Promise<TranslateResult> {
-    const { system, user } = this.buildPrompt(request);
+  async translate(request: TranslateRequest, prompts?: PromptOverrides): Promise<TranslateResult> {
+    const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -58,8 +58,8 @@ export class OpenAICompatProvider extends BaseProvider {
     };
   }
 
-  async *translateStream(request: TranslateRequest): AsyncGenerator<string> {
-    const { system, user } = this.buildPrompt(request);
+  async *translateStream(request: TranslateRequest, prompts?: PromptOverrides): AsyncGenerator<string> {
+    const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',

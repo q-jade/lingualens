@@ -662,7 +662,7 @@ export function ContentApp({ onReady }: Props) {
     try {
       const response = await browser.runtime.sendMessage({
         type: 'TRANSLATE',
-        payload: { text, sourceLang, targetLang },
+        payload: { text, sourceLang, targetLang, applyAdditionalPrompt: true },
       });
 
       if (response?.success) {

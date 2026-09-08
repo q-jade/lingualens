@@ -2,7 +2,12 @@ export interface TranslateRequest {
   text: string;
   sourceLang: string;
   targetLang: string;
-  context?: string;
+  /**
+   * True when the request comes from a source that supports the supplementary
+   * prompt (selection, popup, side panel). Page translation omits it, so the
+   * additional prompt never applies there.
+   */
+  applyAdditionalPrompt?: boolean;
 }
 
 export interface TranslateResult {
@@ -20,7 +25,6 @@ export interface ProviderConfig {
   baseUrl: string;
   apiKey?: string;
   model?: string;
-  systemPrompt?: string;
   /** LLM providers only. Default true — skip chain-of-thought for faster translation. */
   disableThinking?: boolean;
 }
@@ -38,6 +42,12 @@ export interface AppSettings {
   defaultSourceLang: string;
   providers: ProviderConfig[];
   promptTemplate?: string;
+  /**
+   * Supplementary prompt appended for selection/popup/side-panel translations
+   * (never page translation). Empty string disables it; unset falls back to
+   * the default template.
+   */
+  additionalPrompt?: string;
   chunkingMode: ChunkingMode;
   selectionTriggerMode: SelectionTriggerMode;
   selectionModifierKey: SelectionModifierKey;

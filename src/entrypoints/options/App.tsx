@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
-import { DEFAULT_SETTINGS, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
+import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
 import { clearOnboardingPending, isOnboardingPending } from '../../shared/onboarding';
 import { isLlmProvider } from '../../providers/thinking';
 import { AppLogo } from '../../shared/AppLogo';
@@ -593,11 +593,12 @@ export function App() {
 
             {/* Prompt Template */}
             <Section id="prompt" registerRef={registerSection} title={t('options.promptTemplate')}>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('options.basePrompt')}</label>
               <p className="ll-hint mb-3">
                 {t('options.promptTemplateDesc')} <code className="bg-gray-100 px-1 rounded">{'{sourceLang}'}</code>, <code className="bg-gray-100 px-1 rounded">{'{targetLang}'}</code>
               </p>
               <textarea
-                value={settings.promptTemplate ?? 'You are a professional translator. Translate the following text from {sourceLang} to {targetLang}. Preserve the original formatting, tone, and style. Only output the translated text, nothing else.'}
+                value={settings.promptTemplate ?? DEFAULT_SYSTEM_PROMPT}
                 onChange={(e) => { setSettings((s) => ({ ...s, promptTemplate: e.target.value })); markDirty(); }}
                 rows={4}
                 className="input font-mono leading-relaxed w-full"
@@ -608,6 +609,26 @@ export function App() {
               >
                 {t('options.resetToDefault')}
               </button>
+
+              {/* Additional prompt — selection / popup / side panel only */}
+              <div className="mt-5 pt-5 border-t border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('options.additionalPrompt')}</label>
+                <p className="ll-hint mb-3">
+                  {t('options.additionalPromptDesc')} <code className="bg-gray-100 px-1 rounded">{'{sourceLang}'}</code>, <code className="bg-gray-100 px-1 rounded">{'{targetLang}'}</code>
+                </p>
+                <textarea
+                  value={settings.additionalPrompt ?? DEFAULT_ADDITIONAL_PROMPT}
+                  onChange={(e) => { setSettings((s) => ({ ...s, additionalPrompt: e.target.value })); markDirty(); }}
+                  rows={4}
+                  className="input font-mono leading-relaxed w-full"
+                />
+                <button
+                  onClick={() => { setSettings((s) => ({ ...s, additionalPrompt: DEFAULT_ADDITIONAL_PROMPT })); markDirty(); }}
+                  className="mt-2 text-xs text-gray-400 hover:text-gray-600"
+                >
+                  {t('options.resetToDefault')}
+                </button>
+              </div>
             </Section>
 
             {/* Page Translation */}

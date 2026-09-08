@@ -51,6 +51,8 @@ export class PageTranslateEngine {
       try {
         const response = await browser.runtime.sendMessage({
           type: 'TRANSLATE',
+          // No applyAdditionalPrompt: page translation must always produce plain
+          // translations — the supplementary (e.g. dictionary) prompt never applies.
           payload: {
             text: segment.text,
             sourceLang: options.sourceLang,

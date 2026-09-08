@@ -1,7 +1,8 @@
 import { ProviderManager } from '../providers/manager';
 import { getCached, setCache, clearCache as clearTranslationCache, getCacheStats } from './cache';
 import type { AppSettings, ProviderConfig, TranslateRequest, MessageResponse, TranslateResult } from '../shared/types';
-import { DEFAULT_SETTINGS } from '../shared/constants';
+import type { PromptOverrides } from '../providers/base';
+import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT } from '../shared/constants';
 
 const providerManager = new ProviderManager();
 
@@ -61,22 +62,29 @@ function buildProviderChain(settings: AppSettings): ProviderConfig[] {
 async function translateWithProvider(
   request: TranslateRequest,
   providerConfig: ProviderConfig,
-  promptTemplate?: string,
+  prompts: PromptOverrides,
 ): Promise<TranslateResult> {
+  // The cache key must cover every user-editable prompt input (base +
+  // additional). Otherwise editing any prompt would keep serving stale cached
+  // translations. `||` (not `??`) mirrors buildPrompt's fallback so the tag
+  // always matches the prompt that is actually rendered.
+  const effectiveBase = prompts.basePrompt || DEFAULT_SYSTEM_PROMPT;
+  const promptTag = prompts.additionalPrompt
+    ? `${effectiveBase}\n===\n${prompts.additionalPrompt}`
+    : effectiveBase;
+
   const cached = await getCached(
-    request.text, request.sourceLang, request.targetLang, providerConfig.id,
+    request.text, request.sourceLang, request.targetLang, providerConfig.id, promptTag,
   );
   if (cached) return cached;
 
-  let config = providerConfig;
-  if (promptTemplate && !config.systemPrompt) {
-    config = { ...config, systemPrompt: promptTemplate };
-  }
+  const provider = providerManager.getProvider(providerConfig);
+  // Prompt inputs are explicit arguments (resolved once in handleTranslate),
+  // NOT fields on the request or the config: provider instances are cached by
+  // ID in ProviderManager, so either would leak across requests.
+  const result = await provider.translate(request, prompts);
 
-  const provider = providerManager.getProvider(config);
-  const result = await provider.translate(request);
-
-  await setCache(request.text, request.sourceLang, request.targetLang, config.id, result);
+  await setCache(request.text, request.sourceLang, request.targetLang, providerConfig.id, result, promptTag);
 
   return result;
 }
@@ -91,11 +99,23 @@ export async function handleTranslate(
     return { success: false, error: 'NO_PROVIDER' };
   }
 
+  // Additional prompt applies only to requests that opt in
+  // (applyAdditionalPrompt is true). An unset setting falls back to the
+  // default template; an explicitly cleared (empty) value disables it.
+  const additionalPrompt = request.applyAdditionalPrompt
+    ? (settings.additionalPrompt ?? DEFAULT_ADDITIONAL_PROMPT).trim() || undefined
+    : undefined;
+
+  const prompts: PromptOverrides = {
+    basePrompt: settings.promptTemplate?.trim() || undefined,
+    additionalPrompt,
+  };
+
   let lastError = '';
 
   for (const providerConfig of chain) {
     try {
-      const result = await translateWithProvider(request, providerConfig, settings.promptTemplate);
+      const result = await translateWithProvider(request, providerConfig, prompts);
       return { success: true, data: result };
     } catch (err) {
       lastError = err instanceof Error ? err.message : 'TRANSLATION_FAILED';

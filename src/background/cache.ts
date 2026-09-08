@@ -67,8 +67,16 @@ function schedulePersist(): void {
  * Collision probability ~2.7 × 10⁻¹⁴ for 1000 entries — effectively zero.
  * Same O(n) cost as a single hashCode, no async overhead.
  */
-function makeKey(text: string, sourceLang: string, targetLang: string, providerId: string): string {
-  const input = `${text}|${sourceLang}|${targetLang}|${providerId}`;
+function makeKey(
+  text: string,
+  sourceLang: string,
+  targetLang: string,
+  providerId: string,
+  promptTag: string,
+): string {
+  // promptTag covers every user-editable prompt input (base + additional), so
+  // editing any prompt invalidates old entries instead of serving them stale.
+  const input = `${text}|${sourceLang}|${targetLang}|${providerId}|${promptTag}`;
   let h1 = 0x811c9dc5;
   let h2 = 0xc58f1a7b;
   for (let i = 0; i < input.length; i++) {
@@ -96,9 +104,10 @@ export async function getCached(
   sourceLang: string,
   targetLang: string,
   providerId: string,
+  promptTag: string,
 ): Promise<TranslateResult | null> {
   const cache = await getMemoryCache();
-  const key = makeKey(text, sourceLang, targetLang, providerId);
+  const key = makeKey(text, sourceLang, targetLang, providerId, promptTag);
   const entry = cache.get(key);
   if (!entry) return null;
 
@@ -114,9 +123,10 @@ export async function setCache(
   targetLang: string,
   providerId: string,
   result: TranslateResult,
+  promptTag: string,
 ): Promise<void> {
   const cache = await getMemoryCache();
-  const key = makeKey(text, sourceLang, targetLang, providerId);
+  const key = makeKey(text, sourceLang, targetLang, providerId, promptTag);
 
   cache.set(key, { result, accessedAt: Date.now() });
   evict(cache);
