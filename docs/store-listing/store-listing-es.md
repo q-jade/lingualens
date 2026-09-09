@@ -34,7 +34,7 @@ Verifica la conectividad de cada proveedor desde Configuración antes de guardar
 CARACTERÍSTICAS
 
 Traducción de selección
-Selecciona texto en cualquier página web, incluidos los documentos PDF abiertos en el navegador. Elige entre cuatro modos de activación: un icono flotante cerca de tu selección (por defecto), traducción instantánea al seleccionar, mantener pulsada una tecla modificadora para activar, o desactivar el activador. Abre el panel para ver resultados, reintentar si falla, copiar la traducción o cerrarlo. Fija el panel para mantenerlo abierto durante varias selecciones. También disponible desde el menú contextual, o pulsa Alt+T para traducir la selección actual en un solo paso. Cambia el proveedor de traducción activo en cualquier momento desde la cabecera del panel. En páginas donde los scripts de contenido no pueden ejecutarse (páginas internas del navegador, tiendas de extensiones), el clic derecho en Traducir enruta la selección al panel lateral, que se abre automáticamente.
+Selecciona texto en cualquier página web, incluidos los documentos PDF abiertos en el navegador. Elige entre cuatro modos de activación: un icono flotante cerca de tu selección (por defecto), traducción instantánea al seleccionar, mantener pulsada una tecla modificadora para activar, o desactivar el activador. Abre el panel para ver resultados, reintentar si falla, copiar la traducción o cerrarlo. Fija el panel para mantenerlo abierto durante varias selecciones. También disponible desde el menú contextual, o pulsa Alt+T para traducir la selección actual en un solo paso. Cambia el proveedor de traducción activo o el idioma de destino — con retraducción instantánea — desde la cabecera del panel. En páginas donde los scripts de contenido no pueden ejecutarse (páginas internas del navegador, tiendas de extensiones), el clic derecho en Traducir enruta la selección al panel lateral, que se abre automáticamente.
 
 Traducción bilingüe de página completa
 Convierte artículos, documentos y páginas largas en lectura bilingüe en línea o por sustitución sin salir del sitio. Alterna entre modos en cualquier momento desde la barra de estado. Inicia desde el popup ("Traducir esta página"), el menú contextual de la página, o Alt+Shift+T. Una barra de estado muestra el progreso y permite detener la traducción, restaurar el texto original o cambiar el modo de visualización.
@@ -50,7 +50,7 @@ Panel lateral (Chrome 114+)
 Abre un espacio de trabajo de traducción dedicado desde el popup. Establece los idiomas de origen y destino, intercámbialos, consulta los resultados y explora el historial de traducciones recientes almacenado localmente en tu dispositivo.
 
 Configuración e inicio
-En la primera instalación, Configuración se abre automáticamente con una breve guía de configuración. Configura idiomas, proveedor predeterminado, orden de respaldo, plantilla de prompt LLM y opciones por proveedor, como desactivar la salida «thinking» en modelos compatibles para obtener traducciones más rápidas y limpias.
+En la primera instalación, Configuración se abre automáticamente con una breve guía de configuración. Configura idiomas, proveedor predeterminado, orden de respaldo, plantillas de prompt LLM (base y adicional) y opciones por proveedor, como desactivar la salida «thinking» en modelos compatibles para obtener traducciones más rápidas y limpias.
 
 Rendimiento
 La caché de traducción integrada reduce las llamadas repetidas a la API para texto idéntico durante la navegación.

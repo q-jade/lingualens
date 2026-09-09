@@ -31,7 +31,7 @@ Verify each provider's connectivity from Settings before saving. API keys (when 
 FEATURES
 
 Selection Translation
-Select text on any web page — including PDF documents open in the browser. Choose from four trigger modes: a floating icon near your selection (default), instant translation on select, hold a modifier key to trigger, or turn the trigger off. Open the panel to view results, retry on failure, copy the translation, or dismiss it. Pin the panel to keep it open across multiple selections. Also available via right-click context menu, or press Alt+T to translate the current selection in one step. Switch the active translation provider anytime from the panel header. On pages where content scripts cannot run (browser internal pages, extension stores), right-click Translate routes the selection to the side panel, which opens automatically.
+Select text on any web page — including PDF documents open in the browser. Choose from four trigger modes: a floating icon near your selection (default), instant translation on select, hold a modifier key to trigger, or turn the trigger off. Open the panel to view results, retry on failure, copy the translation, or dismiss it. Pin the panel to keep it open across multiple selections. Also available via right-click context menu, or press Alt+T to translate the current selection in one step. Switch the active translation provider or the target language — with instant re-translation — from the panel header. On pages where content scripts cannot run (browser internal pages, extension stores), right-click Translate routes the selection to the side panel, which opens automatically.
 
 Full-Page Bilingual Translation
 Convert articles, docs, and long pages into inline bilingual or replacement reading without leaving the site. Toggle between modes anytime from the status bar. Start from the popup ("Translate This Page"), the page context menu, or Alt+Shift+T. A status bar shows progress and lets you stop translation, restore the original text, or switch display mode.
@@ -47,7 +47,7 @@ Side Panel
 Open a dedicated translation workspace from the popup. Set source and target languages, swap them, view results, and browse recent translations stored locally on your device. Requires Chromium 114 or later.
 
 Settings & Onboarding
-On first install, Settings opens automatically with a short setup guide. Configure languages, default provider, fallback order, LLM prompt template, and per-provider options such as disabling "thinking" output on supported models for faster, cleaner translations.
+On first install, Settings opens automatically with a short setup guide. Configure languages, default provider, fallback order, LLM prompt templates (base and additional), and per-provider options such as disabling "thinking" output on supported models for faster, cleaner translations.
 
 Performance
 Built-in translation cache reduces repeat API calls for identical text during browsing.

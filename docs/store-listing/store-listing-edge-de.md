@@ -31,7 +31,7 @@ Erweitert
 FUNKTIONEN
 
 Auswahlübersetzung
-Wählen Sie Text auf einer beliebigen Webseite aus — einschließlich im Browser geöffneter PDF-Dokumente. Wählen Sie aus vier Auslösemodi: ein schwebendes Symbol neben Ihrer Auswahl (Standard), Sofortübersetzung bei Auswahl, Modifikatortaste gedrückt halten zum Auslösen oder Auslöser deaktivieren. Öffnen Sie das Panel, um Ergebnisse anzuzeigen, bei Fehlern zu wiederholen, die Übersetzung zu kopieren oder zu schließen. Heften Sie das Panel an, um es über mehrere Auswahlen hinweg geöffnet zu halten. Auch über das Kontextmenü verfügbar, oder drücken Sie Alt+T, um die aktuelle Auswahl in einem Schritt zu übersetzen. Wechseln Sie den aktiven Übersetzungsanbieter jederzeit über die Panel-Kopfzeile. Auf Seiten, auf denen Content-Scripts nicht ausgeführt werden können (browserinterne Seiten, Erweiterungsstores), leitet Rechtsklick auf Übersetzen die Auswahl an das Seitenpanel weiter, das sich automatisch öffnet.
+Wählen Sie Text auf einer beliebigen Webseite aus — einschließlich im Browser geöffneter PDF-Dokumente. Wählen Sie aus vier Auslösemodi: ein schwebendes Symbol neben Ihrer Auswahl (Standard), Sofortübersetzung bei Auswahl, Modifikatortaste gedrückt halten zum Auslösen oder Auslöser deaktivieren. Öffnen Sie das Panel, um Ergebnisse anzuzeigen, bei Fehlern zu wiederholen, die Übersetzung zu kopieren oder zu schließen. Heften Sie das Panel an, um es über mehrere Auswahlen hinweg geöffnet zu halten. Auch über das Kontextmenü verfügbar, oder drücken Sie Alt+T, um die aktuelle Auswahl in einem Schritt zu übersetzen. Wechseln Sie den aktiven Übersetzungsanbieter oder die Zielsprache — mit sofortiger Neuübersetzung — über die Panel-Kopfzeile. Auf Seiten, auf denen Content-Scripts nicht ausgeführt werden können (browserinterne Seiten, Erweiterungsstores), leitet Rechtsklick auf Übersetzen die Auswahl an das Seitenpanel weiter, das sich automatisch öffnet.
 
 Zweisprachige Ganzseitenübersetzung
 Verwandeln Sie Artikel, Dokumente und lange Seiten in zweisprachige oder ersetzende Leseansicht, ohne die Seite zu verlassen. Wechseln Sie jederzeit über die Statusleiste zwischen den Modi. Starten Sie über das Popup („Diese Seite übersetzen"), das Seiten-Kontextmenü oder Alt+Shift+T. Eine Statusleiste zeigt den Fortschritt und ermöglicht das Anhalten der Übersetzung, das Wiederherstellen des Originaltexts oder das Wechseln des Anzeigemodus.
@@ -47,7 +47,7 @@ Seitenleiste
 Öffnen Sie einen eigenen Übersetzungsarbeitsbereich aus dem Popup. Legen Sie Quell- und Zielsprache fest, tauschen Sie Sprachen, zeigen Sie Ergebnisse an und durchsuchen Sie den lokal auf Ihrem Gerät gespeicherten Übersetzungsverlauf. Erfordert Chromium 114 oder höher.
 
 Einstellungen & Einführung
-Bei der ersten Installation öffnen sich die Einstellungen automatisch mit einer kurzen Einrichtungsanleitung. Konfigurieren Sie Sprachen, Standardanbieter, Fallback-Reihenfolge, LLM-Prompt-Vorlage und anbieterspezifische Optionen wie das Deaktivieren der „Thinking"-Ausgabe bei unterstützten Modellen für schnellere, sauberere Übersetzungen.
+Bei der ersten Installation öffnen sich die Einstellungen automatisch mit einer kurzen Einrichtungsanleitung. Konfigurieren Sie Sprachen, Standardanbieter, Fallback-Reihenfolge, LLM-Prompt-Vorlagen (Basis und zusätzlich) und anbieterspezifische Optionen wie das Deaktivieren der „Thinking"-Ausgabe bei unterstützten Modellen für schnellere, sauberere Übersetzungen.
 
 Leistung
 Der integrierte Übersetzungscache reduziert wiederholte API-Aufrufe für identischen Text während des Surfens.

@@ -10,13 +10,13 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 
 ## Features
 
-- **Selection translation** — Select text on any page; a floating trigger appears. Choose from four trigger modes: icon, instant, modifier key, or off. Right-click **Translate** or use the keyboard shortcut for one-step translation. Pin the panel to translate multiple selections without reopening. Switch providers or retry on failure directly from the panel.
+- **Selection translation** — Select text on any page; a floating trigger appears. Choose from four trigger modes: icon, instant, modifier key, or off. Right-click **Translate** or use the keyboard shortcut for one-step translation. Pin the panel to translate multiple selections without reopening. Switch providers or the target language — with instant re-translation — directly from the panel.
 - **Full-page translation** — Inject bilingual translations inline while preserving layout. Choose **Quality** (larger chunks, better context) or **Speed** (smaller chunks, faster updates) in settings.
 - **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation, and a customizable HTTP template. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
 - **Provider fallback** — If the default provider fails, try the next configured provider in order.
 - **Translation cache** — Repeated text is served from an in-memory cache with debounced persistence.
 - **Popup & side panel** — Quick translate from the toolbar popup; open the side panel (Chrome 114+) for a larger UI with session history, back navigation, and draggable layout.
-- **LLM tuning** — Custom system prompt template; optional **disable thinking** for models that emit chain-of-thought (faster, cleaner output).
+- **LLM tuning** — Custom system prompt template plus an additional prompt for selection, popup, and side-panel translations (e.g. a dictionary-style template for single words); optional **disable thinking** for models that emit chain-of-thought (faster, cleaner output).
 
 ## Browser support
 
@@ -142,6 +142,7 @@ If shortcuts do nothing, open your browser’s extension shortcut settings and a
 - **Language** — Default source (including auto-detect) and target language.
 - **Default provider / Fallback providers** — Primary backend and ordered backups on failure.
 - **Translation prompt template** — System prompt for LLM providers; placeholders `{sourceLang}`, `{targetLang}`.
+- **Additional prompt** — Extra instructions appended to the system prompt for selection, popup, and side-panel translations only (never page translation). Supports the same placeholders; clear the field to disable.
 - **Page translation** — **Quality** vs **Speed** chunking strategy.
 - **Disable thinking** (LLM providers) — Reduces reasoning output for faster translation (on by default for Ollama/LM Studio).
 

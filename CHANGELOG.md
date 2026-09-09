@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.8.0] - 2026-09-09
+
+### Added
+
+- Configurable additional prompt for selection, popup, and side-panel translations: a dictionary-style single-word template is appended to the system prompt (page translation is unaffected); clearing it disables the feature. Base and additional prompts are editable in Settings with reset buttons, and cache keys include the effective prompt so edits invalidate stale entries.
+- Target language picker in the floating selection panel header: switching the language re-translates immediately.
+
+### Changed
+
+- Lighter, airier UI across all surfaces: selection-panel header with a brand hairline, compact footer, softer shadows and calmer hover states, 400-step brand tokens, and a desaturated squared app icon.
+
+### Fixed
+
+- Selections made on the extension's own pages (options, side panel) now route to the side panel instead of doing nothing.
+- Floating mode/provider/language menus in the selection panel are clamped to the viewport and scroll when tall; the panel is wider and longer language names fit.
+- Side panel no longer shows double scrollbars at Chrome's default width: the language bar shrinks instead of overflowing.
+
 ## [0.7.0] - 2026-09-01
 
 ### Added
@@ -149,6 +166,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.8.0]: https://github.com/q-jade/lingualens/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/q-jade/lingualens/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/q-jade/lingualens/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/q-jade/lingualens/compare/v0.5.1...v0.5.2
