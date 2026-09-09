@@ -2,7 +2,9 @@ import type { AppSettings, ProviderConfig } from './types';
 import { resolveDefaultTargetLang } from './default-target-lang';
 
 export const DEFAULT_SYSTEM_PROMPT =
-  'You are a professional translator. Translate the following text from {sourceLang} to {targetLang}. Preserve the original formatting, tone, and style. Only output the translated text, nothing else.';
+  'You are a professional translator. Translate the following text from {sourceLang} to {targetLang}. '
+  + 'Preserve the original formatting, tone, and style. If the text contains multiple lines, translate '
+  + 'each line separately and keep the same number of lines. Only output the translated text, nothing else.';
 
 /**
  * Supplementary prompt appended for selection/popup/side-panel translations.

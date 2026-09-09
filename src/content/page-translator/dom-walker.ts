@@ -76,7 +76,8 @@ function shouldSkipTranslation(text: string): boolean {
 export interface SubSegment {
   textNodes: Text[];
   originalTexts: string[];
-  textLen: number;
+  /** The sub-segment's own text — exactly one line of the containing segment's text. */
+  text: string;
 }
 
 export interface TextSegment {
@@ -219,7 +220,7 @@ function splitByLineBreaks(nodes: Text[]): SubSegment[] {
     subSegments.push({
       textNodes: currentNodes,
       originalTexts: currentNodes.map((n) => n.textContent ?? ''),
-      textLen: text.length,
+      text,
     });
     currentNodes = [];
   }
@@ -238,7 +239,7 @@ function splitByLineBreaks(nodes: Text[]): SubSegment[] {
 function createSegment(nodes: Text[], idCounter: { value: number }): TextSegment | null {
   const subSegments = splitByLineBreaks(nodes);
   const text = subSegments.length > 1
-    ? subSegments.map((s) => textFromNodes(s.textNodes)).join('\n')
+    ? subSegments.map((s) => s.text).join('\n')
     : textFromNodes(nodes);
 
   if (text.length <= 1) return null;
@@ -358,7 +359,7 @@ function mergeSmallSegments(segments: TextSegment[], limit: number): TextSegment
     return seg.subSegments ?? [{
       textNodes: seg.textNodes,
       originalTexts: seg.originalTexts,
-      textLen: seg.text.length,
+      text: seg.text,
     }];
   }
 

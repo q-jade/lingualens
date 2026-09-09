@@ -23,7 +23,12 @@ type ProgressCallback = (progress: TranslateProgress) => void;
 export class PageTranslateEngine {
   private segments: TextSegment[] = [];
   private abortController: AbortController | null = null;
-  private translatedSegments = new Map<string, string>();
+  /**
+   * Resolved translation parts per segment: one part per sub-segment, or a
+   * single part when the segment has none. A null part failed to translate
+   * and keeps its original text.
+   */
+  private translatedSegments = new Map<string, (string | null)[]>();
   private bilingualInserted: HTMLElement[] = [];
   private isRunning = false;
 
@@ -62,10 +67,14 @@ export class PageTranslateEngine {
 
         if (this.abortController?.signal.aborted) return;
 
-        if (response?.success) {
-          this.translatedSegments.set(segment.id, response.data.translated);
-          this.applyTranslation(segment, response.data.translated, options.displayMode);
-          progress.done++;
+        if (response?.success && response.data.translated.trim()) {
+          const parts = await this.resolveSegmentParts(segment, response.data.translated, options);
+          // Null = aborted while resolving; leave the segment untranslated.
+          if (parts) {
+            this.translatedSegments.set(segment.id, parts);
+            this.applyParts(segment, parts, options.displayMode);
+            progress.done++;
+          }
         } else {
           progress.errors++;
         }
@@ -111,9 +120,9 @@ export class PageTranslateEngine {
     this.removeBilingualMarkers();
 
     for (const segment of this.segments) {
-      const translated = this.translatedSegments.get(segment.id);
-      if (translated) {
-        this.applyTranslation(segment, translated, mode);
+      const parts = this.translatedSegments.get(segment.id);
+      if (parts) {
+        this.applyParts(segment, parts, mode);
       }
     }
   }
@@ -125,18 +134,69 @@ export class PageTranslateEngine {
     this.bilingualInserted = [];
   }
 
-  private applyTranslation(segment: TextSegment, translated: string, mode: DisplayMode): void {
-    if (segment.subSegments && segment.subSegments.length > 1) {
-      const parts = this.splitTranslationForSubSegments(translated, segment.subSegments.map((s) => s.textLen));
-      for (let i = 0; i < segment.subSegments.length; i++) {
-        const sub = segment.subSegments[i];
-        const part = parts[i] ?? '';
-        this.applyToNodes(sub.textNodes, part, mode);
+  /**
+   * Map a merged translation back to the segment's sub-segments. The segment
+   * text is sent as one line per sub-segment, so a response with the same
+   * number of non-empty lines maps 1:1. Otherwise the line structure did not
+   * survive translation (models merge short heading lines or hard-wrap long
+   * ones) — re-translate each sub-segment on its own instead of guessing split
+   * points. Returns null when aborted before all parts were resolved.
+   */
+  private async resolveSegmentParts(
+    segment: TextSegment,
+    translated: string,
+    options: PageTranslateOptions,
+  ): Promise<(string | null)[] | null> {
+    const subs = segment.subSegments && segment.subSegments.length > 1
+      ? segment.subSegments
+      : undefined;
+    if (!subs) return [translated];
+
+    const lines = translated
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    if (lines.length === subs.length) return lines;
+
+    const parts: (string | null)[] = [];
+    for (const sub of subs) {
+      if (this.abortController?.signal.aborted) return null;
+      try {
+        const response = await browser.runtime.sendMessage({
+          type: 'TRANSLATE',
+          payload: {
+            text: sub.text,
+            sourceLang: options.sourceLang,
+            targetLang: options.targetLang,
+          },
+        });
+        parts.push(
+          response?.success && response.data.translated.trim() ? response.data.translated : null,
+        );
+      } catch {
+        parts.push(null);
       }
+    }
+    return parts;
+  }
+
+  /**
+   * Apply resolved parts to their sub-segments. A null part keeps its
+   * original text — a failed translation must never blank a block.
+   */
+  private applyParts(segment: TextSegment, parts: (string | null)[], mode: DisplayMode): void {
+    const subs = segment.subSegments && segment.subSegments.length > 1
+      ? segment.subSegments
+      : undefined;
+    if (!subs) {
+      this.applyToNodes(segment.textNodes, parts[0] ?? '', mode);
       return;
     }
-
-    this.applyToNodes(segment.textNodes, translated, mode);
+    for (let i = 0; i < subs.length; i++) {
+      const part = parts[i];
+      if (!part) continue;
+      this.applyToNodes(subs[i].textNodes, part, mode);
+    }
   }
 
   private applyToNodes(textNodes: Text[], translated: string, mode: DisplayMode): void {
@@ -186,29 +246,5 @@ export class PageTranslateEngine {
 
     current.insertAdjacentElement('afterend', marker);
     return true;
-  }
-
-  /**
-   * Split a translated string proportionally based on original sub-segment lengths.
-   * Uses newlines as natural split points when available, otherwise splits proportionally.
-   */
-  private splitTranslationForSubSegments(translated: string, lengths: number[]): string[] {
-    const lines = translated.split('\n');
-    if (lines.length === lengths.length) {
-      return lines.map((l) => l.trim());
-    }
-
-    const totalLen = lengths.reduce((a, b) => a + b, 0);
-    const parts: string[] = [];
-    let cursor = 0;
-    for (let i = 0; i < lengths.length; i++) {
-      const ratio = lengths[i] / totalLen;
-      const partLen = i === lengths.length - 1
-        ? translated.length - cursor
-        : Math.round(translated.length * ratio);
-      parts.push(translated.slice(cursor, cursor + partLen).trim());
-      cursor += partLen;
-    }
-    return parts;
   }
 }
