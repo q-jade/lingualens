@@ -34,7 +34,7 @@ Vérifiez la connectivité de chaque fournisseur depuis les Paramètres avant d'
 FONCTIONNALITÉS
 
 Traduction de sélection
-Sélectionnez du texte sur n'importe quelle page web normale. Choisissez parmi quatre modes de déclenchement : une icône flottante près de votre sélection (par défaut), traduction instantanée à la sélection, maintenir une touche modificatrice pour déclencher, ou désactiver le déclenchement. Ouvrez le panneau pour voir les résultats, réessayer en cas d'échec, copier la traduction ou la fermer. Épinglez le panneau pour le garder ouvert pendant plusieurs sélections. Également disponible via le menu contextuel, ou appuyez sur Alt+T pour traduire la sélection en une étape. Changez le fournisseur de traduction actif à tout moment depuis l'en-tête du panneau.
+Sélectionnez du texte sur n'importe quelle page web — y compris les documents PDF ouverts dans le navigateur. Choisissez parmi quatre modes de déclenchement : une icône flottante près de votre sélection (par défaut), traduction instantanée à la sélection, maintenir une touche modificatrice pour déclencher, ou désactiver le déclenchement. Ouvrez le panneau pour voir les résultats, réessayer en cas d'échec, copier la traduction ou la fermer. Épinglez le panneau pour le garder ouvert pendant plusieurs sélections. Également disponible via le menu contextuel, ou appuyez sur Alt+T pour traduire la sélection en une étape. Changez le fournisseur de traduction actif à tout moment depuis l'en-tête du panneau. Sur les pages où les scripts de contenu ne peuvent pas s'exécuter (pages internes du navigateur, boutiques d'extensions), le clic droit sur Traduire achemine la sélection vers le panneau latéral, qui s'ouvre automatiquement.
 
 Traduction bilingue de page entière
 Convertissez des articles, documents et longues pages en lecture bilingue ou en remplacement intégré sans quitter le site. Basculez entre les modes à tout moment depuis la barre d'état. Lancez depuis la popup (« Traduire cette page »), le menu contextuel de la page, ou Alt+Shift+T. Une barre d'état affiche la progression et permet d'arrêter la traduction, de restaurer le texte original ou de changer le mode d'affichage.
@@ -78,7 +78,7 @@ LinguaLens n'exploite pas ses propres serveurs de traduction. Le texte que vous 
 
 LIMITATIONS
 
-• Ne fonctionne pas sur les pages restreintes (chrome://, Chrome Web Store, etc.)
+• La traduction de page entière ne fonctionne pas sur les pages restreintes (chrome://, pages internes du navigateur, etc.) ; la traduction de sélection y est acheminée vers le panneau latéral (Chromium 114+)
 • Nécessite au moins un fournisseur configuré et fonctionnel pour traduire
 • Le panneau latéral nécessite Chromium 114+
 • Les très longues pages peuvent prendre du temps et nécessiter plusieurs appels API

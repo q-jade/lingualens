@@ -31,7 +31,7 @@ Erweitert
 FUNKTIONEN
 
 Auswahlübersetzung
-Wählen Sie Text auf einer normalen Webseite aus. Wählen Sie aus vier Auslösemodi: ein schwebendes Symbol neben Ihrer Auswahl (Standard), Sofortübersetzung bei Auswahl, Modifikatortaste gedrückt halten zum Auslösen oder Auslöser deaktivieren. Öffnen Sie das Panel, um Ergebnisse anzuzeigen, bei Fehlern zu wiederholen, die Übersetzung zu kopieren oder zu schließen. Heften Sie das Panel an, um es über mehrere Auswahlen hinweg geöffnet zu halten. Auch über das Kontextmenü verfügbar, oder drücken Sie Alt+T, um die aktuelle Auswahl in einem Schritt zu übersetzen. Wechseln Sie den aktiven Übersetzungsanbieter jederzeit über die Panel-Kopfzeile.
+Wählen Sie Text auf einer beliebigen Webseite aus — einschließlich im Browser geöffneter PDF-Dokumente. Wählen Sie aus vier Auslösemodi: ein schwebendes Symbol neben Ihrer Auswahl (Standard), Sofortübersetzung bei Auswahl, Modifikatortaste gedrückt halten zum Auslösen oder Auslöser deaktivieren. Öffnen Sie das Panel, um Ergebnisse anzuzeigen, bei Fehlern zu wiederholen, die Übersetzung zu kopieren oder zu schließen. Heften Sie das Panel an, um es über mehrere Auswahlen hinweg geöffnet zu halten. Auch über das Kontextmenü verfügbar, oder drücken Sie Alt+T, um die aktuelle Auswahl in einem Schritt zu übersetzen. Wechseln Sie den aktiven Übersetzungsanbieter jederzeit über die Panel-Kopfzeile. Auf Seiten, auf denen Content-Scripts nicht ausgeführt werden können (browserinterne Seiten, Erweiterungsstores), leitet Rechtsklick auf Übersetzen die Auswahl an das Seitenpanel weiter, das sich automatisch öffnet.
 
 Zweisprachige Ganzseitenübersetzung
 Verwandeln Sie Artikel, Dokumente und lange Seiten in zweisprachige oder ersetzende Leseansicht, ohne die Seite zu verlassen. Wechseln Sie jederzeit über die Statusleiste zwischen den Modi. Starten Sie über das Popup („Diese Seite übersetzen"), das Seiten-Kontextmenü oder Alt+Shift+T. Eine Statusleiste zeigt den Fortschritt und ermöglicht das Anhalten der Übersetzung, das Wiederherstellen des Originaltexts oder das Wechseln des Anzeigemodus.
@@ -75,7 +75,7 @@ LinguaLens betreibt keine eigenen Übersetzungsserver. Der von Ihnen übersetzte
 
 EINSCHRÄNKUNGEN
 
-• Funktioniert nicht auf eingeschränkten Seiten (browserinterne Seiten, Erweiterungsstore usw.)
+• Die Ganzseitenübersetzung funktioniert nicht auf eingeschränkten Seiten (browserinterne Seiten, Erweiterungsstore usw.); die Auswahlübersetzung wird dort an das Seitenpanel weitergeleitet (Chromium 114+)
 • Erfordert mindestens einen konfigurierten, funktionierenden Anbieter zum Übersetzen
 • Die Seitenleiste erfordert Chromium 114+
 • Sehr lange Seiten können Zeit und mehrere API-Aufrufe in Anspruch nehmen

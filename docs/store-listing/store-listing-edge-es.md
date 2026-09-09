@@ -31,7 +31,7 @@ Verifica la conectividad de cada proveedor desde Configuración antes de guardar
 CARACTERÍSTICAS
 
 Traducción de selección
-Selecciona texto en cualquier página web normal. Elige entre cuatro modos de activación: un icono flotante cerca de tu selección (por defecto), traducción instantánea al seleccionar, mantener pulsada una tecla modificadora para activar, o desactivar el activador. Abre el panel para ver resultados, reintentar si falla, copiar la traducción o cerrarlo. Fija el panel para mantenerlo abierto durante varias selecciones. También disponible desde el menú contextual, o pulsa Alt+T para traducir la selección actual en un solo paso. Cambia el proveedor de traducción activo en cualquier momento desde la cabecera del panel.
+Selecciona texto en cualquier página web, incluidos los documentos PDF abiertos en el navegador. Elige entre cuatro modos de activación: un icono flotante cerca de tu selección (por defecto), traducción instantánea al seleccionar, mantener pulsada una tecla modificadora para activar, o desactivar el activador. Abre el panel para ver resultados, reintentar si falla, copiar la traducción o cerrarlo. Fija el panel para mantenerlo abierto durante varias selecciones. También disponible desde el menú contextual, o pulsa Alt+T para traducir la selección actual en un solo paso. Cambia el proveedor de traducción activo en cualquier momento desde la cabecera del panel. En páginas donde los scripts de contenido no pueden ejecutarse (páginas internas del navegador, tiendas de extensiones), el clic derecho en Traducir enruta la selección al panel lateral, que se abre automáticamente.
 
 Traducción bilingüe de página completa
 Convierte artículos, documentos y páginas largas en lectura bilingüe en línea o por sustitución sin salir del sitio. Alterna entre modos en cualquier momento desde la barra de estado. Inicia desde el popup ("Traducir esta página"), el menú contextual de la página, o Alt+Shift+T. Una barra de estado muestra el progreso y permite detener la traducción, restaurar el texto original o cambiar el modo de visualización.
@@ -75,7 +75,7 @@ LinguaLens no ejecuta sus propios servidores de traducción. El texto que traduc
 
 LIMITACIONES
 
-• No funciona en páginas restringidas (páginas internas del navegador, tienda de extensiones, etc.)
+• La traducción de página completa no funciona en páginas restringidas (páginas internas del navegador, tienda de extensiones, etc.); la traducción de selección se enruta al panel lateral (Chromium 114+)
 • Requiere al menos un proveedor configurado y funcional para traducir
 • El panel lateral requiere Chromium 114+
 • Las páginas muy largas pueden requerir tiempo y múltiples llamadas a la API
