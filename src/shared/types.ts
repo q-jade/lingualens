@@ -53,11 +53,23 @@ export interface AppSettings {
   selectionModifierKey: SelectionModifierKey;
 }
 
+/**
+ * Payload for SAVE_SETTINGS. The two prompt fields additionally accept an
+ * explicit `null`: it clears the stored override so the built-in default
+ * applies again. `undefined` cannot carry that intent — message serialization
+ * (Chrome/Edge) drops undefined-valued keys before the background sees them,
+ * so a missing key must mean "leave unchanged" for partial updates.
+ */
+export type SettingsPatch = Omit<Partial<AppSettings>, 'promptTemplate' | 'additionalPrompt'> & {
+  promptTemplate?: string | null;
+  additionalPrompt?: string | null;
+};
+
 export type MessageType =
   | { type: 'TRANSLATE'; payload: TranslateRequest }
   | { type: 'VERIFY_CONFIG'; payload: { providerConfig: ProviderConfig } }
   | { type: 'GET_SETTINGS' }
-  | { type: 'SAVE_SETTINGS'; payload: Partial<AppSettings> };
+  | { type: 'SAVE_SETTINGS'; payload: SettingsPatch };
 
 export type MessageResponse<T = unknown> =
   | { success: true; data: T }

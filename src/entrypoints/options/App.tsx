@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
+import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode, SelectionTriggerMode, SelectionModifierKey, SettingsPatch } from '../../shared/types';
 import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
 import { clearOnboardingPending, isOnboardingPending } from '../../shared/onboarding';
 import { isLlmProvider } from '../../providers/thinking';
@@ -162,7 +162,15 @@ export function App() {
 
   const handleSave = async () => {
     setSaving(true);
-    await browser.runtime.sendMessage({ type: 'SAVE_SETTINGS', payload: settings });
+    // Unset prompt fields are sent as an explicit `null` (= reset to the
+    // built-in default): `undefined` is dropped by message serialization, so
+    // the background would otherwise keep the previously stored override.
+    const payload: SettingsPatch = {
+      ...settings,
+      promptTemplate: settings.promptTemplate ?? null,
+      additionalPrompt: settings.additionalPrompt ?? null,
+    };
+    await browser.runtime.sendMessage({ type: 'SAVE_SETTINGS', payload });
     setSaving(false);
     setSaved(true);
     setDirty(false);
@@ -623,7 +631,7 @@ export function App() {
                   className="input font-mono leading-relaxed w-full"
                 />
                 <button
-                  onClick={() => { setSettings((s) => ({ ...s, additionalPrompt: DEFAULT_ADDITIONAL_PROMPT })); markDirty(); }}
+                  onClick={() => { setSettings((s) => ({ ...s, additionalPrompt: undefined })); markDirty(); }}
                   className="mt-2 text-xs text-gray-400 hover:text-gray-600"
                 >
                   {t('options.resetToDefault')}

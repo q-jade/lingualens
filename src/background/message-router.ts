@@ -1,6 +1,6 @@
 import { ProviderManager } from '../providers/manager';
 import { getCached, setCache, clearCache as clearTranslationCache, getCacheStats } from './cache';
-import type { AppSettings, ProviderConfig, TranslateRequest, MessageResponse, TranslateResult } from '../shared/types';
+import type { AppSettings, ProviderConfig, TranslateRequest, MessageResponse, TranslateResult, SettingsPatch } from '../shared/types';
 import type { PromptOverrides } from '../providers/base';
 import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT } from '../shared/constants';
 
@@ -22,9 +22,20 @@ export async function getSettings(): Promise<AppSettings> {
   return normalizeSettings({ ...DEFAULT_SETTINGS, ...(result.settings as AppSettings) });
 }
 
-export async function saveSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
+export async function saveSettings(partial: SettingsPatch): Promise<AppSettings> {
   const current = await getSettings();
-  const updated = { ...current, ...partial };
+  // The prompt fields are applied manually: the options page sends an explicit
+  // `null` ("reset to default") to remove the stored override — `undefined`
+  // can't express that because message serialization drops undefined-valued
+  // keys. A missing key means "leave unchanged" (partial saves from popup,
+  // content script, and background must keep working).
+  const { promptTemplate, additionalPrompt, ...rest } = partial;
+  const updated = { ...current, ...rest };
+  if (promptTemplate === null) delete updated.promptTemplate;
+  else if (promptTemplate !== undefined) updated.promptTemplate = promptTemplate;
+  if (additionalPrompt === null) delete updated.additionalPrompt;
+  else if (additionalPrompt !== undefined) updated.additionalPrompt = additionalPrompt;
+
   if (partial.providers) updated.providers = partial.providers;
   if (partial.fallbackProviders) updated.fallbackProviders = partial.fallbackProviders;
   const normalized = normalizeSettings(updated);
@@ -153,7 +164,7 @@ export async function handleMessage(message: Record<string, unknown>): Promise<M
     case 'GET_SETTINGS':
       return { success: true, data: await getSettings() };
     case 'SAVE_SETTINGS':
-      return { success: true, data: await saveSettings(message.payload as Partial<AppSettings>) };
+      return { success: true, data: await saveSettings(message.payload as SettingsPatch) };
     case 'CLEAR_CACHE':
       await clearTranslationCache();
       return { success: true, data: null };
