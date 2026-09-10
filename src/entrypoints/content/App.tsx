@@ -354,6 +354,13 @@ export function ContentApp({ onReady }: Props) {
   const pageTranslatePhaseRef = useRef<PageTranslatePhase>('idle');
   /** Latest progress for `finally` / stop (React state may lag one tick). */
   const pageProgressRef = useRef<TranslateProgress | null>(null);
+  /**
+   * Session ownership token. `startPageTranslation` claims the session with
+   * `++pageSessionRef.current`; stop/restore/another start bump it, so an
+   * invocation still awaiting `engine.start` can never finish (or mark `done`)
+   * a session it no longer owns.
+   */
+  const pageSessionRef = useRef(0);
 
   const applyPageTranslatePhase = (phase: PageTranslatePhase) => {
     pageTranslatePhaseRef.current = phase;
@@ -411,14 +418,18 @@ export function ContentApp({ onReady }: Props) {
     const engine = engineRef.current;
     if (engine.running || pageTranslatePhaseRef.current !== 'idle') return;
 
+    const session = ++pageSessionRef.current;
     applyPageTranslatePhase('running');
     setMode('hidden');
     const initial = { total: 0, done: 0, errors: 0 };
     pageProgressRef.current = initial;
     setPageProgress(initial);
 
+    // `engine.start` resolves `false` when a run is already active — this
+    // invocation does not own the engine and must not finish the session.
+    let started = true;
     try {
-      await engine.start(
+      started = await engine.start(
         {
           targetLang: settings?.defaultTargetLang ?? resolveDefaultTargetLang(),
           sourceLang: settings?.defaultSourceLang ?? 'auto',
@@ -433,16 +444,26 @@ export function ContentApp({ onReady }: Props) {
         },
       );
     } finally {
-      finishPageTranslateSession(pageProgressRef.current);
+      // Only finish the session this invocation still owns: a stop/restore (or
+      // a newer start) invalidates it, and a stale `engine.start` resolution
+      // must never mark the current session `done` prematurely.
+      if (started && session === pageSessionRef.current) {
+        finishPageTranslateSession(pageProgressRef.current);
+      }
     }
   }, [displayMode]);
 
   const stopPageTranslation = () => {
+    // Invalidate the still-awaiting `startPageTranslation` invocation: its
+    // `finally` would otherwise re-finish the session (duplicate toast) — or,
+    // once its aborted tasks settle, mark a NEWER session `done`.
+    pageSessionRef.current++;
     engineRef.current.stop();
     finishPageTranslateSession(pageProgressRef.current);
   };
 
   const restorePageTranslation = () => {
+    pageSessionRef.current++;
     engineRef.current.restore();
     pageProgressRef.current = null;
     setPageProgress(null);

@@ -36,22 +36,39 @@ export class PageTranslateEngine {
     return this.isRunning;
   }
 
-  async start(options: PageTranslateOptions, onProgress: ProgressCallback): Promise<void> {
-    if (this.isRunning) return;
+  /**
+   * Translate all extracted segments. Resolves `false` immediately when a run
+   * is already active — the caller must then not treat this resolution as its
+   * own session ending. Each run captures its own AbortController: tasks check
+   * that local signal instead of `this.abortController`, so a controller
+   * installed by a later run cannot "un-abort" this run's queued tasks, and
+   * this run finishing late cannot clear `isRunning` for the later one.
+   */
+  async start(options: PageTranslateOptions, onProgress: ProgressCallback): Promise<boolean> {
+    if (this.isRunning) return false;
     this.isRunning = true;
-    this.abortController = new AbortController();
+    const controller = new AbortController();
+    this.abortController = controller;
+    const signal = controller.signal;
 
-    this.segments = extractSegments(document.body, options.chunkingMode);
+    try {
+      this.segments = extractSegments(document.body, options.chunkingMode);
+    } catch (err) {
+      // Extraction failed: never leave the engine stuck in `running`.
+      if (this.abortController === controller) this.isRunning = false;
+      throw err;
+    }
+
     const progress: TranslateProgress = { total: this.segments.length, done: 0, errors: 0 };
     onProgress({ ...progress });
 
     const sem = new Semaphore(options.concurrency);
 
     const tasks = this.segments.map(async (segment) => {
-      if (this.abortController?.signal.aborted) return;
+      if (signal.aborted) return;
 
       await sem.acquire();
-      if (this.abortController?.signal.aborted) { sem.release(); return; }
+      if (signal.aborted) { sem.release(); return; }
 
       try {
         const response = await browser.runtime.sendMessage({
@@ -65,10 +82,10 @@ export class PageTranslateEngine {
           },
         });
 
-        if (this.abortController?.signal.aborted) return;
+        if (signal.aborted) return;
 
         if (response?.success && response.data.translated.trim()) {
-          const parts = await this.resolveSegmentParts(segment, response.data.translated, options);
+          const parts = await this.resolveSegmentParts(segment, response.data.translated, options, signal);
           // Null = aborted while resolving; leave the segment untranslated.
           if (parts) {
             this.translatedSegments.set(segment.id, parts);
@@ -82,12 +99,19 @@ export class PageTranslateEngine {
         progress.errors++;
       } finally {
         sem.release();
-        onProgress({ ...progress });
+        // Aborted tasks made no progress — skip the callback so a stale run
+        // cannot overwrite a newer session's progress display.
+        if (!signal.aborted) onProgress({ ...progress });
       }
     });
 
     await Promise.allSettled(tasks);
-    this.isRunning = false;
+    // Only the run that owns the current controller may clear `isRunning` —
+    // a stale run finishing late (after stop + a new start) must not.
+    if (this.abortController === controller) {
+      this.isRunning = false;
+    }
+    return true;
   }
 
   stop(): void {
@@ -146,6 +170,7 @@ export class PageTranslateEngine {
     segment: TextSegment,
     translated: string,
     options: PageTranslateOptions,
+    signal: AbortSignal,
   ): Promise<(string | null)[] | null> {
     const subs = segment.subSegments && segment.subSegments.length > 1
       ? segment.subSegments
@@ -160,7 +185,7 @@ export class PageTranslateEngine {
 
     const parts: (string | null)[] = [];
     for (const sub of subs) {
-      if (this.abortController?.signal.aborted) return null;
+      if (signal.aborted) return null;
       try {
         const response = await browser.runtime.sendMessage({
           type: 'TRANSLATE',
