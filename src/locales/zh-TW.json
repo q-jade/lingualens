@@ -72,6 +72,7 @@
     "additionalPrompt": "附加提示詞",
     "additionalPromptDesc": "附加到劃詞、popup 和側邊欄翻譯的系統提示詞（整頁翻譯不適用）。附加提示詞始終生效——若其內容是有條件的（如僅針對單個單詞），請把條件寫清楚。清空即停用。可用變數：",
     "resetToDefault": "重設為預設值",
+    "basePromptEmptyWarning": "基礎提示詞為空。與附加提示詞不同，基礎提示詞留空並不會停用——仍會使用內建預設提示詞。是否重設為預設值並儲存？",
     "pageTranslation": "頁面翻譯",
     "translationStrategy": "翻譯策略",
     "strategyQuality": "品質優先",

@@ -161,13 +161,23 @@ export function App() {
   };
 
   const handleSave = async () => {
+    // An empty base prompt is almost certainly accidental: unlike the
+    // additional prompt (empty = disabled), the base prompt has no "off"
+    // state — an empty value merely falls back to the built-in default at
+    // runtime. Offer a reset instead of silently storing a dead override.
+    let promptTemplate = settings.promptTemplate;
+    if (promptTemplate !== undefined && promptTemplate.trim() === '') {
+      if (!window.confirm(t('options.basePromptEmptyWarning'))) return;
+      promptTemplate = undefined;
+      setSettings((s) => ({ ...s, promptTemplate: undefined }));
+    }
     setSaving(true);
     // Unset prompt fields are sent as an explicit `null` (= reset to the
     // built-in default): `undefined` is dropped by message serialization, so
     // the background would otherwise keep the previously stored override.
     const payload: SettingsPatch = {
       ...settings,
-      promptTemplate: settings.promptTemplate ?? null,
+      promptTemplate: promptTemplate ?? null,
       additionalPrompt: settings.additionalPrompt ?? null,
     };
     await browser.runtime.sendMessage({ type: 'SAVE_SETTINGS', payload });

@@ -72,6 +72,7 @@
     "additionalPrompt": "附加提示词",
     "additionalPromptDesc": "追加到划词、popup 和侧边栏翻译的系统提示词（整页翻译不适用）。附加提示词始终生效——若其内容是有条件的（如仅针对单个单词），请把条件写清楚。清空即禁用。可用变量：",
     "resetToDefault": "重置为默认",
+    "basePromptEmptyWarning": "基础提示词为空。与附加提示词不同，基础提示词留空并不会禁用——仍会使用内置默认提示词。是否重置为默认并保存？",
     "pageTranslation": "页面翻译",
     "translationStrategy": "翻译策略",
     "strategyQuality": "质量优先",

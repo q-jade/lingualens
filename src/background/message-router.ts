@@ -28,7 +28,9 @@ export async function saveSettings(partial: SettingsPatch): Promise<AppSettings>
   // `null` ("reset to default") to remove the stored override — `undefined`
   // can't express that because message serialization drops undefined-valued
   // keys. A missing key means "leave unchanged" (partial saves from popup,
-  // content script, and background must keep working).
+  // content script, and background must keep working). An empty string is a
+  // real value and is stored as-is: for `additionalPrompt` it means
+  // "disabled", which is distinct from unset (= built-in default applies).
   const { promptTemplate, additionalPrompt, ...rest } = partial;
   const updated = { ...current, ...rest };
   if (promptTemplate === null) delete updated.promptTemplate;
@@ -36,8 +38,6 @@ export async function saveSettings(partial: SettingsPatch): Promise<AppSettings>
   if (additionalPrompt === null) delete updated.additionalPrompt;
   else if (additionalPrompt !== undefined) updated.additionalPrompt = additionalPrompt;
 
-  if (partial.providers) updated.providers = partial.providers;
-  if (partial.fallbackProviders) updated.fallbackProviders = partial.fallbackProviders;
   const normalized = normalizeSettings(updated);
   await browser.storage.local.set({ settings: normalized });
   providerManager.clearCache();

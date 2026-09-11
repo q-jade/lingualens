@@ -72,6 +72,7 @@
     "additionalPrompt": "Zusätzlicher Prompt",
     "additionalPromptDesc": "Wird für Auswahl-, Popup- und Seitenleisten-Übersetzungen an den System-Prompt angehängt (nie bei der Seitenübersetzung). Der Prompt wird immer angewendet — sind die Anweisungen bedingt (z. B. nur für einzelne Wörter), formulieren Sie die Bedingung klar. Leeren zum Deaktivieren. Verfügbare Variablen:",
     "resetToDefault": "Auf Standard zurücksetzen",
+    "basePromptEmptyWarning": "Das Basis-Prompt ist leer. Anders als beim zusätzlichen Prompt wird durch ein leeres Basis-Prompt nichts deaktiviert – es gilt der eingebaute Standard. Auf den Standard zurücksetzen und speichern?",
     "pageTranslation": "Seitenübersetzung",
     "translationStrategy": "Übersetzungsstrategie",
     "strategyQuality": "Qualität",

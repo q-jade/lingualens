@@ -72,6 +72,7 @@
     "additionalPrompt": "Prompt supplémentaire",
     "additionalPromptDesc": "Ajouté au prompt système pour les traductions par sélection, popup et panneau latéral (jamais pour la traduction de page). Le prompt est toujours appliqué — si ses instructions sont conditionnelles (ex. uniquement pour les mots isolés), formulez clairement la condition. Videz le champ pour désactiver. Variables disponibles :",
     "resetToDefault": "Réinitialiser par défaut",
+    "basePromptEmptyWarning": "Le prompt de base est vide. Contrairement au prompt supplémentaire, un prompt de base vide ne désactive rien — la valeur par défaut intégrée s'applique. Réinitialiser par défaut et enregistrer ?",
     "pageTranslation": "Traduction de page",
     "translationStrategy": "Stratégie de traduction",
     "strategyQuality": "Qualité",

@@ -72,6 +72,7 @@
     "additionalPrompt": "Additional Prompt",
     "additionalPromptDesc": "Appended to the system prompt for selection, popup, and side-panel translations (never page translation). The prompt is always applied — if its instructions are conditional (e.g. only for single words), phrase the condition clearly. Clear the field to disable. Available variables:",
     "resetToDefault": "Reset to default",
+    "basePromptEmptyWarning": "The base prompt is empty. Unlike the additional prompt, an empty base prompt does not disable anything — the built-in default applies. Reset it to the default and save?",
     "pageTranslation": "Page Translation",
     "translationStrategy": "Translation Strategy",
     "strategyQuality": "Quality",
