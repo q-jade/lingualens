@@ -56,6 +56,34 @@ function shieldShadowPortal(shadow: ShadowRoot, container: HTMLElement) {
   container.style.setProperty('pointer-events', 'none', 'important');
 }
 
+/**
+ * Publish the browser's default font size as `--ll-root`, which
+ * `tailwind.config.js` multiplies for every length in the overlay.
+ *
+ * The overlay must scale with the user's font-size setting
+ * (chrome://settings/fonts) but NOT with the host page's root font-size. `rem`
+ * cannot express that: on a page with `html { font-size: 100px }`
+ * `rem` is 100px even inside our shadow root, because shadow DOM isolates
+ * selectors, not units.
+ *
+ * `font-size: medium` is the correct probe. Absolute-size keywords resolve from
+ * the user's default font size and never from the page root or an ancestor —
+ * measured in Chromium, `medium` stayed 16px on a 100px-root page (even under a
+ * 50px ancestor) while `1rem` read 100px, and `medium` tracked the setting at
+ * 16 / 20 / 24px.
+ *
+ * Measured in the shadow root so no page selector can reach the probe. The
+ * config's `var()` fallback covers the (brief) window before this runs.
+ */
+function publishUserFontSize(shadowHost: HTMLElement, shadow: ShadowRoot) {
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position:absolute;visibility:hidden;font-size:medium;';
+  shadow.append(probe);
+  const userFontSize = window.getComputedStyle(probe).fontSize;
+  probe.remove();
+  if (userFontSize) shadowHost.style.setProperty('--ll-root', userFontSize);
+}
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   cssInjectionMode: 'ui',
@@ -89,6 +117,7 @@ export default defineContentScript({
       onMount(container, shadow, shadowHost) {
         shieldOverlayHost(shadowHost);
         shieldShadowPortal(shadow, container);
+        publishUserFontSize(shadowHost, shadow);
         container.addEventListener('contextmenu', markContextMenuInExtensionUI, true);
         document.addEventListener('contextmenu', (e) => {
           if (!isInsideOurUI(e)) clearContextMenuSelectionBlock();
