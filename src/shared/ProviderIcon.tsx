@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ProviderConfig } from './types';
+import { iconSize } from './icon-size';
 
 const ICON_PATHS: Record<ProviderConfig['type'], ReactNode> = {
   'openai-compat': (
@@ -416,6 +417,7 @@ export function ProviderIcon({
     <svg
       width={size}
       height={size}
+      style={iconSize(size)}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

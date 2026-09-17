@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { type TranslateProgress, type DisplayMode } from './engine';
 import { AppLogo } from '../../shared/AppLogo';
+import { iconSize } from '../../shared/icon-size';
 
 interface Props {
   progress: TranslateProgress | null;
@@ -83,7 +84,7 @@ export function StatusBar({ progress, running, displayMode, collapsed, onStop, o
           </button>
         )}
         <button onClick={onToggleCollapse} className="st-status-btn-icon" title={t('statusBar.minimize')} aria-label={t('statusBar.minimize')}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+          <svg width="14" height="14" style={iconSize(14)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             <path d="M5 12h14" />
           </svg>
         </button>

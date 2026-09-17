@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { SelectionTriggerMode } from './types';
+import { iconSize } from './icon-size';
 
 const ICON_PATHS: Record<SelectionTriggerMode, ReactNode> = {
   icon: (
@@ -37,6 +38,7 @@ export function ModeIcon({
     <svg
       width={size}
       height={size}
+      style={iconSize(size)}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { iconSize } from './icon-size';
 
 const COPY_ICON = (
   <svg
     width="14"
     height="14"
+    style={iconSize(14)}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -21,6 +23,7 @@ const CHECK_ICON = (
   <svg
     width="14"
     height="14"
+    style={iconSize(14)}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
