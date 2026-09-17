@@ -6,5 +6,11 @@
 
 body {
   margin: 0;
-  width: 340px;
+  /*
+   * The popup is a browser-sized window, so its width has to track the font
+   * size setting along with everything inside it — a fixed 340px would cramp the
+   * content (and force extra wrapping) once the text grows. 340 design px is
+   * ~510px at a 24px default, still well inside Chrome's 800x600 popup cap.
+   */
+  width: calc(var(--ll-u) * 340);
 }

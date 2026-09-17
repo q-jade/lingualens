@@ -117,7 +117,7 @@ export function App() {
   };
 
   return (
-    <div className="relative p-4 bg-white min-h-[200px]">
+    <div className="relative p-4 bg-white min-h-[calc(var(--ll-u)*200)]">
       {/* Brand accent bar */}
       <div
         aria-hidden="true"
@@ -137,7 +137,7 @@ export function App() {
             }
             window.close();
           }}
-          className="shrink-0 px-2 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide
+          className="shrink-0 px-2 py-1 rounded-md text-[calc(var(--ll-u)*11)] font-semibold uppercase tracking-wide
                      border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
           title={t('popup.sidePanelTitle')}
         >
@@ -272,7 +272,7 @@ export function App() {
                   : t('popup.translatePageTo', { lang: getLanguageName(settings.defaultTargetLang) })}
           </button>
           <div className="flex items-center gap-2 mt-3 mb-1.5">
-            <span className="text-[11px] font-medium text-gray-500">{t('popup.selectionMode')}</span>
+            <span className="text-[calc(var(--ll-u)*11)] font-medium text-gray-500">{t('popup.selectionMode')}</span>
           </div>
           <div className="flex items-center gap-1">
             {([
@@ -304,13 +304,13 @@ export function App() {
                   }`}
               >
                 <span className="flex justify-center"><ModeIcon mode={m} /></span>
-                <span className="block text-center text-[10px] leading-tight mt-0.5 truncate">{label}</span>
+                <span className="block text-center text-[calc(var(--ll-u)*10)] leading-tight mt-0.5 truncate">{label}</span>
               </button>
             ))}
           </div>
           {settings.selectionTriggerMode === 'modifier' && (
             <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-[10px] text-gray-400">{t('options.selectionModifierKey')}:</span>
+              <span className="text-[calc(var(--ll-u)*10)] text-gray-400">{t('options.selectionModifierKey')}:</span>
               {(['ctrl', 'alt', 'shift'] as SelectionModifierKey[]).map((k) => (
                 <button
                   key={k}
@@ -327,7 +327,7 @@ export function App() {
                       }
                     });
                   }}
-                  className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase transition-colors
+                  className={`px-2 py-0.5 rounded text-[calc(var(--ll-u)*10)] font-semibold uppercase transition-colors
                     ${settings.selectionModifierKey === k
                       ? 'bg-indigo-50 text-indigo-700 border border-indigo-300'
                       : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
@@ -346,7 +346,7 @@ export function App() {
         <ProviderPicker
           settings={settings}
           onChange={setDefaultProvider}
-          triggerClassName="max-w-[180px]"
+          triggerClassName="max-w-[calc(var(--ll-u)*180)]"
         />
         <button
           type="button"

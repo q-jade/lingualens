@@ -7,10 +7,30 @@
  * consume them. Component classes are intentionally unlayered so they always
  * win over Tailwind's layered utilities — combine them with layout utilities
  * (w-full, flex-1, mt-2 …) but avoid duplicating the properties they set.
+ *
+ * SIZING
+ * Lengths that make up a control's size or typography are written as
+ * `calc(var(--ll-u) * <design px>)`, where `--ll-u` is one design pixel. That
+ * makes the whole component layer follow the font-size setting in lockstep with
+ * the Tailwind utilities around it (which use the same
+ * `calc(var(--ll-root, 1rem) * N / 16)` shape). Writing plain px here made
+ * buttons, selects and hint text ignore the setting while their neighbours
+ * grew, which read as broken.
+ *
+ * Kept fixed on purpose: 1px hairlines, focus outlines/rings and box-shadows.
+ * Those are affordances and depth cues rather than sizes, and scaling them
+ * mostly adds blur.
  */
 
 :root,
 :host {
+  /*
+   * One design pixel: the scaling unit for every hand-written length in this
+   * file. `--ll-root` is the font size to scale against — the browser's default
+   * font size on the extension pages (via the `1rem` fallback) and the value the
+   * content script measures for its shadow host. See tailwind.config.js.
+   */
+  --ll-u: calc(var(--ll-root, 1rem) / 16);
   /* Brand — blue → indigo, matching the existing product gradient */
   --ll-blue-50: #eff6ff;
   --ll-blue-100: #dbeafe;
@@ -62,10 +82,11 @@
   --ll-danger: #dc2626;
   --ll-danger-bg: #fef2f2;
 
-  /* Shape & elevation */
-  --ll-radius-sm: 6px;
-  --ll-radius: 8px;
-  --ll-radius-lg: 12px;
+  /* Shape & elevation. Radii scale with the control they shape; the focus ring
+     width and shadows stay fixed. */
+  --ll-radius-sm: calc(var(--ll-u) * 6);
+  --ll-radius: calc(var(--ll-u) * 8);
+  --ll-radius-lg: calc(var(--ll-u) * 12);
   --ll-focus-ring: 0 0 0 3px rgb(99 102 241 / 0.2);
   --ll-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
   --ll-shadow: 0 2px 8px rgb(15 23 42 / 0.06), 0 1px 2px rgb(15 23 42 / 0.04);
@@ -95,13 +116,13 @@ body {
  * .ll-select) selects. Does NOT set width so layout utilities keep working.
  */
 .input {
-  padding: 7px 12px;
+  padding: calc(var(--ll-u) * 7) calc(var(--ll-u) * 12);
   border: 1px solid var(--ll-gray-200);
   border-radius: var(--ll-radius);
   background: #fff;
   color: var(--ll-gray-800);
   font-family: inherit;
-  font-size: 13px;
+  font-size: calc(var(--ll-u) * 13);
   line-height: 1.5;
   transition: border-color 120ms ease, box-shadow 120ms ease,
     background-color 120ms ease;
@@ -126,11 +147,11 @@ body {
 .ll-select {
   appearance: none;
   -webkit-appearance: none;
-  padding-right: 28px;
+  padding-right: calc(var(--ll-u) * 28);
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 14px 14px;
+  background-position: right calc(var(--ll-u) * 8) center;
+  background-size: calc(var(--ll-u) * 14) calc(var(--ll-u) * 14);
   cursor: pointer;
 }
 
@@ -139,14 +160,14 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: calc(var(--ll-u) * 6);
+  padding: calc(var(--ll-u) * 8) calc(var(--ll-u) * 16);
   border: 1px solid transparent;
   border-radius: var(--ll-radius);
   background: linear-gradient(135deg, var(--ll-blue-500), var(--ll-indigo-500));
   color: #fff;
   font-family: inherit;
-  font-size: 13px;
+  font-size: calc(var(--ll-u) * 13);
   font-weight: 500;
   line-height: 1.5;
   cursor: pointer;
@@ -169,25 +190,25 @@ body {
 }
 
 .ll-btn-lg {
-  padding: 10px 22px;
-  font-size: 14px;
+  padding: calc(var(--ll-u) * 10) calc(var(--ll-u) * 22);
+  font-size: calc(var(--ll-u) * 14);
 }
 
 .ll-btn-sm {
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: calc(var(--ll-u) * 5) calc(var(--ll-u) * 12);
+  font-size: calc(var(--ll-u) * 12);
 }
 
 /* Pill badges */
 .ll-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 1px 8px;
+  gap: calc(var(--ll-u) * 4);
+  padding: 1px calc(var(--ll-u) * 8);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: calc(var(--ll-u) * 11);
   font-weight: 500;
-  line-height: 18px;
+  line-height: calc(var(--ll-u) * 18);
   white-space: nowrap;
 }
 .ll-badge-brand {
@@ -206,12 +227,12 @@ body {
 .ll-copy {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(var(--ll-u) * 5);
   padding: 0;
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 12px;
+  font-size: calc(var(--ll-u) * 12);
   color: var(--ll-blue-500);
   cursor: pointer;
   transition: color 120ms ease;
@@ -223,12 +244,12 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: calc(var(--ll-u) * 28);
+  height: calc(var(--ll-u) * 28);
   padding: 0;
   border: none;
   background: none;
-  border-radius: 6px;
+  border-radius: calc(var(--ll-u) * 6);
   color: var(--ll-gray-400);
   cursor: pointer;
   transition: color 120ms ease;
@@ -269,26 +290,26 @@ body {
 
 /* Small muted helper text */
 .ll-hint {
-  font-size: 12px;
+  font-size: calc(var(--ll-u) * 12);
   color: var(--ll-gray-400);
 }
 
 /* Loading spinner */
 .ll-spinner {
-  width: 14px;
-  height: 14px;
+  width: calc(var(--ll-u) * 14);
+  height: calc(var(--ll-u) * 14);
   border-radius: 50%;
-  border: 2px solid var(--ll-indigo-100);
+  border: calc(var(--ll-u) * 2) solid var(--ll-indigo-100);
   border-top-color: var(--ll-indigo-500);
   animation: ll-spin 0.7s linear infinite;
 }
 
 /* Spinner variant for use on brand-colored (gradient) surfaces */
 .ll-spinner-light {
-  width: 14px;
-  height: 14px;
+  width: calc(var(--ll-u) * 14);
+  height: calc(var(--ll-u) * 14);
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  border: calc(var(--ll-u) * 2) solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
   animation: ll-spin 0.7s linear infinite;
 }

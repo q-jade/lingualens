@@ -343,7 +343,7 @@ export function App() {
               />
               <div className="flex items-center justify-between gap-2 px-4 py-2 min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[10px] text-gray-400">{t('sidepanel.chars', { count: sourceText.length })}</span>
+                  <span className="text-[calc(var(--ll-u)*10)] text-gray-400">{t('sidepanel.chars', { count: sourceText.length })}</span>
                   {sourceText && (
                     <button
                       onClick={() => {
@@ -352,7 +352,7 @@ export function App() {
                         setError(null);
                         textareaRef.current?.focus();
                       }}
-                      className="text-[10px] text-gray-400 hover:text-red-400 transition-colors"
+                      className="text-[calc(var(--ll-u)*10)] text-gray-400 hover:text-red-400 transition-colors"
                     >
                       {t('sidepanel.clear')}
                     </button>
@@ -492,9 +492,9 @@ function HistoryPanel({
               const lang = SUPPORTED_LANGUAGES.find((l) => l.code === entry.targetLang);
               return lang ? <span className="ll-badge ll-badge-brand shrink-0">{lang.name}</span> : null;
             })()}
-            <span className="text-[10px] text-gray-400 shrink-0">{entry.provider}</span>
-            <span className="text-[10px] text-gray-400 shrink-0">·</span>
-            <span className="text-[10px] text-gray-400 truncate">{new Date(entry.timestamp).toLocaleString()}</span>
+            <span className="text-[calc(var(--ll-u)*10)] text-gray-400 shrink-0">{entry.provider}</span>
+            <span className="text-[calc(var(--ll-u)*10)] text-gray-400 shrink-0">·</span>
+            <span className="text-[calc(var(--ll-u)*10)] text-gray-400 truncate">{new Date(entry.timestamp).toLocaleString()}</span>
           </div>
         </div>
       ))}

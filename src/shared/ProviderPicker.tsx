@@ -92,7 +92,7 @@ export function ProviderPicker({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        className={`flex min-w-0 items-center gap-1 text-left text-[11px] text-gray-400 hover:text-blue-500 disabled:cursor-default disabled:hover:text-gray-400 ${triggerClassName}`}
+        className={`flex min-w-0 items-center gap-1 text-left text-[calc(var(--ll-u)*11)] text-gray-400 hover:text-blue-500 disabled:cursor-default disabled:hover:text-gray-400 ${triggerClassName}`}
       >
         {currentProvider && (
           <ProviderIcon
