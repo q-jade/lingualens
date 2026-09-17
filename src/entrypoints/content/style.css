@@ -28,8 +28,8 @@
 
 .st-trigger-icon {
   display: block;
-  width: 24px;
-  height: 24px;
+  width: calc(var(--ll-u) * 24);
+  height: calc(var(--ll-u) * 24);
   object-fit: contain;
 }
 
@@ -49,7 +49,7 @@
   display: flex;
   flex-direction: column;
   font-family: var(--ll-font);
-  font-size: calc(var(--ll-root, 1rem) * 14 / 16);
+  font-size: calc(var(--ll-u) * 14);
   line-height: 1.6;
   color: #1f2937;
   /* Solid fill so page content never shows through the floating panel */
@@ -96,12 +96,14 @@
 
 .st-panel-title {
   @apply font-medium min-w-0 truncate;
-  font-size: calc(var(--ll-root, 1rem) * 13 / 16);
+  font-size: calc(var(--ll-u) * 13);
   color: var(--ll-gray-700);
 }
 
 .st-header-logo {
-  @apply w-[20px] h-[20px] shrink-0;
+  @apply shrink-0;
+  width: calc(var(--ll-u) * 20);
+  height: calc(var(--ll-u) * 20);
 }
 
 .st-header-left {
@@ -113,7 +115,10 @@
 }
 
 .st-panel-close {
-  @apply flex items-center justify-center w-[24px] h-[24px] rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors;
+  @apply flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors;
+  /* Sized around the icon it holds, so it grows with it. */
+  width: calc(var(--ll-u) * 24);
+  height: calc(var(--ll-u) * 24);
   border: none;
   background: none;
   padding: 0;
@@ -150,7 +155,7 @@
 
 .st-translation p {
   @apply text-gray-800 leading-relaxed whitespace-pre-wrap;
-  font-size: calc(var(--ll-root, 1rem) * 16 / 16);
+  font-size: calc(var(--ll-u) * 16);
 }
 
 .st-panel-footer {
@@ -163,20 +168,60 @@
  * <select> cannot render brand icons inside its options). The menu reuses
  * .st-mode-menu / .st-mode-option and is rendered outside the panel.
  */
-/*
- * Provider picker layout:
- * - Base (panel < 500px): in-flow, packed between the sides by
- *   justify-between — fits down to the 390px minimum with no overlap.
- * - Wide panels (≥ 500px): lifted out of the flow and truly centered.
- *   True centering needs inner-width ≥ 2×(widest side) + picker, which the
- *   390px minimum cannot guarantee — hence the width-gated switch.
- */
 .st-provider-picker {
   display: flex;
   min-width: 0;
 }
 
-@container panel (min-width: 500px) {
+/*
+ * Provider picker layout:
+ * - Narrow panel: the picker stays in flow, packed between the two sides by
+ *   justify-between. The title and the picker truncate instead of colliding,
+ *   so this layout survives any panel width.
+ * - Wide panel: the picker is lifted out of flow and truly centered on the
+ *   header. Centered, it no longer pushes the sides aside, so it paints over
+ *   them unless the panel is wide enough — hence the width gate this comment
+ *   explains.
+ *
+ * "Wide enough" compares the picker against the header's two flanking groups
+ * (the "sides"): `.st-header-left` (logo + title) and `.st-header-actions`
+ * (language trigger + mode/pin/close buttons). Centered, each half of the
+ * header must hold half the picker plus one whole side:
+ *
+ *   panel/2 ≥ side + picker/2   →   panel ≥ 2 × max(left, right) + picker
+ *
+ * The wider side binds. Measured floors (verified to ±1px by sweeping the panel
+ * width; the +26 is the header's 2×12px padding plus the panel's 2×1px border):
+ *
+ *   root    left    actions   picker   floor
+ *   16px    92px    151px     120px    447px
+ *   20px    113px   183px     120px    511px
+ *   24px    135px   214px     120px    574px
+ *
+ * So at a 24px root the actions side nearly doubles while the panel width stays
+ * put: 574px is needed but only 504px is available, and the picker paints 35px
+ * over the language trigger. That is the overlap this gate prevents.
+ *
+ * The gate is in `em`. In a container query, `em` resolves against the
+ * CONTAINER's own font-size — not the root. Measured: this rule's threshold is
+ * 504px when the container's font-size is 14px, and 756px when it is 21px (both
+ * exactly 36× that font), so the gate tracks the container font. That is what we
+ * want, because .st-panel's font-size is root-relative — the gate then scales
+ * with the font-size setting in step with the content it guards.
+ *
+ * So 36em here is 36 × 14px = 504px, NOT 36 × 16px = 576px: the latter reading
+ * only holds if `em` were root-relative, which is what `rem` would do (and why
+ * `rem` is wrong here — it would follow the host PAGE's root). `var()` cannot be
+ * used at all: custom properties are not allowed in container query conditions.
+ *
+ * Formula inputs as required content-box widths (floor − the panel's 2px
+ * border): 445px @16px, 509px @20px, 572px @24px = 31.8em, 29.1em, 27.2em. The
+ * 16px case binds, so 35em (= 490px) clears every one. Deliberately kept just
+ * under the old 500px gate: 36em measures 504px, which misses a 1440px viewport
+ * (504px panel → 502px content box) by 2px and would silently turn centering
+ * off at the most common size.
+ */
+@container panel (min-width: 35em) {
   .st-provider-picker {
     position: absolute;
     left: 50%;
@@ -220,19 +265,13 @@
 
 .st-provider-chevron {
   @apply shrink-0 opacity-70;
-  width: 14px;
-  height: 14px;
+  width: calc(var(--ll-u) * 14);
+  height: calc(var(--ll-u) * 14);
 }
 
-/* Provider menu — cap width and ellipsize long provider names */
+/* Provider menu — cap width; long provider names ellipsize via .st-mode-label */
 .st-provider-menu {
-  max-width: min(280px, calc(100vw - 16px));
-}
-
-.st-provider-menu .st-mode-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: min(calc(var(--ll-u) * 280), calc(100vw - 16px));
 }
 
 .st-mode-picker {
@@ -242,6 +281,14 @@
 
 .st-mode-menu {
   min-width: 160px;
+  /*
+   * Bound the menu so a long label cannot make it arbitrarily wide. Root-relative
+   * so the cap grows with the font-size setting along with the labels — a fixed
+   * cap would start truncating sooner at a large default. The mode menu is the
+   * one that needs this: .st-provider-menu and .st-lang-menu already override it
+   * with their own (fixed) caps.
+   */
+  max-width: min(calc(var(--ll-u) * 240), calc(100vw - 16px));
   padding: 4px;
   background: #ffffff !important;
   border: 1px solid #e5e7eb;
@@ -285,7 +332,7 @@
   padding: 0 6px;
   border-radius: 4px;
   gap: 4px;
-  font-size: calc(var(--ll-root, 1rem) * 12 / 16);
+  font-size: calc(var(--ll-u) * 12);
   font-weight: 500;
   /* Match the provider trigger — the gray-400 inherited from .st-panel-close
      was tuned for the old gradient header. Later rule wins the tie. */
@@ -301,11 +348,13 @@
 }
 
 .st-lang-menu {
-  max-width: min(240px, calc(100vw - 16px));
+  max-width: min(calc(var(--ll-u) * 240), calc(100vw - 16px));
 }
 
 .st-mode-option {
-  @apply flex items-center gap-[8px] w-full px-[8px] py-[6px] rounded-md text-gray-700 cursor-pointer transition-colors;
+  @apply flex items-center w-full rounded-md text-gray-700 cursor-pointer transition-colors;
+  gap: calc(var(--ll-u) * 8);
+  padding: calc(var(--ll-u) * 6) calc(var(--ll-u) * 8);
   border: none;
   background: none;
   text-align: left;
@@ -320,11 +369,22 @@
 }
 
 .st-mode-icon {
-  @apply w-[16px] text-center shrink-0;
+  @apply text-center shrink-0;
+  width: calc(var(--ll-u) * 16);
 }
 
 .st-mode-label {
   @apply flex-1;
+  /*
+   * `min-width: 0` lets this flex item shrink below its content, and the ellipsis
+   * makes the result legible. Without it a label longer than the menu's
+   * max-width would push the menu wider (min-width: auto floors it at the content
+   * size) or spill past the ✓. Applies to all three menus — it used to be scoped
+   * to .st-provider-menu, but every menu is width-capped now.
+   */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .st-mode-check {
@@ -334,12 +394,18 @@
 /*
  * Font-size-relative lengths.
  *
- * `--ll-root` is the font size this UI scales against. `tailwind.config.js`
- * expresses every theme length as `calc(var(--ll-root, 1rem) * <px> / 16)`, and
- * the hand-written sizes below use the same shape.
+ * `--ll-root` is the font size this UI scales against, and `--ll-u` (declared in
+ * shared/theme.css) is one design pixel = `calc(var(--ll-root, 1rem) / 16)`.
+ * Typography, icons and icon boxes below are written as
+ * `calc(var(--ll-u) * <design px>)`; `tailwind.config.js` emits the same shape
+ * for every theme length.
  *
- * It must be published here rather than relying on `rem`: this UI lives in a
- * shadow root on arbitrary pages, and shadow DOM isolates *selectors*, not
+ * Only the panel's own geometry (its width and max-height) stays in plain px —
+ * it is anchored to the viewport and to the JS positioning constants in
+ * `App.tsx`, which would have to move in lockstep.
+ *
+ * `--ll-root` must be published here rather than relying on `rem`: this UI lives
+ * in a shadow root on arbitrary pages, and shadow DOM isolates *selectors*, not
  * units — `rem` always resolves against the HOST PAGE's <html>, so a page with
  * `html { font-size: 100px }` blew the panel up (text-xs became 75px,
  * rounded-xl a 75px radius).
@@ -411,7 +477,7 @@
   padding: 6px 16px;
   border-radius: 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: calc(var(--ll-root, 1rem) * 13 / 16);
+  font-size: calc(var(--ll-u) * 13);
   font-weight: 500;
   color: var(--ll-gray-700);
   background: #ffffff;
@@ -439,7 +505,7 @@
   background-color: #ffffff;
   z-index: 2147483646;
   font-family: var(--ll-font);
-  font-size: calc(var(--ll-root, 1rem) * 13 / 16);
+  font-size: calc(var(--ll-u) * 13);
 }
 
 /* Brand edge, matching the popup / sidepanel accent bar */
@@ -461,16 +527,16 @@
 .st-status-icon {
   @apply flex-shrink-0;
   display: block;
-  width: 18px;
-  height: 18px;
+  width: calc(var(--ll-u) * 18);
+  height: calc(var(--ll-u) * 18);
   object-fit: contain;
 }
 
 .st-status-collapsed-mark {
   display: block;
   line-height: 0;
-  border-radius: 10px;
-  padding: 5px;
+  border-radius: calc(var(--ll-u) * 10);
+  padding: calc(var(--ll-u) * 5);
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
   /* Single soft contact shadow + hairline ring — light, no glow. */
@@ -481,8 +547,8 @@
 
 .st-status-collapsed-icon {
   display: block;
-  width: 24px;
-  height: 24px;
+  width: calc(var(--ll-u) * 24);
+  height: calc(var(--ll-u) * 24);
   object-fit: contain;
 }
 
@@ -517,7 +583,10 @@
 }
 
 .st-status-btn-icon {
-  @apply flex items-center justify-center w-[28px] h-[28px] rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors;
+  @apply flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors;
+  /* Sized around the icon it holds, so it grows with it. */
+  width: calc(var(--ll-u) * 28);
+  height: calc(var(--ll-u) * 28);
   border: none;
   background: none;
   padding: 0;
@@ -549,15 +618,16 @@
 
 .st-status-collapsed-badge {
   position: absolute;
-  top: -4px;
-  right: -6px;
-  font-size: calc(var(--ll-root, 1rem) * 9 / 16);
+  /* Offsets are relative to the icon underneath, so they scale with it. */
+  top: calc(var(--ll-u) * -4);
+  right: calc(var(--ll-u) * -6);
+  font-size: calc(var(--ll-u) * 9);
   font-weight: 700;
   color: #fff;
   border-radius: 999px;
-  padding: 0 4px;
-  min-width: 18px;
+  padding: 0 calc(var(--ll-u) * 4);
+  min-width: calc(var(--ll-u) * 18);
   text-align: center;
-  line-height: 16px;
+  line-height: calc(var(--ll-u) * 16);
   background: var(--ll-brand-gradient-135);
 }

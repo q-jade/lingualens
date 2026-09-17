@@ -8,6 +8,7 @@ import { AppLogo } from '../../shared/AppLogo';
 import { ModeIcon } from '../../shared/ModeIcon';
 import { ProviderIcon } from '../../shared/ProviderIcon';
 import { CopyButton } from '../../shared/CopyButton';
+import { iconSize } from '../../shared/icon-size';
 import { computeTriggerPosition } from '../../content/trigger-position';
 import {
   isPageTranslateStarted,
@@ -147,7 +148,7 @@ export function ContentApp({ onReady }: Props) {
   // (instead of replacing the panel) so the user can translate into it.
   const [pinnedTrigger, setPinnedTrigger] = useState<{ x: number; y: number } | null>(null);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
-  const [modeMenuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
+  const [modeMenuPosition, setModeMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const modeTriggerRef = useRef<HTMLButtonElement>(null);
   const [providerMenuOpen, setProviderMenuOpen] = useState(false);
@@ -162,7 +163,7 @@ export function ContentApp({ onReady }: Props) {
   const providerMenuId = useId();
   const langMenuId = useId();
 
-  const computeMenuPosition = () => {
+  const computeModeMenuPosition = () => {
     const btn = modeTriggerRef.current;
     if (!btn) return null;
     const rect = btn.getBoundingClientRect();
@@ -177,20 +178,20 @@ export function ContentApp({ onReady }: Props) {
   };
 
   const openModeMenu = () => {
-    const pos = computeMenuPosition();
-    if (pos) setMenuPosition(clampMenuBottom(pos, modeMenuRef.current));
+    const pos = computeModeMenuPosition();
+    if (pos) setModeMenuPosition(clampMenuBottom(pos, modeMenuRef.current));
     setModeMenuOpen(true);
   };
 
   const closeModeMenu = () => {
     setModeMenuOpen(false);
-    setMenuPosition(null);
+    setModeMenuPosition(null);
   };
 
   const repositionModeMenu = () => {
     if (!modeMenuOpen) return;
-    const pos = computeMenuPosition();
-    if (pos) setMenuPosition(clampMenuBottom(pos, modeMenuRef.current));
+    const pos = computeModeMenuPosition();
+    if (pos) setModeMenuPosition(clampMenuBottom(pos, modeMenuRef.current));
   };
 
   const computeProviderMenuPosition = () => {
@@ -640,10 +641,22 @@ export function ContentApp({ onReady }: Props) {
     target.scrollIntoView({ block: 'nearest' });
   }, [langMenuOpen]);
 
-  // Keep every floating menu inside the viewport by shifting the menu
-  // up so its bottom edge clears the viewport; the menu itself scrolls
-  // when capped by CSS max-height.
+  /**
+   * Keep every floating menu inside the viewport, in both axes.
+   *
+   * The `compute*MenuPosition` helpers place a menu relative to its trigger using
+   * an ASSUMED width, so a menu wider than assumed hangs past the right edge —
+   * the mode menu has no fixed width and its labels scale with the font-size
+   * setting. Menus also open downwards, so a panel near the bottom of the
+   * viewport can push one off-screen.
+   *
+   * Both are corrected here against the measured rect. Each correction is exact,
+   * so it settles in one extra pass; `setPos` is only called when a value
+   * actually changes, which also prevents the pathological case of a menu wider
+   * than the viewport from looping.
+   */
   useLayoutEffect(() => {
+    const margin = 8;
     const clamp = (
       open: boolean,
       pos: { left: number; top: number } | null,
@@ -653,11 +666,27 @@ export function ContentApp({ onReady }: Props) {
       if (!open || !pos) return;
       const menu = menuRef.current;
       if (!menu) return;
-      const margin = 8;
-      const overflow = menu.getBoundingClientRect().bottom - (window.innerHeight - margin);
-      if (overflow > 0) setPos({ ...pos, top: pos.top - overflow });
+      const rect = menu.getBoundingClientRect();
+
+      // Both edge guards below are safety nets rather than live fixes: the CSS
+      // caps (max-width and max-height both end in `calc(100vw|dvh - 16px)`)
+      // already keep a menu inside the viewport, so neither guard has been
+      // observed to fire — verified down to a 300px-tall viewport with a
+      // 60-item list, where the top settled at 0.4 × viewport height. They stay
+      // so the invariant holds here even if those caps change.
+      let left = pos.left;
+      const rightOverflow = rect.right - (window.innerWidth - margin);
+      if (rightOverflow > 0) left -= rightOverflow;
+      if (left < margin) left = margin;
+
+      let top = pos.top;
+      const bottomOverflow = rect.bottom - (window.innerHeight - margin);
+      if (bottomOverflow > 0) top -= bottomOverflow;
+      if (top < margin) top = margin;
+
+      if (left !== pos.left || top !== pos.top) setPos({ left, top });
     };
-    clamp(modeMenuOpen, modeMenuPosition, modeMenuRef, setMenuPosition);
+    clamp(modeMenuOpen, modeMenuPosition, modeMenuRef, setModeMenuPosition);
     clamp(providerMenuOpen, providerMenuPosition, providerMenuRef, setProviderMenuPosition);
     clamp(langMenuOpen, langMenuPosition, langMenuRef, setLangMenuPosition);
   }, [modeMenuOpen, modeMenuPosition, providerMenuOpen, providerMenuPosition, langMenuOpen, langMenuPosition]);
@@ -1047,7 +1076,7 @@ export function ContentApp({ onReady }: Props) {
                   aria-expanded={modeMenuOpen}
                   aria-controls={modeMenuId}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="14" height="14" style={iconSize(14)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" /><line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" /><line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" /><line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" />
                   </svg>
                 </button>
@@ -1061,12 +1090,12 @@ export function ContentApp({ onReady }: Props) {
                 aria-label={pinned ? t('content.unpin') : t('content.pin')}
                 aria-pressed={pinned}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" style={iconSize(14)} viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 17v5" /><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
                 </svg>
               </button>
               <button onClick={() => setMode('hidden')} className="st-panel-close" title={t('content.close')} aria-label={t('content.close')}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" style={iconSize(14)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                 </svg>
               </button>
