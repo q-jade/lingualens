@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.8.2] - 2026-09-20
+
+### Fixed
+
+- The selection panel no longer renders broken (huge fonts, oversized corners) on pages that set a large root font size.
+- UI components (buttons, inputs, selects, badges) and icons now follow the font-size setting across popup, side panel, options, and the selection panel.
+- The selection panel itself scales with the font-size setting, and its floating menus stay clamped to the viewport.
+
 ## [0.8.1] - 2026-09-11
 
 ### Fixed
@@ -176,6 +184,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.8.2]: https://github.com/q-jade/lingualens/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/q-jade/lingualens/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/q-jade/lingualens/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/q-jade/lingualens/compare/v0.6.0...v0.7.0
