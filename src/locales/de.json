@@ -59,6 +59,8 @@
     "model": "Modell",
     "disableThinking": "Denkprozess deaktivieren",
     "disableThinkingDesc": "Modellüberlegung überspringen für schnellere Übersetzung",
+    "supportsImage": "Bildunterstützung",
+    "supportsImageDesc": "Der Provider akzeptiert Bilder (Vision-Modell erforderlich). Deaktivieren für rein textbasierte Modelle.",
     "ollamaCorsWarning": "Ollama benötigt eine CORS-Konfiguration für Browser-Erweiterungen. Starten Sie Ollama mit:",
     "verifyConfig": "Konfiguration prüfen",
     "verifying": "Wird geprüft…",
@@ -124,7 +126,10 @@
     "retry": "Wiederholen",
     "pin": "Panel anheften",
     "unpin": "Panel lösen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "noImageProvider": "Kein bildfähiger Provider aktiv. In den Einstellungen einen Vision-Provider aktivieren.",
+    "imageFetchFailed": "Bild konnte nicht geladen werden.",
+    "noTextInImage": "Kein Text im Bild gefunden."
   },
   "statusBar": {
     "preparing": "Vorbereiten…",

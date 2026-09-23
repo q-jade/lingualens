@@ -59,6 +59,8 @@
     "model": "模型",
     "disableThinking": "停用思維鏈",
     "disableThinkingDesc": "跳過模型推理以加快翻譯速度",
+    "supportsImage": "支援圖片",
+    "supportsImageDesc": "該 Provider 接受圖片（需要視覺模型）。純文字模型請關閉。",
     "ollamaCorsWarning": "Ollama 需要為瀏覽器擴充功能設定 CORS。請使用以下指令啟動 Ollama：",
     "verifyConfig": "驗證設定",
     "verifying": "驗證中…",
@@ -124,7 +126,10 @@
     "retry": "重試",
     "pin": "釘選面板",
     "unpin": "取消釘選",
-    "close": "關閉"
+    "close": "關閉",
+    "noImageProvider": "沒有支援圖片的 Provider 可用。請在設定中啟用具備視覺能力的 Provider。",
+    "imageFetchFailed": "圖片載入失敗。",
+    "noTextInImage": "圖片中未發現可辨識的文字。"
   },
   "statusBar": {
     "preparing": "準備中…",

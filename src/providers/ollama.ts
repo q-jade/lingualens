@@ -1,6 +1,6 @@
 import { BaseProvider, type PromptOverrides } from './base';
 import { getThinkingDisableRequestFields } from './thinking';
-import type { TranslateRequest, TranslateResult } from '../shared/types';
+import type { TranslateRequest, TranslateImageRequest, TranslateResult } from '../shared/types';
 
 export class OllamaProvider extends BaseProvider {
   private get baseUrl(): string {
@@ -89,6 +89,51 @@ export class OllamaProvider extends BaseProvider {
         }
       }
     }
+  }
+
+  /**
+   * Vision request: Ollama takes images as base64 (WITHOUT the data-URL
+   * prefix) in an `images` array on the message.
+   */
+  async translateImage(
+    request: TranslateImageRequest,
+    prompt: string,
+  ): Promise<TranslateResult> {
+    if (!request.image) throw new Error('Image data missing');
+    const base64 = request.image.replace(/^data:[^,]*,/, '');
+
+    const res = await fetch(`${this.baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: this.config.model,
+        messages: [
+          { role: 'system', content: prompt },
+          { role: 'user', content: '', images: [base64] },
+        ],
+        options: { temperature: 0.3 },
+        stream: false,
+        ...getThinkingDisableRequestFields(this.config),
+      }),
+    });
+
+    if (!res.ok) {
+      if (res.status === 403) {
+        throw new Error(
+          'Ollama rejected the request (403 Forbidden). Start Ollama with: OLLAMA_ORIGINS="chrome-extension://*" ollama serve',
+        );
+      }
+      const body = await res.text();
+      throw new Error(`Ollama error ${res.status}: ${body}`);
+    }
+
+    const data = await res.json();
+    return {
+      translated: data.message?.content?.trim() ?? '',
+      provider: this.config.name,
+      cached: false,
+      tokensUsed: (data.eval_count ?? 0) + (data.prompt_eval_count ?? 0),
+    };
   }
 
   async testConnection(): Promise<boolean> {

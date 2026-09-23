@@ -59,6 +59,8 @@
     "model": "模型",
     "disableThinking": "禁用思维链",
     "disableThinkingDesc": "跳过模型推理以加快翻译速度",
+    "supportsImage": "支持图片",
+    "supportsImageDesc": "该 Provider 接受图片（需要视觉模型）。纯文本模型请关闭。",
     "ollamaCorsWarning": "Ollama 需要为浏览器扩展配置 CORS。请使用以下命令启动 Ollama：",
     "verifyConfig": "验证配置",
     "verifying": "验证中…",
@@ -124,7 +126,10 @@
     "retry": "重试",
     "pin": "固定面板",
     "unpin": "取消固定",
-    "close": "关闭"
+    "close": "关闭",
+    "noImageProvider": "没有支持图片的 Provider 可用。请在设置中启用具备视觉能力的 Provider。",
+    "imageFetchFailed": "图片加载失败。",
+    "noTextInImage": "图片中未发现可识别的文字。"
   },
   "statusBar": {
     "preparing": "准备中…",

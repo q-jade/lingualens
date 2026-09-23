@@ -1,6 +1,11 @@
 import { BaseProvider, type PromptOverrides } from './base';
 import { getOpenAICompatExtraBody } from './thinking';
-import type { TranslateRequest, TranslateResult } from '../shared/types';
+import type { TranslateRequest, TranslateImageRequest, TranslateResult } from '../shared/types';
+
+/** OpenAI vision content part: text or image (data URL or https URL). */
+type ChatContent =
+  | string
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export class OpenAICompatProvider extends BaseProvider {
   private get baseUrl(): string {
@@ -14,7 +19,7 @@ export class OpenAICompatProvider extends BaseProvider {
   }
 
   private buildChatCompletionBody(
-    messages: { role: string; content: string }[],
+    messages: { role: string; content: ChatContent }[],
     stream: boolean,
   ): Record<string, unknown> {
     return {
@@ -106,6 +111,48 @@ export class OpenAICompatProvider extends BaseProvider {
         }
       }
     }
+  }
+
+  /**
+   * Vision request: the built-in image prompt as the system message, the image
+   * as an image_url content part (data URLs are accepted by every
+   * OpenAI-compatible vision endpoint).
+   */
+  async translateImage(
+    request: TranslateImageRequest,
+    prompt: string,
+  ): Promise<TranslateResult> {
+    if (!request.image) throw new Error('Image data missing');
+
+    const res = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(
+        this.buildChatCompletionBody(
+          [
+            { role: 'system', content: prompt },
+            {
+              role: 'user',
+              content: [{ type: 'image_url', image_url: { url: request.image } }],
+            },
+          ],
+          false,
+        ),
+      ),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`API error ${res.status}: ${body}`);
+    }
+
+    const data = await res.json();
+    return {
+      translated: data.choices?.[0]?.message?.content?.trim() ?? '',
+      provider: this.config.name,
+      cached: false,
+      tokensUsed: data.usage?.total_tokens,
+    };
   }
 
   async testConnection(): Promise<boolean> {

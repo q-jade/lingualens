@@ -43,6 +43,10 @@ export default defineBackground(() => {
     tabId: number;
     url: string;
     at: number;
+    /** The right-clicked selection covers an image (mixed selections prefer the image). */
+    hasImage: boolean;
+    /** Absolute URL of that image (img.currentSrc || img.src). */
+    imageUrl: string;
   } | null = null;
 
   /**
@@ -124,6 +128,11 @@ export default defineBackground(() => {
         contexts: ['selection'],
       }),
       browser.contextMenus.create({
+        id: 'translate-image',
+        title: browser.i18n.getMessage('contextMenuTranslateImage') || 'Translate Image',
+        contexts: ['image'],
+      }),
+      browser.contextMenus.create({
         id: 'translate-page',
         title: browser.i18n.getMessage('contextMenuTranslatePage') || 'Translate This Page',
         contexts: ['page'],
@@ -145,6 +154,58 @@ export default defineBackground(() => {
       done: 'contextMenuRestorePage',
     } as const;
     return browser.i18n.getMessage(key[phase]) || 'Translate This Page';
+  }
+
+  /**
+   * The selection menu doubles as the image-translation entry: when the
+   * selection covers an image, its title switches to "Translate Image" (mixed
+   * selections prefer the image) and the dedicated image menu is REMOVED —
+   * right-clicking that image fires contexts ['image','selection'], and with
+   * two matching items Chromium collapses the extension's entries into a
+   * parent submenu (two identical "Translate Image" items before; one after —
+   * `visible:false` hides the item but does NOT dissolve the submenu).
+   * Without an image in the selection the image menu is re-created (direct
+   * image right-clicks need it). Chromium has no contextMenus.onShown, so the
+   * content script reports the selection state on every right-click
+   * (CONTEXT_MENU_PRESENCE) and this update races the menu render — the
+   * right-button mousedown report usually lands first; a missed update only
+   * means the stale layout shows once and corrects on the next right-click.
+   */
+  function getSelectionMenuTitle(hasImage: boolean): string {
+    return hasImage
+      ? (browser.i18n.getMessage('contextMenuTranslateImage') || 'Translate Image')
+      : (browser.i18n.getMessage('contextMenuTranslateSelection', ['%s']) || 'Translate "%s"');
+  }
+
+  /**
+   * Whether the dedicated image menu currently exists. Removed while the
+   * selection covers an image, re-created otherwise (see the comment above
+   * getSelectionMenuTitle for why `visible:false` is not enough).
+   */
+  let imageMenuExists = true;
+
+  async function applySelectionContextMenu(hasImage: boolean): Promise<void> {
+    try {
+      await contextMenusReady;
+      await browser.contextMenus.update('translate-selection', {
+        title: getSelectionMenuTitle(hasImage),
+      });
+      if (hasImage && imageMenuExists) {
+        await browser.contextMenus.remove('translate-image');
+        imageMenuExists = false;
+      } else if (!hasImage && !imageMenuExists) {
+        await browser.contextMenus.create({
+          id: 'translate-image',
+          title: browser.i18n.getMessage('contextMenuTranslateImage') || 'Translate Image',
+          contexts: ['image'],
+        });
+        imageMenuExists = true;
+      }
+    } catch {
+      // Menu may not exist yet (first SW tick), or a create raced a parallel
+      // remove (duplicate id) — the next presence report retries and the
+      // flag self-heals on the next successful operation.
+    }
   }
 
   async function applyPageContextMenu(tabId: number, phase: PageTranslatePhase): Promise<void> {
@@ -275,6 +336,50 @@ export default defineBackground(() => {
     console.warn(TAB_TRANSLATE_UNREACHABLE, err);
   }
 
+  /**
+   * Download an image and return it as a data URL. Runs in the service worker:
+   * host permissions bypass page CSP/CORS, and cross-origin pixels cannot be
+   * extracted in the page (canvas taint). blob:/data: URLs are returned as-is
+   * (blob: is page-scoped, but the content script resolves it via canvas).
+   */
+  async function fetchImageAsDataUrl(url: string): Promise<string> {
+    if (url.startsWith('data:')) return url;
+    if (url.startsWith('blob:')) throw new Error('BLOB_IMAGE');
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`[LinguaLens] Image fetch failed: ${res.status} ${url}`);
+      throw new Error('IMAGE_FETCH_FAILED');
+    }
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/')) throw new Error('NOT_AN_IMAGE');
+    if (blob.size > 20 * 1024 * 1024) throw new Error('IMAGE_TOO_LARGE');
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error('IMAGE_READ_FAILED'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  /**
+   * Resolve the pixel data for an image URL: background fetch first; on
+   * failure (page-scoped blob:, hotlink protection, …) ask the content script
+   * to rasterize it via canvas (works for same-origin/CORS images).
+   */
+  async function resolveImageDataUrl(tabId: number, imageUrl: string): Promise<string> {
+    try {
+      return await fetchImageAsDataUrl(imageUrl);
+    } catch {
+      const res = await browser.tabs.sendMessage(tabId, {
+        type: 'EXTRACT_IMAGE_DATA_URL',
+        payload: { imageUrl },
+      });
+      const dataUrl = (res as { dataUrl?: string } | undefined)?.dataUrl;
+      if (!dataUrl) throw new Error('IMAGE_FETCH_FAILED');
+      return dataUrl;
+    }
+  }
+
   /** Shared by keyboard shortcut and context menu (MV3: await keeps the SW alive until send completes). */
   async function translateSelectionInTab(
     tabId: number,
@@ -324,6 +429,26 @@ export default defineBackground(() => {
 
     await browser.tabs
       .sendMessage(tabId, { type: 'TRANSLATE_SELECTION' })
+      .catch(warnTabTranslateUnreachable);
+  }
+
+  /**
+   * Image translation from a page (selection covering an image, or the image
+   * context menu). Opens the in-page panel; the panel pulls pixel data and
+   * runs TRANSLATE_IMAGE. No side-panel fallback — image translation is
+   * in-page only for now.
+   */
+  async function translateImageInTab(tabId: number, imageUrl: string): Promise<void> {
+    const reachable = await browser.tabs
+      .sendMessage(tabId, { type: 'PING' })
+      .then(() => true)
+      .catch(() => false);
+    if (!reachable) {
+      warnTabTranslateUnreachable(new Error('content script unreachable (image)'));
+      return;
+    }
+    await browser.tabs
+      .sendMessage(tabId, { type: 'TRANSLATE_IMAGE_IN_TAB', payload: { imageUrl } })
       .catch(warnTabTranslateUnreachable);
   }
 
@@ -411,7 +536,17 @@ export default defineBackground(() => {
     if (message.type === 'CONTEXT_MENU_PRESENCE') {
       const tabId = sender.tab?.id;
       if (typeof tabId === 'number' && tabId >= 0) {
-        contextMenuPresence = { tabId, url: sender.tab?.url ?? '', at: Date.now() };
+        const payload = (message.payload ?? {}) as { hasImage?: boolean; imageUrl?: string };
+        contextMenuPresence = {
+          tabId,
+          url: sender.tab?.url ?? '',
+          at: Date.now(),
+          hasImage: Boolean(payload.hasImage && payload.imageUrl),
+          imageUrl: payload.imageUrl ?? '',
+        };
+        // The selection menu doubles as the image entry — repaint its title
+        // for the menu that is about to open.
+        void applySelectionContextMenu(contextMenuPresence.hasImage);
       }
       sendResponse({ ok: true });
       return false;
@@ -481,6 +616,26 @@ export default defineBackground(() => {
       return true;
     }
 
+    if (message.type === 'RESOLVE_IMAGE_DATA_URL') {
+      // The content script asks for pixel data BEFORE TRANSLATE_IMAGE:
+      // background fetch first (host permissions bypass page CSP/CORS),
+      // canvas extraction in the page as fallback (needs this tab's id —
+      // only the background knows it, via sender).
+      const tabId = sender.tab?.id;
+      const imageUrl = (message.payload as { imageUrl?: string } | undefined)?.imageUrl ?? '';
+      if (typeof tabId !== 'number' || tabId < 0 || !imageUrl) {
+        sendResponse({ success: false, error: 'IMAGE_FETCH_FAILED' });
+        return false;
+      }
+      resolveImageDataUrl(tabId, imageUrl)
+        .then((dataUrl) => sendResponse({ success: true, dataUrl }))
+        .catch((err) => sendResponse({
+          success: false,
+          error: err instanceof Error ? err.message : 'IMAGE_FETCH_FAILED',
+        }));
+      return true;
+    }
+
     handleMessage(message).then(sendResponse);
     return true;
   });
@@ -528,6 +683,9 @@ export default defineBackground(() => {
       // right-click presence report is stale (tabId+url may match a reload).
       if (contextMenuPresence?.tabId === tabId) contextMenuPresence = null;
       if (pendingSidepanelSelection) pendingSidepanelSelection = null;
+      // Reset the selection menu to its text title — the next right-click
+      // re-reports the selection state before the menu opens.
+      void applySelectionContextMenu(false);
     }
     // Session restore after cold start often skips `loading`; `complete` carries the final URL.
     if (changeInfo.status === 'loading' || changeInfo.status === 'complete' || changeInfo.url) {
@@ -558,6 +716,14 @@ export default defineBackground(() => {
         : lastFocusedWindowId ?? undefined;
 
     const menuId = String(info.menuItemId);
+
+    if (menuId === 'translate-image') {
+      // Direct right-click on an image: info.srcUrl carries the absolute URL.
+      const imageUrl = info.srcUrl;
+      if (tabId === undefined || !imageUrl) return;
+      await translateImageInTab(tabId, imageUrl);
+      return;
+    }
 
     if (menuId === 'translate-selection') {
       const frameId =
@@ -610,6 +776,12 @@ export default defineBackground(() => {
       if (tabId === undefined) {
         // No reachable tab to message — deliver straight to the side panel.
         if (selected) await routeSelectionToSidePanel(selected, windowId);
+        return;
+      }
+      // Selection covers an image (mixed selections prefer the image): the
+      // presence report from the right-click carries its URL.
+      if (presenceUsable && presence.hasImage && presence.imageUrl) {
+        await translateImageInTab(tabId, presence.imageUrl);
         return;
       }
       await translateSelectionInTab(tabId, frameId, selected, windowId);

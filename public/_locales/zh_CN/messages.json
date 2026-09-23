@@ -40,5 +40,9 @@
   "contextMenuRestorePage": {
     "message": "恢复原始页面",
     "description": "Context menu item to restore the original page"
+  },
+  "contextMenuTranslateImage": {
+    "message": "翻译图片",
+    "description": "Context menu item for translating the text inside an image"
   }
 }

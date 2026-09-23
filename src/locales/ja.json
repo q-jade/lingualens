@@ -59,6 +59,8 @@
     "model": "モデル",
     "disableThinking": "思考チェーンを無効化",
     "disableThinkingDesc": "モデルの推論をスキップして翻訳を高速化",
+    "supportsImage": "画像対応",
+    "supportsImageDesc": "プロバイダーが画像を受け付ける（ビジョンモデルが必要）。テキスト専用モデルではオフにしてください。",
     "ollamaCorsWarning": "Ollama はブラウザ拡張機能に CORS 設定が必要です。以下のコマンドで Ollama を起動してください：",
     "verifyConfig": "設定を検証",
     "verifying": "検証中…",
@@ -124,7 +126,10 @@
     "retry": "再試行",
     "pin": "パネルを固定",
     "unpin": "固定を解除",
-    "close": "閉じる"
+    "close": "閉じる",
+    "noImageProvider": "画像に対応したプロバイダーが有効ではありません。設定でビジョン対応プロバイダーを有効にしてください。",
+    "imageFetchFailed": "画像を読み込めませんでした。",
+    "noTextInImage": "画像に読み取れるテキストが見つかりません。"
   },
   "statusBar": {
     "preparing": "準備中…",

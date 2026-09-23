@@ -88,7 +88,7 @@ export function App() {
       ...preset,
       id,
       enabled: true,
-      ...(isLlmProvider(type) ? { disableThinking: true } : {}),
+      ...(isLlmProvider(type) ? { disableThinking: true, supportsImage: true } : {}),
     };
     setSettings((s) => ({ ...s, providers: [...s.providers, newProvider] }));
     setExpandedProvider(id);
@@ -579,6 +579,22 @@ export function App() {
                                   <span className="text-sm font-medium text-gray-700">{t('options.disableThinking')}</span>
                                   <p className="ll-hint mt-0.5">
                                     {t('options.disableThinkingDesc')}
+                                  </p>
+                                </div>
+                              </label>
+                            )}
+                            {isLlmProvider(provider.type) && (
+                              <label className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={provider.supportsImage !== false}
+                                  onChange={(e) => updateProvider(provider.id, { supportsImage: e.target.checked })}
+                                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500/40"
+                                />
+                                <div>
+                                  <span className="text-sm font-medium text-gray-700">{t('options.supportsImage')}</span>
+                                  <p className="ll-hint mt-0.5">
+                                    {t('options.supportsImageDesc')}
                                   </p>
                                 </div>
                               </label>

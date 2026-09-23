@@ -1,8 +1,9 @@
 import { ProviderManager } from '../providers/manager';
 import { getCached, setCache, clearCache as clearTranslationCache, getCacheStats } from './cache';
-import type { AppSettings, ProviderConfig, TranslateRequest, MessageResponse, TranslateResult, SettingsPatch } from '../shared/types';
+import type { AppSettings, ProviderConfig, TranslateRequest, TranslateImageRequest, MessageResponse, TranslateResult, SettingsPatch } from '../shared/types';
 import type { PromptOverrides } from '../providers/base';
-import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT } from '../shared/constants';
+import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT, DEFAULT_IMAGE_TRANSLATION_PROMPT } from '../shared/constants';
+import { isLlmProvider } from '../providers/thinking';
 
 const providerManager = new ProviderManager();
 
@@ -136,6 +137,55 @@ export async function handleTranslate(
   return { success: false, error: lastError };
 }
 
+/**
+ * Image translation: only vision-capable LLM providers participate. The prompt
+ * is the built-in image template — promptTemplate / additionalPrompt settings
+ * never apply. The cache key uses the image URL (not the pixel data) plus an
+ * `image:` prompt-tag namespace, so image and text translations never collide.
+ */
+export async function handleTranslateImage(
+  request: TranslateImageRequest,
+): Promise<MessageResponse<TranslateResult>> {
+  const settings = await getSettings();
+  const chain = buildProviderChain(settings).filter(
+    (p) => isLlmProvider(p.type) && p.supportsImage !== false,
+  );
+
+  if (chain.length === 0) {
+    return { success: false, error: 'NO_IMAGE_PROVIDER' };
+  }
+  if (!request.image) {
+    return { success: false, error: 'IMAGE_FETCH_FAILED' };
+  }
+
+  const promptTag = `image:${DEFAULT_IMAGE_TRANSLATION_PROMPT}`;
+  let lastError = '';
+
+  for (const providerConfig of chain) {
+    try {
+      const cached = await getCached(
+        request.imageUrl, request.sourceLang, request.targetLang, providerConfig.id, promptTag,
+      );
+      if (cached) return { success: true, data: cached };
+
+      const provider = providerManager.getProvider(providerConfig);
+      if (!provider.translateImage) continue;
+
+      const prompt = provider.buildImagePrompt(request);
+      const result = await provider.translateImage(request, prompt);
+
+      await setCache(
+        request.imageUrl, request.sourceLang, request.targetLang, providerConfig.id, result, promptTag,
+      );
+      return { success: true, data: result };
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : 'TRANSLATION_FAILED';
+    }
+  }
+
+  return { success: false, error: lastError || 'TRANSLATION_FAILED' };
+}
+
 export async function handleVerifyConfig(
   providerConfig: ProviderConfig,
 ): Promise<MessageResponse<string>> {
@@ -159,6 +209,8 @@ export async function handleMessage(message: Record<string, unknown>): Promise<M
   switch (message.type) {
     case 'TRANSLATE':
       return handleTranslate(message.payload as TranslateRequest);
+    case 'TRANSLATE_IMAGE':
+      return handleTranslateImage(message.payload as TranslateImageRequest);
     case 'VERIFY_CONFIG':
       return handleVerifyConfig((message.payload as { providerConfig: ProviderConfig }).providerConfig);
     case 'GET_SETTINGS':

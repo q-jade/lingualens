@@ -12,6 +12,77 @@ import './style.css';
 const OVERLAY_Z = '2147483647';
 
 /**
+ * Find an image covered by the current selection. Mixed selections (text +
+ * image) prefer the image — the first <img> inside the range wins. Returns
+ * the absolute URL (currentSrc resolves srcset; src resolves relative paths).
+ */
+function findImageInSelection(): string | null {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return null;
+  const range = selection.getRangeAt(0);
+  if (range.collapsed) return null;
+
+  const readUrl = (img: HTMLImageElement) => img.currentSrc || img.src || null;
+
+  // Fast path: the cloned fragment literally contains the image.
+  const fromFragment = range.cloneContents().querySelectorAll<HTMLImageElement>('img');
+  if (fromFragment.length > 0) return readUrl(fromFragment[0]);
+
+  // Fallback: the fragment can miss the image even when the selection covers
+  // it — replaced elements anchor oddly, so the fragment may collapse to a
+  // text node, or the <img> itself may be the range's common ancestor (empty
+  // fragment, no descendants). Search from the common ancestor in BOTH
+  // directions:
+  // - up (`closest`): the ancestor IS the <img> — closest() includes self.
+  // - down (`querySelectorAll`): the ancestor WRAPS the <img> (boundary
+  //   points landed in surrounding nodes).
+  // `intersectsNode` keeps both precise: without it, selecting "Hello" in
+  // "Hello [img] world" resolves the ancestor to the <p> and would wrongly
+  // match the unrelated inline image.
+  const ancestor = range.commonAncestorContainer;
+  const root = ancestor instanceof Element ? ancestor : ancestor.parentElement;
+  const containing = root?.closest?.('img');
+  if (containing && range.intersectsNode(containing)) return readUrl(containing);
+  const candidates: HTMLImageElement[] = root
+    ? Array.from(root.querySelectorAll<HTMLImageElement>('img'))
+    : [];
+  for (const img of candidates) {
+    if (range.intersectsNode(img)) return readUrl(img);
+  }
+
+  return null;
+}
+
+/**
+ * Rasterize a page image to a data URL via canvas. Only works for same-origin
+ * or CORS-enabled images (cross-origin pixels taint the canvas); the
+ * background fetch is the primary path, this is the fallback.
+ */
+function extractImageAsDataUrl(imageUrl: string): string | null {
+  const img = document.querySelector<HTMLImageElement>(
+    `img[src="${CSS.escape(imageUrl)}"], img[data-src="${CSS.escape(imageUrl)}"]`,
+  );
+  const source = img ?? new Image();
+  if (!img) {
+    source.crossOrigin = 'anonymous';
+    source.src = imageUrl;
+  }
+  if (!source.complete || !source.naturalWidth) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = source.naturalWidth;
+    canvas.height = source.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(source, 0, 0);
+    return canvas.toDataURL('image/png');
+  } catch {
+    // Tainted canvas (cross-origin without CORS)
+    return null;
+  }
+}
+
+/**
  * Block page compositing from affecting the host, and force top stacking.
  * WXT's `:host { all: initial !important }` resets z-index; inline z-index from WXT
  * cannot beat it without !important — page rails (huggingface.co) then paint on top.
@@ -94,6 +165,9 @@ export default defineContentScript({
     type PendingSelection = { text: string; mouseX: number; mouseY: number; range: Range };
     const pendingSelection: PendingSelection[] = [];
     const pendingTranslateNow: string[] = [];
+    type PendingImageTrigger = { imageUrl: string; mouseX: number; mouseY: number; range: Range };
+    const pendingImageTriggers: PendingImageTrigger[] = [];
+    const pendingImageTranslateNow: string[] = [];
 
     const flushPendingSelection = () => {
       if (!appHandle) return;
@@ -104,6 +178,14 @@ export default defineContentScript({
       while (pendingTranslateNow.length > 0) {
         const t = pendingTranslateNow.shift()!;
         appHandle.translateNow(t);
+      }
+      while (pendingImageTriggers.length > 0) {
+        const p = pendingImageTriggers.shift()!;
+        appHandle.showImageTrigger(p.imageUrl, p.mouseX, p.mouseY, p.range);
+      }
+      while (pendingImageTranslateNow.length > 0) {
+        const u = pendingImageTranslateNow.shift()!;
+        appHandle.translateImageNow(u);
       }
     };
 
@@ -148,8 +230,14 @@ export default defineContentScript({
     // pages WITH a content script (in-page bubble) apart from pages without
     // one (route to side panel) in the context-menu click handler. Capture
     // phase fires before any page/PDF-viewer handler can stop the event.
+    // The report also carries the selection's image state so the background
+    // can switch the selection menu title to "Translate Image".
     const reportPresence = () => {
-      browser.runtime.sendMessage({ type: 'CONTEXT_MENU_PRESENCE' }).catch(() => {});
+      const imageUrl = findImageInSelection();
+      browser.runtime.sendMessage({
+        type: 'CONTEXT_MENU_PRESENCE',
+        payload: { hasImage: Boolean(imageUrl), imageUrl: imageUrl ?? '' },
+      }).catch(() => {});
     };
     document.addEventListener('contextmenu', reportPresence, true);
     document.addEventListener('mousedown', (e) => {
@@ -166,8 +254,31 @@ export default defineContentScript({
       setTimeout(() => {
         const selection = window.getSelection();
         const text = selection?.toString().trim();
-        if (!text || text.length <= 1 || !selection?.rangeCount) return;
+        if (!selection?.rangeCount) return;
         const range = selection.getRangeAt(0);
+
+        // Selection covers an image (mixed selections prefer the image).
+        const imageUrl = findImageInSelection();
+        if (imageUrl) {
+          const mode = appHandle?.getSelectionTriggerMode() ?? 'icon';
+          if (mode === 'instant') {
+            if (appHandle) {
+              appHandle.translateImageNow(imageUrl);
+            } else {
+              pendingImageTranslateNow.push(imageUrl);
+            }
+          } else if (mode === 'icon') {
+            if (appHandle) {
+              appHandle.showImageTrigger(imageUrl, mouseX, mouseY, range);
+            } else {
+              pendingImageTriggers.push({ imageUrl, mouseX, mouseY, range: range.cloneRange() });
+            }
+          }
+          // 'modifier' and 'off': do nothing on mouseup
+          return;
+        }
+
+        if (!text || text.length <= 1) return;
 
         const mode = appHandle?.getSelectionTriggerMode() ?? 'icon';
         switch (mode) {
@@ -222,6 +333,19 @@ export default defineContentScript({
       modifierPending = false;
 
       const selection = window.getSelection();
+      if (!selection?.rangeCount) return;
+
+      // Mixed selections prefer the image (same rule as mouseup).
+      const imageUrl = findImageInSelection();
+      if (imageUrl) {
+        if (appHandle) {
+          appHandle.translateImageNow(imageUrl);
+        } else {
+          pendingImageTranslateNow.push(imageUrl);
+        }
+        return;
+      }
+
       const text = selection?.toString().trim();
       if (!text || text.length <= 1) return;
 
@@ -307,6 +431,26 @@ export default defineContentScript({
           } else {
             pendingTranslateNow.push(text);
           }
+          break;
+        }
+        case 'TRANSLATE_IMAGE_IN_TAB': {
+          // Image context menu / image-in-selection from the background.
+          const payload = message.payload as { imageUrl?: string };
+          const imageUrl = payload?.imageUrl;
+          if (!imageUrl || checkSelectionTranslateBlock()) break;
+          if (appHandle) {
+            appHandle.translateImageNow(imageUrl);
+          } else {
+            pendingImageTranslateNow.push(imageUrl);
+          }
+          break;
+        }
+        case 'EXTRACT_IMAGE_DATA_URL': {
+          // Background fetch failed (page-scoped blob:, hotlink protection):
+          // rasterize the image in the page via canvas.
+          const payload = message.payload as { imageUrl?: string };
+          const dataUrl = payload?.imageUrl ? extractImageAsDataUrl(payload.imageUrl) : null;
+          sendResponse({ dataUrl });
           break;
         }
       }

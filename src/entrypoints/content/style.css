@@ -158,6 +158,17 @@
   font-size: calc(var(--ll-u) * 16);
 }
 
+/* Image translation: page-image preview above the translated text. */
+.st-image-preview {
+  @apply mb-[8px] rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex justify-center;
+}
+
+.st-image-preview img {
+  @apply max-w-full h-auto;
+  max-height: calc(var(--ll-u) * 180);
+  object-fit: contain;
+}
+
 .st-panel-footer {
   @apply flex flex-none items-center justify-start px-[12px] py-[3px] border-t border-gray-100;
   background-color: #ffffff;

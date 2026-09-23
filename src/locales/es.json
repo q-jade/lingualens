@@ -8,7 +8,6 @@
     "copy": "Copiar",
     "settings": "Configuración",
     "selectionMode": "Modo de activación",
-
     "translatePageTo": "Traducir esta página al {{lang}}",
     "stopPageTranslation": "Detener traducción de página",
     "restoreOriginalPage": "Restaurar página original",
@@ -60,6 +59,8 @@
     "model": "Modelo",
     "disableThinking": "Desactivar cadena de pensamiento",
     "disableThinkingDesc": "Omitir el razonamiento del modelo para una traducción más rápida",
+    "supportsImage": "Soporte de imágenes",
+    "supportsImageDesc": "El proveedor acepta imágenes (requiere un modelo de visión). Desactívalo para modelos solo de texto.",
     "ollamaCorsWarning": "Ollama requiere configuración CORS para extensiones de navegador. Inicie Ollama con:",
     "verifyConfig": "Verificar configuración",
     "verifying": "Verificando…",
@@ -125,7 +126,10 @@
     "retry": "Reintentar",
     "pin": "Fijar panel",
     "unpin": "Desfijar panel",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "noImageProvider": "No hay ningún proveedor con capacidad de imagen activo. Habilita un proveedor de visión en Ajustes.",
+    "imageFetchFailed": "No se pudo cargar la imagen.",
+    "noTextInImage": "No se encontró texto legible en la imagen."
   },
   "statusBar": {
     "preparing": "Preparando…",

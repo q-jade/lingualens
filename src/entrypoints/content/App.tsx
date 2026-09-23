@@ -20,7 +20,16 @@ import { SUPPORTED_LANGUAGES, getLanguageName } from '../../shared/languages';
 const ERROR_KEYS: Record<string, string> = {
   NO_PROVIDER: 'content.noProvider',
   TRANSLATION_FAILED: 'content.translationFailed',
+  NO_IMAGE_PROVIDER: 'content.noImageProvider',
+  IMAGE_FETCH_FAILED: 'content.imageFetchFailed',
+  BLOB_IMAGE: 'content.imageFetchFailed',
+  NOT_AN_IMAGE: 'content.imageFetchFailed',
+  IMAGE_TOO_LARGE: 'content.imageFetchFailed',
+  IMAGE_READ_FAILED: 'content.imageFetchFailed',
 };
+
+/** Sentinel the built-in image prompt outputs when an image has no text. */
+const NO_TEXT_IN_IMAGE = 'NO_TEXT_IN_IMAGE';
 
 function notifyPageTranslatePhase(phase: PageTranslatePhase) {
   browser.runtime.sendMessage({
@@ -51,6 +60,10 @@ export interface ContentAppHandle {
   showTrigger: (text: string, mouseX: number, mouseY: number, range: Range) => void;
   /** Open panel and translate immediately (e.g. context menu — no floating trigger step). */
   translateNow: (text: string) => void;
+  /** Floating trigger for a selection that covers an image. */
+  showImageTrigger: (imageUrl: string, mouseX: number, mouseY: number, range: Range) => void;
+  /** Open panel and translate the text inside an image (context menu path). */
+  translateImageNow: (imageUrl: string) => void;
   hide: () => void;
   isPageTranslationActive: () => boolean;
   getPageTranslatePhase: () => PageTranslatePhase;
@@ -319,7 +332,8 @@ export function ContentApp({ onReady }: Props) {
       type: 'SAVE_SETTINGS',
       payload: { defaultTargetLang: lang },
     });
-    void doTranslate(lang);
+    if (panelImageRef.current) void doImageTranslate(lang);
+    else void doTranslate(lang);
   };
 
   const switchProvider = async (providerId: string) => {
@@ -331,7 +345,8 @@ export function ContentApp({ onReady }: Props) {
       type: 'SAVE_SETTINGS',
       payload: { defaultProvider: providerId, fallbackProviders: nextFallback },
     });
-    void doTranslate();
+    if (panelImageRef.current) void doImageTranslate();
+    else void doTranslate();
   };
 
   // Page translation state
@@ -346,6 +361,16 @@ export function ContentApp({ onReady }: Props) {
 
   const selectedTextRef = useRef('');
   const triggerMouseRef = useRef({ x: 0, y: 0 });
+  /**
+   * Image currently shown in the panel. State because it is RENDERED (the
+   * preview <img>); selectedTextRef needs no state twin because the selected
+   * text never renders. The ref mirrors the state for synchronous reads in
+   * imperative flows — a queueMicrotask callback can run before React
+   * re-renders, so handlers pre-assign the ref BEFORE setState.
+   */
+  const [panelImage, setPanelImage] = useState<string | null>(null);
+  const panelImageRef = useRef<string | null>(null);
+  panelImageRef.current = panelImage;
   const settingsRef = useRef<AppSettings | null>(null);
   settingsRef.current = settings;
   const selectionTriggerModeRef = useRef<SelectionTriggerMode>('icon');
@@ -734,6 +759,61 @@ export function ContentApp({ onReady }: Props) {
     void doTranslate();
   };
 
+  /** Translate the text inside the panel's image. `targetLangOverride` is used
+   *  when the target language just changed — the settings ref updates only on
+   *  re-render. (No URL override: panelImageRef is assigned synchronously by
+   *  showImageTrigger/translateImageNow before this runs. The page-translate
+   *  guard lives in runImageTranslate, mirroring the text path — it must also
+   *  keep the panel from opening.) */
+  const doImageTranslate = async (targetLangOverride?: string) => {
+    const imageUrl = panelImageRef.current;
+    if (!imageUrl) return;
+
+    const targetLang = targetLangOverride ?? settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
+    const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
+
+    setLoading(true);
+    setError(null);
+    setTranslation('');
+
+    try {
+      // Pixel data first: the background fetches the image (canvas fallback
+      // inside the page). Providers consume `image`, never the page URL.
+      const resolved = await browser.runtime.sendMessage({
+        type: 'RESOLVE_IMAGE_DATA_URL',
+        payload: { imageUrl },
+      });
+      if (!resolved?.success || !resolved.dataUrl) {
+        const raw = resolved?.error;
+        setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : t('content.imageFetchFailed'));
+        return;
+      }
+
+      const response = await browser.runtime.sendMessage({
+        type: 'TRANSLATE_IMAGE',
+        payload: { imageUrl, image: resolved.dataUrl, sourceLang, targetLang },
+      });
+
+      if (response?.success) {
+        const translated: string = response.data.translated;
+        setTranslation(translated === NO_TEXT_IN_IMAGE ? t('content.noTextInImage') : translated);
+      } else {
+        const raw = response?.error;
+        setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : (raw || t('content.translationFailed')));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('content.translationFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runImageTranslate = (panelAnchor: { x: number; y: number }) => {
+    if (!panelImageRef.current || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
+    openPanelAt(panelAnchor);
+    void doImageTranslate();
+  };
+
   const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0 || (event.target as HTMLElement).closest('.st-panel-close, .st-provider-trigger, .st-mode-picker')) return;
     event.preventDefault();
@@ -814,6 +894,11 @@ export function ContentApp({ onReady }: Props) {
       showTrigger(text, mouseX, mouseY, range) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         selectedTextRef.current = text;
+        // New selection is text: drop any previous image target, or a stale
+        // panelImageRef would win at the trigger button (image path clears
+        // selectedTextRef symmetrically).
+        panelImageRef.current = null;
+        setPanelImage(null);
         triggerMouseRef.current = { x: mouseX, y: mouseY };
         const pos = computeTriggerPosition(range, mouseX, mouseY);
         // Pinned panel stays open: show a floating trigger for the new
@@ -839,6 +924,8 @@ export function ContentApp({ onReady }: Props) {
           return;
         }
         selectedTextRef.current = t;
+        panelImageRef.current = null;
+        setPanelImage(null);
         setTranslation('');
         setError(null);
         // Pinned panel stays in place: translate the new selection into it.
@@ -853,6 +940,49 @@ export function ContentApp({ onReady }: Props) {
         };
         setAnchor(panelAnchor);
         queueMicrotask(() => runSelectionTranslate(panelAnchor));
+      },
+      showImageTrigger(imageUrl, mouseX, mouseY, range) {
+        if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
+        selectedTextRef.current = '';
+        panelImageRef.current = imageUrl;
+        setPanelImage(imageUrl);
+        triggerMouseRef.current = { x: mouseX, y: mouseY };
+        const pos = computeTriggerPosition(range, mouseX, mouseY);
+        if (pinnedRef.current && modeRef.current === 'panel') {
+          setPinnedTrigger(pos);
+          return;
+        }
+        setAnchor(pos);
+        setMode('trigger');
+        setTranslation('');
+        setError(null);
+      },
+      translateImageNow(imageUrl) {
+        if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
+        if (!imageUrl) return;
+        if (
+          modeRef.current === 'panel' &&
+          imageUrl === panelImageRef.current &&
+          (loadingRef.current || translationRef.current)
+        ) {
+          return;
+        }
+        selectedTextRef.current = '';
+        panelImageRef.current = imageUrl;
+        setPanelImage(imageUrl);
+        setTranslation('');
+        setError(null);
+        if (pinnedRef.current && modeRef.current === 'panel') {
+          setPinnedTrigger(null);
+          queueMicrotask(() => void doImageTranslate());
+          return;
+        }
+        const panelAnchor = {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 3,
+        };
+        setAnchor(panelAnchor);
+        queueMicrotask(() => runImageTranslate(panelAnchor));
       },
       hide() {
         if (pinnedRef.current) return;
@@ -907,7 +1037,10 @@ export function ContentApp({ onReady }: Props) {
               // Panel is already open and pinned in place: translate the new
               // selection into it without moving the panel.
               setPinnedTrigger(null);
-              void doTranslate();
+              if (panelImageRef.current) void doImageTranslate();
+              else void doTranslate();
+            } else if (panelImageRef.current) {
+              void runImageTranslate(anchor);
             } else {
               void runSelectionTranslate(anchor);
             }
@@ -1102,6 +1235,11 @@ export function ContentApp({ onReady }: Props) {
             </div>
           </div>
           <div className="st-panel-body">
+            {panelImage && (
+              <div className="st-image-preview">
+                <img src={panelImage} alt="" draggable={false} />
+              </div>
+            )}
             {loading && (
               <div className="st-loading">
                 <span className="ll-spinner" />
@@ -1111,7 +1249,12 @@ export function ContentApp({ onReady }: Props) {
             {error && (
               <div className="st-error">
                 <span>{error}</span>
-                <button onClick={() => void doTranslate()} className="st-retry-btn">{t('content.retry')}</button>
+                <button
+                  onClick={() => (panelImageRef.current ? void doImageTranslate() : void doTranslate())}
+                  className="st-retry-btn"
+                >
+                  {t('content.retry')}
+                </button>
               </div>
             )}
             {!loading && !error && translation && (

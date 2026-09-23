@@ -10,6 +10,24 @@ export interface TranslateRequest {
   applyAdditionalPrompt?: boolean;
 }
 
+/**
+ * Translate the text inside an image (selection covering an image, or the
+ * image context menu). Other entry points (popup, side panel, page
+ * translation) do not carry images.
+ */
+export interface TranslateImageRequest {
+  /** Page image URL (http/https/data/blob) — cache key and panel preview. */
+  imageUrl: string;
+  /**
+   * Image as a data URL. Filled in by the background (fetch, or content-script
+   * canvas extraction as fallback) before the provider call — providers must
+   * not read `imageUrl` directly (blob: URLs are page-scoped).
+   */
+  image?: string;
+  sourceLang: string;
+  targetLang: string;
+}
+
 export interface TranslateResult {
   translated: string;
   provider: string;
@@ -27,6 +45,8 @@ export interface ProviderConfig {
   model?: string;
   /** LLM providers only. Default true — skip chain-of-thought for faster translation. */
   disableThinking?: boolean;
+  /** LLM providers only. Default true — the provider accepts images (vision model). */
+  supportsImage?: boolean;
 }
 
 export type ChunkingMode = 'quality' | 'speed';
@@ -67,6 +87,7 @@ export type SettingsPatch = Omit<Partial<AppSettings>, 'promptTemplate' | 'addit
 
 export type MessageType =
   | { type: 'TRANSLATE'; payload: TranslateRequest }
+  | { type: 'TRANSLATE_IMAGE'; payload: TranslateImageRequest }
   | { type: 'VERIFY_CONFIG'; payload: { providerConfig: ProviderConfig } }
   | { type: 'GET_SETTINGS' }
   | { type: 'SAVE_SETTINGS'; payload: SettingsPatch };

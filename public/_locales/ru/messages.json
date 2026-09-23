@@ -1,11 +1,38 @@
 {
-  "extName": { "message": "LinguaLens" },
-  "extDescription": { "message": "LinguaLens — переводите что угодно с помощью LLM и онлайн-API" },
-  "commandTranslateSelection": { "message": "Перевести выделенный текст" },
-  "commandTranslatePage": { "message": "Перевести всю страницу" },
-  "commandCycleSelectionMode": { "message": "Переключить режим триггера выделения" },
-  "contextMenuTranslateSelection": { "message": "Перевести «$TEXT$»", "placeholders": { "TEXT": { "content": "$1" } } },
-  "contextMenuTranslatePage": { "message": "Перевести эту страницу" },
-  "contextMenuStopPage": { "message": "Остановить перевод страницы" },
-  "contextMenuRestorePage": { "message": "Восстановить оригинал страницы" }
+  "extName": {
+    "message": "LinguaLens"
+  },
+  "extDescription": {
+    "message": "LinguaLens — переводите что угодно с помощью LLM и онлайн-API"
+  },
+  "commandTranslateSelection": {
+    "message": "Перевести выделенный текст"
+  },
+  "commandTranslatePage": {
+    "message": "Перевести всю страницу"
+  },
+  "commandCycleSelectionMode": {
+    "message": "Переключить режим триггера выделения"
+  },
+  "contextMenuTranslateSelection": {
+    "message": "Перевести «$TEXT$»",
+    "placeholders": {
+      "TEXT": {
+        "content": "$1"
+      }
+    }
+  },
+  "contextMenuTranslatePage": {
+    "message": "Перевести эту страницу"
+  },
+  "contextMenuStopPage": {
+    "message": "Остановить перевод страницы"
+  },
+  "contextMenuRestorePage": {
+    "message": "Восстановить оригинал страницы"
+  },
+  "contextMenuTranslateImage": {
+    "message": "Перевести изображение",
+    "description": "Context menu item for translating the text inside an image"
+  }
 }
