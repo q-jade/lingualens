@@ -332,7 +332,7 @@ export function ContentApp({ onReady }: Props) {
       type: 'SAVE_SETTINGS',
       payload: { defaultTargetLang: lang },
     });
-    if (panelImageRef.current) void doImageTranslate(lang);
+    if (pendingImageRef.current) void doImageTranslate(lang);
     else void doTranslate(lang);
   };
 
@@ -345,7 +345,7 @@ export function ContentApp({ onReady }: Props) {
       type: 'SAVE_SETTINGS',
       payload: { defaultProvider: providerId, fallbackProviders: nextFallback },
     });
-    if (panelImageRef.current) void doImageTranslate();
+    if (pendingImageRef.current) void doImageTranslate();
     else void doTranslate();
   };
 
@@ -369,8 +369,27 @@ export function ContentApp({ onReady }: Props) {
    * re-renders, so handlers pre-assign the ref BEFORE setState.
    */
   const [panelImage, setPanelImage] = useState<string | null>(null);
-  const panelImageRef = useRef<string | null>(null);
-  panelImageRef.current = panelImage;
+  /**
+   * Pending image target for the floating trigger — deliberately NOT a mirror
+   * of `panelImage`. In a pinned panel the pending selection and the displayed
+   * preview intentionally diverge: show* handlers record the pending target
+   * here while the panel keeps its previous content, and the preview switches
+   * only when the trigger is clicked (or an explicit translateNow runs). A
+   * render-time mirror (`ref.current = panelImage`) would clobber the pending
+   * value on the very re-render the show* handler schedules.
+   */
+  const pendingImageRef = useRef<string | null>(null);
+  /**
+   * What the panel body currently displays. The dedup guards in
+   * translateNow/translateImageNow compare against THIS, not the pending
+   * refs: a pinned panel keeps showing the previous result after the pending
+   * selection changes, and text/image results share `translation` — so the
+   * guard must be kind-aware, or a stale image result would swallow a text
+   * re-request (and vice versa).
+   */
+  const displayedTargetRef = useRef<
+    { kind: 'text'; text: string } | { kind: 'image'; url: string } | null
+  >(null);
   const settingsRef = useRef<AppSettings | null>(null);
   settingsRef.current = settings;
   const selectionTriggerModeRef = useRef<SelectionTriggerMode>('icon');
@@ -559,6 +578,7 @@ export function ContentApp({ onReady }: Props) {
     if (mode === 'hidden') {
       setPinned(false);
       setPinnedTrigger(null);
+      displayedTargetRef.current = null;
       closeModeMenu();
       closeProviderMenu();
       closeLangMenu();
@@ -730,6 +750,9 @@ export function ContentApp({ onReady }: Props) {
     const targetLang = targetLangOverride ?? settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
+    // The panel body now belongs to this text (loading state) — the dedup
+    // guards compare against this record, not the pending refs.
+    displayedTargetRef.current = { kind: 'text', text };
     setLoading(true);
     setError(null);
     setTranslation('');
@@ -761,17 +784,19 @@ export function ContentApp({ onReady }: Props) {
 
   /** Translate the text inside the panel's image. `targetLangOverride` is used
    *  when the target language just changed — the settings ref updates only on
-   *  re-render. (No URL override: panelImageRef is assigned synchronously by
+   *  re-render. (No URL override: pendingImageRef is assigned synchronously by
    *  showImageTrigger/translateImageNow before this runs. The page-translate
    *  guard lives in runImageTranslate, mirroring the text path — it must also
    *  keep the panel from opening.) */
   const doImageTranslate = async (targetLangOverride?: string) => {
-    const imageUrl = panelImageRef.current;
+    const imageUrl = pendingImageRef.current;
     if (!imageUrl) return;
 
     const targetLang = targetLangOverride ?? settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
+    // The panel body now belongs to this image — see doTranslate.
+    displayedTargetRef.current = { kind: 'image', url: imageUrl };
     setLoading(true);
     setError(null);
     setTranslation('');
@@ -809,7 +834,7 @@ export function ContentApp({ onReady }: Props) {
   };
 
   const runImageTranslate = (panelAnchor: { x: number; y: number }) => {
-    if (!panelImageRef.current || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
+    if (!pendingImageRef.current || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
     openPanelAt(panelAnchor);
     void doImageTranslate();
   };
@@ -853,9 +878,17 @@ export function ContentApp({ onReady }: Props) {
 
     const syncTriggerPosition = () => {
       const selection = window.getSelection();
-      const text = selection?.toString().trim() ?? '';
-      if (!text || text !== selectedTextRef.current || !selection?.rangeCount) {
+      if (!selection?.rangeCount) {
         // Lost selection: dismiss the trigger, but never the pinned panel.
+        if (isPinnedTrigger) setPinnedTrigger(null);
+        else setMode('hidden');
+        return;
+      }
+      // An image-only selection has empty text — keep the trigger alive while
+      // an image is the pending target (the text match guards text targets).
+      const imagePending = pendingImageRef.current !== null;
+      const text = selection.toString().trim();
+      if (!imagePending && (!text || text !== selectedTextRef.current)) {
         if (isPinnedTrigger) setPinnedTrigger(null);
         else setMode('hidden');
         return;
@@ -895,18 +928,20 @@ export function ContentApp({ onReady }: Props) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         selectedTextRef.current = text;
         // New selection is text: drop any previous image target, or a stale
-        // panelImageRef would win at the trigger button (image path clears
-        // selectedTextRef symmetrically).
-        panelImageRef.current = null;
-        setPanelImage(null);
+        // pending image would win at the trigger button (the image path
+        // clears selectedTextRef symmetrically).
+        pendingImageRef.current = null;
         triggerMouseRef.current = { x: mouseX, y: mouseY };
         const pos = computeTriggerPosition(range, mouseX, mouseY);
         // Pinned panel stays open: show a floating trigger for the new
-        // selection rather than replacing the panel with the trigger.
+        // selection rather than replacing the panel with the trigger. The
+        // panel keeps the previous result untouched — refs alone record the
+        // pending target; preview/result switch when the trigger is clicked.
         if (pinnedRef.current && modeRef.current === 'panel') {
           setPinnedTrigger(pos);
           return;
         }
+        setPanelImage(null);
         setAnchor(pos);
         setMode('trigger');
         setTranslation('');
@@ -916,15 +951,21 @@ export function ContentApp({ onReady }: Props) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         const t = text.trim();
         if (!t) return;
+        // Dedup against what the panel DISPLAYS (kind-aware): a pinned panel
+        // keeps the previous result after the pending selection changed, and
+        // text/image share `translation` — comparing against the pending refs
+        // would let a stale image result swallow a text re-request.
+        const displayed = displayedTargetRef.current;
         if (
           modeRef.current === 'panel' &&
-          t === selectedTextRef.current &&
+          displayed?.kind === 'text' &&
+          displayed.text === t &&
           (loadingRef.current || translationRef.current)
         ) {
           return;
         }
         selectedTextRef.current = t;
-        panelImageRef.current = null;
+        pendingImageRef.current = null;
         setPanelImage(null);
         setTranslation('');
         setError(null);
@@ -944,14 +985,16 @@ export function ContentApp({ onReady }: Props) {
       showImageTrigger(imageUrl, mouseX, mouseY, range) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         selectedTextRef.current = '';
-        panelImageRef.current = imageUrl;
-        setPanelImage(imageUrl);
+        pendingImageRef.current = imageUrl;
         triggerMouseRef.current = { x: mouseX, y: mouseY };
         const pos = computeTriggerPosition(range, mouseX, mouseY);
+        // Pinned panel keeps the previous result untouched — same contract as
+        // showTrigger; the preview switches when the trigger is clicked.
         if (pinnedRef.current && modeRef.current === 'panel') {
           setPinnedTrigger(pos);
           return;
         }
+        setPanelImage(imageUrl);
         setAnchor(pos);
         setMode('trigger');
         setTranslation('');
@@ -960,15 +1003,18 @@ export function ContentApp({ onReady }: Props) {
       translateImageNow(imageUrl) {
         if (isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
         if (!imageUrl) return;
+        // Kind-aware dedup — see translateNow.
+        const displayed = displayedTargetRef.current;
         if (
           modeRef.current === 'panel' &&
-          imageUrl === panelImageRef.current &&
+          displayed?.kind === 'image' &&
+          displayed.url === imageUrl &&
           (loadingRef.current || translationRef.current)
         ) {
           return;
         }
         selectedTextRef.current = '';
-        panelImageRef.current = imageUrl;
+        pendingImageRef.current = imageUrl;
         setPanelImage(imageUrl);
         setTranslation('');
         setError(null);
@@ -1035,11 +1081,14 @@ export function ContentApp({ onReady }: Props) {
           onClick={() => {
             if (pinnedTrigger) {
               // Panel is already open and pinned in place: translate the new
-              // selection into it without moving the panel.
+              // selection into it without moving the panel. Only NOW does the
+              // panel switch to the pending target (preview in/out) — until
+              // this click it kept showing the previous result untouched.
               setPinnedTrigger(null);
-              if (panelImageRef.current) void doImageTranslate();
+              setPanelImage(pendingImageRef.current);
+              if (pendingImageRef.current) void doImageTranslate();
               else void doTranslate();
-            } else if (panelImageRef.current) {
+            } else if (pendingImageRef.current) {
               void runImageTranslate(anchor);
             } else {
               void runSelectionTranslate(anchor);
@@ -1250,7 +1299,7 @@ export function ContentApp({ onReady }: Props) {
               <div className="st-error">
                 <span>{error}</span>
                 <button
-                  onClick={() => (panelImageRef.current ? void doImageTranslate() : void doTranslate())}
+                  onClick={() => (pendingImageRef.current ? void doImageTranslate() : void doTranslate())}
                   className="st-retry-btn"
                 >
                   {t('content.retry')}
