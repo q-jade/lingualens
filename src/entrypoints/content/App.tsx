@@ -332,8 +332,7 @@ export function ContentApp({ onReady }: Props) {
       type: 'SAVE_SETTINGS',
       payload: { defaultTargetLang: lang },
     });
-    if (pendingImageRef.current) void doImageTranslate(lang);
-    else void doTranslate(lang);
+    retranslateDisplayed(lang);
   };
 
   const switchProvider = async (providerId: string) => {
@@ -345,8 +344,7 @@ export function ContentApp({ onReady }: Props) {
       type: 'SAVE_SETTINGS',
       payload: { defaultProvider: providerId, fallbackProviders: nextFallback },
     });
-    if (pendingImageRef.current) void doImageTranslate();
-    else void doTranslate();
+    retranslateDisplayed();
   };
 
   // Page translation state
@@ -362,11 +360,10 @@ export function ContentApp({ onReady }: Props) {
   const selectedTextRef = useRef('');
   const triggerMouseRef = useRef({ x: 0, y: 0 });
   /**
-   * Image currently shown in the panel. State because it is RENDERED (the
-   * preview <img>); selectedTextRef needs no state twin because the selected
-   * text never renders. The ref mirrors the state for synchronous reads in
-   * imperative flows — a queueMicrotask callback can run before React
-   * re-renders, so handlers pre-assign the ref BEFORE setState.
+   * Image currently shown in the panel body. State because it is RENDERED
+   * (the preview <img>); it switches only when a translation starts — a
+   * pending selection records into pendingImageRef instead (see below), so
+   * a pinned panel keeps its previous content until the trigger is clicked.
    */
   const [panelImage, setPanelImage] = useState<string | null>(null);
   /**
@@ -579,6 +576,8 @@ export function ContentApp({ onReady }: Props) {
       setPinned(false);
       setPinnedTrigger(null);
       displayedTargetRef.current = null;
+      pendingImageRef.current = null;
+      selectedTextRef.current = '';
       closeModeMenu();
       closeProviderMenu();
       closeLangMenu();
@@ -741,10 +740,12 @@ export function ContentApp({ onReady }: Props) {
     setMode('panel');
   };
 
-  /** Re-translate the current selection. `targetLangOverride` is used when the
-   *  target language just changed — the settings ref updates only on re-render. */
-  const doTranslate = async (targetLangOverride?: string) => {
-    const text = selectedTextRef.current;
+  /** Translate a text target. `targetLangOverride` is used when the target
+   *  language just changed — the settings ref updates only on re-render.
+   *  `textOverride` lets panel-level operations re-translate the DISPLAYED
+   *  text instead of the pending selection (see retranslateDisplayed). */
+  const doTranslate = async (targetLangOverride?: string, textOverride?: string) => {
+    const text = textOverride ?? selectedTextRef.current;
     if (!text) return;
 
     const targetLang = targetLangOverride ?? settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
@@ -782,14 +783,15 @@ export function ContentApp({ onReady }: Props) {
     void doTranslate();
   };
 
-  /** Translate the text inside the panel's image. `targetLangOverride` is used
-   *  when the target language just changed — the settings ref updates only on
-   *  re-render. (No URL override: pendingImageRef is assigned synchronously by
-   *  showImageTrigger/translateImageNow before this runs. The page-translate
-   *  guard lives in runImageTranslate, mirroring the text path — it must also
-   *  keep the panel from opening.) */
-  const doImageTranslate = async (targetLangOverride?: string) => {
-    const imageUrl = pendingImageRef.current;
+  /** Translate the text inside an image. `targetLangOverride` is used when
+   *  the target language just changed — the settings ref updates only on
+   *  re-render. `imageUrlOverride` lets panel-level operations re-translate
+   *  the DISPLAYED image instead of the pending selection (see
+   *  retranslateDisplayed). The page-translate guard lives in
+   *  runImageTranslate, mirroring the text path — it must also keep the
+   *  panel from opening. */
+  const doImageTranslate = async (targetLangOverride?: string, imageUrlOverride?: string) => {
+    const imageUrl = imageUrlOverride ?? pendingImageRef.current;
     if (!imageUrl) return;
 
     const targetLang = targetLangOverride ?? settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
@@ -837,6 +839,19 @@ export function ContentApp({ onReady }: Props) {
     if (!pendingImageRef.current || isPageTranslateStarted(pageTranslatePhaseRef.current)) return;
     openPanelAt(panelAnchor);
     void doImageTranslate();
+  };
+
+  /**
+   * Re-translate what the panel currently displays (language switch, provider
+   * switch, retry). Panel-level operations target the DISPLAYED result —
+   * never a pending selection the user has not translated (or has already
+   * dismissed).
+   */
+  const retranslateDisplayed = (targetLangOverride?: string) => {
+    const displayed = displayedTargetRef.current;
+    if (!displayed) return;
+    if (displayed.kind === 'image') void doImageTranslate(targetLangOverride, displayed.url);
+    else void doTranslate(targetLangOverride, displayed.text);
   };
 
   const handlePanelHeaderMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
@@ -1031,7 +1046,18 @@ export function ContentApp({ onReady }: Props) {
         queueMicrotask(() => runImageTranslate(panelAnchor));
       },
       hide() {
-        if (pinnedRef.current) return;
+        if (pinnedRef.current) {
+          // The pinned panel stays, but the floating trigger for a pending
+          // selection is dismissed together with the selection: mousedown
+          // outside our UI means the user deselected or is starting a new
+          // one (show* re-records the pending target afterwards). The
+          // pending refs go too — panel-level operations re-translate the
+          // DISPLAYED result, so a stale pending target must not survive.
+          setPinnedTrigger(null);
+          pendingImageRef.current = null;
+          selectedTextRef.current = '';
+          return;
+        }
         setMode('hidden');
       },
       isPageTranslationActive() {
@@ -1299,7 +1325,7 @@ export function ContentApp({ onReady }: Props) {
               <div className="st-error">
                 <span>{error}</span>
                 <button
-                  onClick={() => (pendingImageRef.current ? void doImageTranslate() : void doTranslate())}
+                  onClick={() => retranslateDisplayed()}
                   className="st-retry-btn"
                 >
                   {t('content.retry')}
