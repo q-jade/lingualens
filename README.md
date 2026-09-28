@@ -41,7 +41,7 @@ After installing, click the LinguaLens toolbar icon to open the popup, then go t
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+ and npm
-- For the default setup: [Ollama](https://ollama.com/) running locally with a model pulled (e.g. `ollama pull llama3`)
+- For the default setup: [Ollama](https://ollama.com/) running locally with a model pulled (e.g. `ollama pull gemma3:4b` — multimodal, also covers image translation)
 
 ### Clone and run
 
@@ -87,6 +87,14 @@ If translation fails with *“No active provider configured”*, enable a provid
 3. **Shortcut (default):** `Alt+T` — translates the selection directly in the panel.
 
 On pages where content scripts cannot run (`chrome://`, `edge://`, etc.), right-click → **Translate "…"** opens the side panel and translates the selection there instead.
+
+### Image translation
+
+1. Select an image on the page (drag over it), or right-click the image directly.
+2. Click the floating trigger, or use the **Translate Image** context menu.
+3. The panel shows the image with the text inside it translated.
+
+Mixed selections (text + image) prefer the image. Image translation follows the selection trigger modes like text; it requires an LLM provider with a vision-capable model (toggle **Image support** per provider in Settings, on by default). The image prompt is built-in and not user-editable.
 
 ### Full-page translation
 
@@ -145,6 +153,7 @@ If shortcuts do nothing, open your browser’s extension shortcut settings and a
 - **Additional prompt** — Extra instructions appended to the system prompt for selection, popup, and side-panel translations only (never page translation). Supports the same placeholders; clear the field to disable.
 - **Page translation** — **Quality** vs **Speed** chunking strategy.
 - **Disable thinking** (LLM providers) — Reduces reasoning output for faster translation (on by default for Ollama/LM Studio).
+- **Image support** (LLM providers) — The provider accepts images for image translation (on by default; turn off for text-only models). Requires a vision-capable model.
 
 API keys and settings are stored in **`browser.storage.local`** on your device only; they are not sent to LinguaLens servers (there are none).
 
@@ -185,6 +194,7 @@ LinguaLens does not run its own translation servers; text is sent only to provid
 - Content scripts cannot run on browser internal pages or the extension store. On such pages the right-click menu routes the selection to the side panel; the `Alt+T` shortcut is not available there.
 - PDF viewer support depends on the browser: Chrome 141+ translates selections in-page via the floating panel; Edge's built-in PDF viewer routes them to the side panel. Firefox's PDF viewer does not expose selections to extensions.
 - Very large pages may take time and many API calls when using full-page translation.
+- Image translation needs a vision-capable model; text-only models return an error. Images are fetched by the extension and sent to the provider as base64; page-scoped `blob:` URLs and images behind hotlink protection may fail to load.
 - Firefox build uses Manifest V2; feature parity with Chrome is not guaranteed (no side panel).
 - Side panel requires Chromium 114+.
 

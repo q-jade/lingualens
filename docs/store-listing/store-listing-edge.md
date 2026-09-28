@@ -33,6 +33,9 @@ FEATURES
 Selection Translation
 Select text on any web page — including PDF documents open in the browser. Choose from four trigger modes: a floating icon near your selection (default), instant translation on select, hold a modifier key to trigger, or turn the trigger off. Open the panel to view results, retry on failure, copy the translation, or dismiss it. Pin the panel to keep it open across multiple selections. Also available via right-click context menu, or press Alt+T to translate the current selection in one step. Switch the active translation provider or the target language — with instant re-translation — from the panel header. On pages where content scripts cannot run (browser internal pages, extension stores), right-click Translate routes the selection to the side panel, which opens automatically.
 
+Image Translation
+Select an image on the page (or right-click it) and the panel shows the image with the text inside it translated. Mixed selections prefer the image. Requires an LLM provider with a vision-capable model — toggle "Image support" per provider in Settings (on by default). The image prompt is built-in and not user-editable.
+
 Full-Page Bilingual Translation
 Convert articles, docs, and long pages into inline bilingual or replacement reading without leaving the site. Toggle between modes anytime from the status bar. Start from the popup ("Translate This Page"), the page context menu, or Alt+Shift+T. A status bar shows progress and lets you stop translation, restore the original text, or switch display mode.
 

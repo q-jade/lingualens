@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.9.0] - 2026-09-28
+
+### Added
+
+- Image translation: select an image on a page (or right-click it) and the selection panel shows the image with the text inside it translated. Mixed selections prefer the image. Only LLM providers participate, with a per-provider "image support" toggle (on by default); the image prompt is built-in and not user-editable. OpenAI-compatible endpoints use the vision `image_url` format, Ollama sends base64 `images`, and LM Studio uses its native v1 API.
+
+### Fixed
+
+- The pinned selection panel keeps its previous result until the new selection's trigger is clicked, dismisses the floating trigger when the selection is dropped, and no longer mixes results when a translation response arrives after a newer request took over.
+
 ## [0.8.2] - 2026-09-20
 
 ### Fixed
@@ -184,6 +194,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.9.0]: https://github.com/q-jade/lingualens/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/q-jade/lingualens/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/q-jade/lingualens/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/q-jade/lingualens/compare/v0.7.0...v0.8.0

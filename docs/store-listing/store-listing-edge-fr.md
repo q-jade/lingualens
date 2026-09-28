@@ -33,6 +33,9 @@ FONCTIONNALITÉS
 Traduction de sélection
 Sélectionnez du texte sur n'importe quelle page web — y compris les documents PDF ouverts dans le navigateur. Choisissez parmi quatre modes de déclenchement : une icône flottante près de votre sélection (par défaut), traduction instantanée à la sélection, maintenir une touche modificatrice pour déclencher, ou désactiver le déclenchement. Ouvrez le panneau pour voir les résultats, réessayer en cas d'échec, copier la traduction ou la fermer. Épinglez le panneau pour le garder ouvert pendant plusieurs sélections. Également disponible via le menu contextuel, ou appuyez sur Alt+T pour traduire la sélection en une étape. Changez le fournisseur de traduction actif ou la langue cible — avec retraduction instantanée — depuis l'en-tête du panneau. Sur les pages où les scripts de contenu ne peuvent pas s'exécuter (pages internes du navigateur, boutiques d'extensions), le clic droit sur Traduire achemine la sélection vers le panneau latéral, qui s'ouvre automatiquement.
 
+Traduction d'images
+Sélectionnez une image sur la page (ou faites un clic droit dessus) et le panneau affiche l'image avec le texte qu'elle contient, traduit. Les sélections mixtes privilégient l'image. Nécessite un fournisseur LLM avec un modèle de vision : activez « Prise en charge des images » par fournisseur dans les paramètres (activé par défaut). Le prompt d'image est intégré et non modifiable.
+
 Traduction bilingue de page entière
 Convertissez des articles, documents et longues pages en lecture bilingue ou en remplacement intégré sans quitter le site. Basculez entre les modes à tout moment depuis la barre d'état. Lancez depuis la popup (« Traduire cette page »), le menu contextuel de la page, ou Alt+Shift+T. Une barre d'état affiche la progression et permet d'arrêter la traduction, de restaurer le texte original ou de changer le mode d'affichage.
 

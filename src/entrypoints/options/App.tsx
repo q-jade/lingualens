@@ -564,7 +564,7 @@ export function App() {
                             )}
                             {needsModel(provider.type) && (
                               <Field label={t('options.model')}>
-                                <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'llama3' : provider.type === 'lmstudio' ? 'loaded model' : 'gpt-4o-mini'} className="input font-mono w-full" />
+                                <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'gemma3:4b' : provider.type === 'lmstudio' ? 'loaded model' : 'gpt-4o-mini'} className="input font-mono w-full" />
                               </Field>
                             )}
                             {isLlmProvider(provider.type) && (

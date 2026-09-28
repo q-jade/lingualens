@@ -47,7 +47,7 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     type: 'ollama',
     name: 'Ollama',
     baseUrl: 'http://localhost:11434',
-    model: 'llama3',
+    model: 'gemma3:4b',
     supportsImage: true,
   },
   lmstudio: {
@@ -103,7 +103,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
       name: 'Ollama',
       enabled: true,
       baseUrl: 'http://localhost:11434',
-      model: 'llama3',
+      model: 'gemma3:4b',
       disableThinking: true,
       supportsImage: true,
     },

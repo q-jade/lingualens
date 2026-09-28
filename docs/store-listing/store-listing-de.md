@@ -36,6 +36,9 @@ FUNKTIONEN
 Auswahlübersetzung
 Wählen Sie Text auf einer beliebigen Webseite aus — einschließlich im Browser geöffneter PDF-Dokumente. Wählen Sie aus vier Auslösemodi: ein schwebendes Symbol neben Ihrer Auswahl (Standard), Sofortübersetzung bei Auswahl, Modifikatortaste gedrückt halten zum Auslösen oder Auslöser deaktivieren. Öffnen Sie das Panel, um Ergebnisse anzuzeigen, bei Fehlern zu wiederholen, die Übersetzung zu kopieren oder zu schließen. Heften Sie das Panel an, um es über mehrere Auswahlen hinweg geöffnet zu halten. Auch über das Kontextmenü verfügbar, oder drücken Sie Alt+T, um die aktuelle Auswahl in einem Schritt zu übersetzen. Wechseln Sie den aktiven Übersetzungsanbieter oder die Zielsprache — mit sofortiger Neuübersetzung — über die Panel-Kopfzeile. Auf Seiten, auf denen Content-Scripts nicht ausgeführt werden können (browserinterne Seiten, Erweiterungsstores), leitet Rechtsklick auf Übersetzen die Auswahl an das Seitenpanel weiter, das sich automatisch öffnet.
 
+Bildübersetzung
+Wählen Sie ein Bild auf der Seite aus (oder klicken Sie mit der rechten Maustaste darauf) — das Panel zeigt das Bild mit dem übersetzten Text darin. Gemischte Auswahlen bevorzugen das Bild. Erfordert einen LLM-Provider mit vision-fähigem Modell — aktivieren Sie „Bildunterstützung" pro Provider in den Einstellungen (standardmäßig aktiviert). Der Bild-Prompt ist integriert und nicht bearbeitbar.
+
 Zweisprachige Ganzseitenübersetzung
 Verwandeln Sie Artikel, Dokumente und lange Seiten in zweisprachige oder ersetzende Leseansicht, ohne die Seite zu verlassen. Wechseln Sie jederzeit über die Statusleiste zwischen den Modi. Starten Sie über das Popup („Diese Seite übersetzen"), das Seiten-Kontextmenü oder Alt+Shift+T. Eine Statusleiste zeigt den Fortschritt und ermöglicht das Anhalten der Übersetzung, das Wiederherstellen des Originaltexts oder das Wechseln des Anzeigemodus.
 

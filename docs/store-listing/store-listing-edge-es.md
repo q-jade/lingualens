@@ -33,6 +33,9 @@ CARACTERÍSTICAS
 Traducción de selección
 Selecciona texto en cualquier página web, incluidos los documentos PDF abiertos en el navegador. Elige entre cuatro modos de activación: un icono flotante cerca de tu selección (por defecto), traducción instantánea al seleccionar, mantener pulsada una tecla modificadora para activar, o desactivar el activador. Abre el panel para ver resultados, reintentar si falla, copiar la traducción o cerrarlo. Fija el panel para mantenerlo abierto durante varias selecciones. También disponible desde el menú contextual, o pulsa Alt+T para traducir la selección actual en un solo paso. Cambia el proveedor de traducción activo o el idioma de destino — con retraducción instantánea — desde la cabecera del panel. En páginas donde los scripts de contenido no pueden ejecutarse (páginas internas del navegador, tiendas de extensiones), el clic derecho en Traducir enruta la selección al panel lateral, que se abre automáticamente.
 
+Traducción de imágenes
+Seleccione una imagen en la página (o haga clic derecho sobre ella) y el panel mostrará la imagen con el texto traducido. Las selecciones mixtas prefieren la imagen. Requiere un proveedor LLM con modelo de visión: active "Soporte de imágenes" por proveedor en Ajustes (activado por defecto). El prompt de imagen está integrado y no es editable.
+
 Traducción bilingüe de página completa
 Convierte artículos, documentos y páginas largas en lectura bilingüe en línea o por sustitución sin salir del sitio. Alterna entre modos en cualquier momento desde la barra de estado. Inicia desde el popup ("Traducir esta página"), el menú contextual de la página, o Alt+Shift+T. Una barra de estado muestra el progreso y permite detener la traducción, restaurar el texto original o cambiar el modo de visualización.
 
