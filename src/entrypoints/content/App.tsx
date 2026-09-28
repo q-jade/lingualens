@@ -578,6 +578,11 @@ export function ContentApp({ onReady }: Props) {
       displayedTargetRef.current = null;
       pendingImageRef.current = null;
       selectedTextRef.current = '';
+      // Clear the body too: an in-flight request that lost ownership skips
+      // its own cleanup, so the close path must leave a clean state.
+      setLoading(false);
+      setTranslation('');
+      setError(null);
       closeModeMenu();
       closeProviderMenu();
       closeLangMenu();
@@ -752,8 +757,12 @@ export function ContentApp({ onReady }: Props) {
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
     // The panel body now belongs to this text (loading state) — the dedup
-    // guards compare against this record, not the pending refs.
-    displayedTargetRef.current = { kind: 'text', text };
+    // guards compare against this record, not the pending refs. The fresh
+    // object doubles as an ownership token: nothing mutates it in place, so
+    // reference equality tells whether THIS request still owns the panel when
+    // its response arrives (a newer request replaces the record).
+    const target = { kind: 'text', text } as const;
+    displayedTargetRef.current = target;
     setLoading(true);
     setError(null);
     setTranslation('');
@@ -764,6 +773,9 @@ export function ContentApp({ onReady }: Props) {
         payload: { text, sourceLang, targetLang, applyAdditionalPrompt: true },
       });
 
+      // Stale response: a newer request (or a panel close) took over — apply
+      // nothing, not even the loading reset in `finally`.
+      if (displayedTargetRef.current !== target) return;
       if (response?.success) {
         setTranslation(response.data.translated);
       } else {
@@ -771,9 +783,12 @@ export function ContentApp({ onReady }: Props) {
         setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : (raw || t('content.translationFailed')));
       }
     } catch (err) {
+      if (displayedTargetRef.current !== target) return;
       setError(err instanceof Error ? err.message : t('content.translationFailed'));
     } finally {
-      setLoading(false);
+      // Only the owner ends the spinner — a stale request's reset would cut a
+      // newer in-flight request's loading state short.
+      if (displayedTargetRef.current === target) setLoading(false);
     }
   };
 
@@ -797,8 +812,9 @@ export function ContentApp({ onReady }: Props) {
     const targetLang = targetLangOverride ?? settingsRef.current?.defaultTargetLang ?? resolveDefaultTargetLang();
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
-    // The panel body now belongs to this image — see doTranslate.
-    displayedTargetRef.current = { kind: 'image', url: imageUrl };
+    // The panel body now belongs to this image — ownership token, see doTranslate.
+    const target = { kind: 'image', url: imageUrl } as const;
+    displayedTargetRef.current = target;
     setLoading(true);
     setError(null);
     setTranslation('');
@@ -810,6 +826,7 @@ export function ContentApp({ onReady }: Props) {
         type: 'RESOLVE_IMAGE_DATA_URL',
         payload: { imageUrl },
       });
+      if (displayedTargetRef.current !== target) return;
       if (!resolved?.success || !resolved.dataUrl) {
         const raw = resolved?.error;
         setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : t('content.imageFetchFailed'));
@@ -821,6 +838,8 @@ export function ContentApp({ onReady }: Props) {
         payload: { imageUrl, image: resolved.dataUrl, sourceLang, targetLang },
       });
 
+      // Stale response — a newer request owns the panel now.
+      if (displayedTargetRef.current !== target) return;
       if (response?.success) {
         const translated: string = response.data.translated;
         setTranslation(translated === NO_TEXT_IN_IMAGE ? t('content.noTextInImage') : translated);
@@ -829,9 +848,11 @@ export function ContentApp({ onReady }: Props) {
         setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : (raw || t('content.translationFailed')));
       }
     } catch (err) {
+      if (displayedTargetRef.current !== target) return;
       setError(err instanceof Error ? err.message : t('content.translationFailed'));
     } finally {
-      setLoading(false);
+      // Only the owner ends the spinner — see doTranslate.
+      if (displayedTargetRef.current === target) setLoading(false);
     }
   };
 
