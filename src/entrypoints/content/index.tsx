@@ -69,12 +69,16 @@ function extractImageAsDataUrl(imageUrl: string): string | null {
   }
   if (!source.complete || !source.naturalWidth) return null;
   try {
+    // Cap the long edge at 1568 px — matches the background fetch path and
+    // what vision models resize to internally anyway.
+    const MAX_EDGE = 1568;
+    const scale = Math.min(1, MAX_EDGE / Math.max(source.naturalWidth, source.naturalHeight));
     const canvas = document.createElement('canvas');
-    canvas.width = source.naturalWidth;
-    canvas.height = source.naturalHeight;
+    canvas.width = Math.max(1, Math.round(source.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(source.naturalHeight * scale));
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    ctx.drawImage(source, 0, 0);
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/png');
   } catch {
     // Tainted canvas (cross-origin without CORS)
