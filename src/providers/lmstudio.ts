@@ -151,16 +151,16 @@ export class LmStudioProvider extends BaseProvider {
     }
   }
 
+  /**
+   * Throws on failure (network error, non-2xx) so the caller can show the
+   * cause; an empty list only means the server is reachable but has no models.
+   */
   async getAvailableModels(): Promise<string[]> {
-    try {
-      const res = await fetch(`${this.serverOrigin}/api/v1/models`, { headers: this.headers });
-      if (!res.ok) return [];
-      const data = await res.json() as { models?: { key?: string; type?: string }[] };
-      return (data.models ?? [])
-        .filter((m) => m.type === 'llm' && m.key)
-        .map((m) => m.key!);
-    } catch {
-      return [];
-    }
+    const res = await fetch(`${this.serverOrigin}/api/v1/models`, { headers: this.headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json() as { models?: { key?: string; type?: string }[] };
+    return (data.models ?? [])
+      .filter((m) => m.type === 'llm' && m.key)
+      .map((m) => m.key!);
   }
 }

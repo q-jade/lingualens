@@ -6,6 +6,7 @@ import { clearOnboardingPending, isOnboardingPending } from '../../shared/onboar
 import { isLlmProvider } from '../../providers/thinking';
 import { AppLogo } from '../../shared/AppLogo';
 import { ProviderIcon } from '../../shared/ProviderIcon';
+import { ModelPicker } from '../../shared/ModelPicker';
 import { shortcutLabel } from '../../shared/shortcut';
 import { version as EXT_VERSION, repository } from '../../../package.json';
 import { AVAILABLE_UI_LANGUAGES, setUILanguage, getUILanguage } from '../../shared/i18n';
@@ -564,7 +565,11 @@ export function App() {
                             )}
                             {needsModel(provider.type) && (
                               <Field label={t('options.model')}>
-                                <input type="text" value={provider.model || ''} onChange={(e) => updateProvider(provider.id, { model: e.target.value })} placeholder={provider.type === 'ollama' ? 'gemma3:4b' : provider.type === 'lmstudio' ? 'loaded model' : 'gpt-4o-mini'} className="input font-mono w-full" />
+                                <ModelPicker
+                                  provider={provider}
+                                  value={provider.model || ''}
+                                  onChange={(model) => updateProvider(provider.id, { model })}
+                                />
                               </Field>
                             )}
                             {isLlmProvider(provider.type) && (

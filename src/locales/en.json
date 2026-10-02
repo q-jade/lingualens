@@ -111,7 +111,14 @@
     "noResponseFromBackground": "No response from background",
     "verificationFailed": "Verification failed",
     "verifiedResult": "Verified! \"Hello\" → \"{{result}}\"",
-    "lmStudioNote": "Uses LM Studio native <code>/api/v1/chat</code> (not OpenAI <code>/v1</code>)."
+    "lmStudioNote": "Uses LM Studio native <code>/api/v1/chat</code> (not OpenAI <code>/v1</code>).",
+    "lmStudioModelPlaceholder": "empty = currently loaded model",
+    "fetchModels": "Fetch available models",
+    "fetchingModels": "Fetching models…",
+    "refreshModels": "Refresh model list",
+    "noModelsFound": "No models found. Check the base URL / API key.",
+    "noModelsMatch": "No model matches the entered text.",
+    "modelsFetchFailed": "Failed to fetch models: {{error}}"
   },
   "content": {
     "translating": "Translating…",

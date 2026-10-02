@@ -145,14 +145,14 @@ export class OllamaProvider extends BaseProvider {
     }
   }
 
+  /**
+   * Throws on failure (network error, non-2xx) so the caller can show the
+   * cause; an empty list only means the server is reachable but has no models.
+   */
   async getAvailableModels(): Promise<string[]> {
-    try {
-      const res = await fetch(`${this.baseUrl}/api/tags`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.models || []).map((m: { name: string }) => m.name);
-    } catch {
-      return [];
-    }
+    const res = await fetch(`${this.baseUrl}/api/tags`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return (data.models || []).map((m: { name: string }) => m.name);
   }
 }

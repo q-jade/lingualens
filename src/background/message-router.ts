@@ -205,6 +205,25 @@ export async function handleVerifyConfig(
   }
 }
 
+/**
+ * List the models a provider offers (LLM providers only). A fresh, uncached
+ * provider instance is used so recently edited baseUrl/apiKey take effect
+ * without a save round-trip.
+ */
+export async function handleListModels(
+  providerConfig: ProviderConfig,
+): Promise<MessageResponse<string[]>> {
+  try {
+    const provider = providerManager.getProvider(providerConfig, { useCache: false });
+    if (!provider.getAvailableModels) {
+      return { success: false, error: 'MODELS_NOT_SUPPORTED' };
+    }
+    return { success: true, data: await provider.getAvailableModels() };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to list models' };
+  }
+}
+
 export async function handleMessage(message: Record<string, unknown>): Promise<MessageResponse> {
   switch (message.type) {
     case 'TRANSLATE':
@@ -213,6 +232,8 @@ export async function handleMessage(message: Record<string, unknown>): Promise<M
       return handleTranslateImage(message.payload as TranslateImageRequest);
     case 'VERIFY_CONFIG':
       return handleVerifyConfig((message.payload as { providerConfig: ProviderConfig }).providerConfig);
+    case 'LIST_MODELS':
+      return handleListModels((message.payload as { providerConfig: ProviderConfig }).providerConfig);
     case 'GET_SETTINGS':
       return { success: true, data: await getSettings() };
     case 'SAVE_SETTINGS':

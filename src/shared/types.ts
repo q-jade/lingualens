@@ -89,6 +89,7 @@ export type MessageType =
   | { type: 'TRANSLATE'; payload: TranslateRequest }
   | { type: 'TRANSLATE_IMAGE'; payload: TranslateImageRequest }
   | { type: 'VERIFY_CONFIG'; payload: { providerConfig: ProviderConfig } }
+  | { type: 'LIST_MODELS'; payload: { providerConfig: ProviderConfig } }
   | { type: 'GET_SETTINGS' }
   | { type: 'SAVE_SETTINGS'; payload: SettingsPatch };
 

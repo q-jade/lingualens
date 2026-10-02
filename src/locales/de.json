@@ -111,7 +111,14 @@
     "noResponseFromBackground": "Keine Antwort vom Hintergrundprozess",
     "verificationFailed": "Prüfung fehlgeschlagen",
     "verifiedResult": "Verifiziert! \"Hello\" → \"{{result}}\"",
-    "lmStudioNote": "Verwendet LM Studio-native <code>/api/v1/chat</code> (nicht OpenAI <code>/v1</code>)."
+    "lmStudioNote": "Verwendet LM Studio-native <code>/api/v1/chat</code> (nicht OpenAI <code>/v1</code>).",
+    "lmStudioModelPlaceholder": "leer = aktuell geladenes Modell",
+    "fetchModels": "Verfügbare Modelle abrufen",
+    "fetchingModels": "Modelle werden abgerufen …",
+    "refreshModels": "Modellliste aktualisieren",
+    "noModelsFound": "Keine Modelle gefunden. Bitte Basis-URL / API-Schlüssel prüfen.",
+    "noModelsMatch": "Kein Modell stimmt mit dem eingegebenen Text überein.",
+    "modelsFetchFailed": "Abrufen der Modelle fehlgeschlagen: {{error}}"
   },
   "content": {
     "translating": "Übersetze…",

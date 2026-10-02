@@ -111,7 +111,14 @@
     "noResponseFromBackground": "Нет ответа от фонового процесса",
     "verificationFailed": "Ошибка проверки",
     "verifiedResult": "Проверено! \"Hello\" → \"{{result}}\"",
-    "lmStudioNote": "Используется нативный API LM Studio <code>/api/v1/chat</code> (не OpenAI <code>/v1</code>)."
+    "lmStudioNote": "Используется нативный API LM Studio <code>/api/v1/chat</code> (не OpenAI <code>/v1</code>).",
+    "lmStudioModelPlaceholder": "пусто = текущая загруженная модель",
+    "fetchModels": "Получить доступные модели",
+    "fetchingModels": "Получение моделей…",
+    "refreshModels": "Обновить список моделей",
+    "noModelsFound": "Модели не найдены. Проверьте базовый URL / API-ключ.",
+    "noModelsMatch": "Нет моделей, соответствующих введённому тексту.",
+    "modelsFetchFailed": "Не удалось получить модели: {{error}}"
   },
   "content": {
     "translating": "Перевод…",

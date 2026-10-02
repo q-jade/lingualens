@@ -111,7 +111,14 @@
     "noResponseFromBackground": "Sin respuesta del proceso en segundo plano",
     "verificationFailed": "Error en la verificación",
     "verifiedResult": "¡Verificado! \"Hello\" → \"{{result}}\"",
-    "lmStudioNote": "Usa la API nativa de LM Studio <code>/api/v1/chat</code> (no OpenAI <code>/v1</code>)."
+    "lmStudioNote": "Usa la API nativa de LM Studio <code>/api/v1/chat</code> (no OpenAI <code>/v1</code>).",
+    "lmStudioModelPlaceholder": "vacío = modelo cargado actualmente",
+    "fetchModels": "Obtener modelos disponibles",
+    "fetchingModels": "Obteniendo modelos…",
+    "refreshModels": "Actualizar lista de modelos",
+    "noModelsFound": "No se encontraron modelos. Compruebe la URL base / la clave API.",
+    "noModelsMatch": "Ningún modelo coincide con el texto introducido.",
+    "modelsFetchFailed": "Error al obtener modelos: {{error}}"
   },
   "content": {
     "translating": "Traduciendo…",

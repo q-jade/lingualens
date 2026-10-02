@@ -164,14 +164,14 @@ export class OpenAICompatProvider extends BaseProvider {
     }
   }
 
+  /**
+   * Throws on failure (network error, non-2xx) so the caller can show the
+   * cause; an empty list only means the server is reachable but has no models.
+   */
   async getAvailableModels(): Promise<string[]> {
-    try {
-      const res = await fetch(`${this.baseUrl}/models`, { headers: this.headers });
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.data || []).map((m: { id: string }) => m.id);
-    } catch {
-      return [];
-    }
+    const res = await fetch(`${this.baseUrl}/models`, { headers: this.headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return (data.data || []).map((m: { id: string }) => m.id);
   }
 }
