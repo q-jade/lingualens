@@ -1,5 +1,6 @@
-import { BaseProvider, type PromptOverrides } from './base';
+import { BaseProvider, type PromptOverrides, type TranslateCallOptions } from './base';
 import { getLmStudioThinkingFields, getLmStudioServerOrigin } from './thinking';
+import { StreamCapabilityError } from './stream-capability';
 import type { TranslateRequest, TranslateImageRequest, TranslateResult } from '../shared/types';
 
 interface LmStudioOutputItem {
@@ -22,6 +23,88 @@ interface LmStudioChatResponse {
   };
 }
 
+/**
+ * Payload of a native v1 streaming event (`event: <type>` + `data: <JSON>`).
+ * Only the fields this provider consumes are typed; the rest is ignored.
+ */
+interface LmStudioStreamEvent {
+  type?: string;
+  content?: string;
+  error?: { message?: string };
+}
+
+/**
+ * Parse LM Studio's native v1 streaming response: NAMED Server-Sent Events —
+ * each event is an `event: <type>` line immediately followed by a
+ * `data: <JSON>` line. Unlike the OpenAI SSE format the event type cannot be
+ * derived from the data payload alone, so the parser tracks the current event
+ * name across lines.
+ *
+ * Yields only `message.delta` content (the translation). `reasoning.delta`
+ * also carries a `content` field but must be skipped (thinking is disabled by
+ * default via `getLmStudioThinkingFields`, but a reasoning-capable model may
+ * still emit the events). `error` events are thrown; `chat.end` terminates.
+ */
+async function* parseLmStudioStream(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<string> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  // Full raw body for the capability-error preview: after split/pop.
+  let received = '';
+  let currentEvent = '';
+  let sawEvent = false;
+
+  const handleData = (data: string): string | null => {
+    let parsed: LmStudioStreamEvent | undefined;
+    try {
+      parsed = JSON.parse(data) as LmStudioStreamEvent;
+    } catch {
+      return null; // skip malformed payload
+    }
+    const type = parsed?.type ?? currentEvent;
+    if (type === 'message.delta' && parsed.content) return parsed.content;
+    if (type === 'error') {
+      throw new Error(`LM Studio stream error: ${parsed.error?.message ?? 'unknown'}`);
+    }
+    // chat.start / message.end / reasoning.* / model_load.* / prompt_processing.* / chat.end: ignored here
+    return null;
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const decoded = decoder.decode(value, { stream: true });
+    received += decoded;
+    buffer += decoded;
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      if (line.startsWith('event:')) {
+        currentEvent = line.slice(6).trim();
+        continue;
+      }
+      if (line.startsWith('data:')) {
+        sawEvent = true;
+        const text = handleData(line.slice(5).trim());
+        if (text) yield text;
+      }
+    }
+  }
+
+  if (!sawEvent) {
+    const preview = received.trim().slice(0, 200);
+    throw new StreamCapabilityError(
+      `Streaming response contained no SSE events. Body preview: ${preview}`,
+    );
+  }
+}
+
 function extractTranslatedText(output: LmStudioOutputItem[] | undefined): string {
   if (!output?.length) return '';
   const messages = output
@@ -42,12 +125,16 @@ export class LmStudioProvider extends BaseProvider {
     return h;
   }
 
-  private buildChatBody(system: string, input: string | LmStudioInputItem[]): Record<string, unknown> {
+  private buildChatBody(
+    system: string,
+    input: string | LmStudioInputItem[],
+    stream: boolean,
+  ): Record<string, unknown> {
     const body: Record<string, unknown> = {
       system_prompt: system,
       input,
       temperature: 0.3,
-      stream: false,
+      stream,
       ...getLmStudioThinkingFields(this.config),
     };
     if (this.config.model?.trim()) {
@@ -56,13 +143,18 @@ export class LmStudioProvider extends BaseProvider {
     return body;
   }
 
-  async translate(request: TranslateRequest, prompts?: PromptOverrides): Promise<TranslateResult> {
+  async translate(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): Promise<TranslateResult> {
     const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.serverOrigin}/api/v1/chat`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify(this.buildChatBody(system, user)),
+      signal: options?.signal,
+      body: JSON.stringify(this.buildChatBody(system, user, false)),
     });
 
     if (!res.ok) {
@@ -89,9 +181,34 @@ export class LmStudioProvider extends BaseProvider {
     };
   }
 
-  async *translateStream(request: TranslateRequest, prompts?: PromptOverrides): AsyncGenerator<string> {
-    const result = await this.translate(request, prompts);
-    yield result.translated;
+  async *translateStream(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
+    const { system, user } = this.buildPrompt(request, prompts);
+
+    const res = await fetch(`${this.serverOrigin}/api/v1/chat`, {
+      method: 'POST',
+      headers: this.headers,
+      signal: options?.signal,
+      body: JSON.stringify(this.buildChatBody(system, user, true)),
+    });
+
+    if (!res.ok) {
+      // 4xx on a streaming request: the endpoint rejects the stream parameter
+      // itself — a capability rejection the non-stream fallback can recover
+      // from. 5xx/429 stay transient and must not poison the health memory.
+      const body = await res.text();
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+        throw new StreamCapabilityError(`LM Studio error ${res.status}: ${body}`);
+      }
+      throw new Error(`LM Studio error ${res.status}: ${body}`);
+    }
+
+    if (!res.body) throw new Error('No response body');
+
+    yield* parseLmStudioStream(res.body);
   }
 
   /**
@@ -115,7 +232,7 @@ export class LmStudioProvider extends BaseProvider {
     const res = await fetch(`${this.serverOrigin}/api/v1/chat`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify(this.buildChatBody(prompt, input)),
+      body: JSON.stringify(this.buildChatBody(prompt, input, false)),
     });
 
     if (!res.ok) {

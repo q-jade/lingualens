@@ -1,4 +1,4 @@
-import { BaseProvider } from './base';
+import { BaseProvider, type PromptOverrides, type TranslateCallOptions } from './base';
 import { toDeepLLang } from '../shared/languages';
 import type { TranslateRequest, TranslateResult } from '../shared/types';
 
@@ -15,7 +15,11 @@ export class DeepLProvider extends BaseProvider {
     };
   }
 
-  async translate(request: TranslateRequest): Promise<TranslateResult> {
+  async translate(
+    request: TranslateRequest,
+    _prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): Promise<TranslateResult> {
     const body: Record<string, unknown> = {
       text: [request.text],
       target_lang: toDeepLLang(request.targetLang),
@@ -27,6 +31,7 @@ export class DeepLProvider extends BaseProvider {
     const res = await fetch(this.apiUrl, {
       method: 'POST',
       headers: this.headers,
+      signal: options?.signal,
       body: JSON.stringify(body),
     });
 
@@ -45,8 +50,12 @@ export class DeepLProvider extends BaseProvider {
     };
   }
 
-  async *translateStream(_request: TranslateRequest): AsyncGenerator<string> {
-    const result = await this.translate(_request);
+  async *translateStream(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
+    const result = await this.translate(request, prompts, options);
     yield result.translated;
   }
 

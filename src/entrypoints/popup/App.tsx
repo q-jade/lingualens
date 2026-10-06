@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AppSettings, TranslateResult, MessageResponse, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
+import type { AppSettings, MessageResponse, SelectionTriggerMode, SelectionModifierKey } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { AppLogo } from '../../shared/AppLogo';
 import { ModeIcon } from '../../shared/ModeIcon';
@@ -10,6 +10,7 @@ import { getLanguageName } from '../../shared/languages';
 import { isTranslatableTabUrl } from '../../shared/translatable-tab';
 import { ProviderPicker } from '../../shared/ProviderPicker';
 import { CopyButton } from '../../shared/CopyButton';
+import { startStreamTranslate } from '../../shared/stream-translate';
 
 async function openExtensionSidePanel(): Promise<string | null> {
   type ChromeSidePanel = {
@@ -51,6 +52,9 @@ export function App() {
   const [pageTranslatePhase, setPageTranslatePhase] = useState<'idle' | 'running' | 'done'>('idle');
   const [pageTranslateSupported, setPageTranslateSupported] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Cancel for the in-flight streaming request — a re-translate disconnects
+  // the old port (background aborts the request) before starting a new one.
+  const cancelStreamRef = useRef<(() => void) | null>(null);
 
   // Focus the input as soon as the popup opens so the user can start typing immediately.
   useEffect(() => {
@@ -84,22 +88,34 @@ export function App() {
       .catch(() => { });
   }, []);
 
-  const handleTranslate = async () => {
+  const handleTranslate = () => {
     if (!text.trim() || !targetLang) return;
+    // A newer click owns the result: cancel the previous stream first so the
+    // background aborts its request instead of racing this one.
+    cancelStreamRef.current?.();
     setLoading(true);
     setError(null);
+    setResult('');
 
-    const res: MessageResponse<TranslateResult> = await browser.runtime.sendMessage({
-      type: 'TRANSLATE',
-      payload: { text, sourceLang: 'auto', targetLang, applyAdditionalPrompt: true },
-    });
-
-    setLoading(false);
-    if (res.success) {
-      setResult(res.data.translated);
-    } else {
-      setError(translateError(res.error));
-    }
+    cancelStreamRef.current = startStreamTranslate(
+      { text, sourceLang: 'auto', targetLang, applyAdditionalPrompt: true },
+      {
+        // Incremental render — this is the point of streaming.
+        onChunk: (delta) => setResult((prev) => prev + delta),
+        // The done result is the trim()'d full text — overwrite the raw
+        // accumulated deltas with it to match the non-streaming render.
+        onDone: (result) => {
+          setResult(result.translated);
+          setLoading(false);
+          cancelStreamRef.current = null;
+        },
+        onError: (err) => {
+          setError(translateError(err));
+          setLoading(false);
+          cancelStreamRef.current = null;
+        },
+      },
+    );
   };
 
   const setDefaultProvider = (providerId: string) => {

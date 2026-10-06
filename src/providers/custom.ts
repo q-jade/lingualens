@@ -1,4 +1,4 @@
-import { BaseProvider } from './base';
+import { BaseProvider, type PromptOverrides, type TranslateCallOptions } from './base';
 import type { TranslateRequest, TranslateResult, ProviderConfig } from '../shared/types';
 
 export interface CustomProviderTemplate {
@@ -40,7 +40,11 @@ export class CustomProvider extends BaseProvider {
     return (this.config as CustomProviderConfig).template ?? DEFAULT_TEMPLATE;
   }
 
-  async translate(request: TranslateRequest): Promise<TranslateResult> {
+  async translate(
+    request: TranslateRequest,
+    _prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): Promise<TranslateResult> {
     const tpl = this.template;
     const vars: Record<string, string> = {
       text: request.text,
@@ -61,7 +65,7 @@ export class CustomProvider extends BaseProvider {
       fetchOpts.body = interpolate(tpl.bodyTemplate, vars);
     }
 
-    const res = await fetch(url, fetchOpts);
+    const res = await fetch(url, { ...fetchOpts, signal: options?.signal });
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`Custom API error ${res.status}: ${body}`);
@@ -73,8 +77,12 @@ export class CustomProvider extends BaseProvider {
     return { translated, provider: this.config.name, cached: false };
   }
 
-  async *translateStream(_request: TranslateRequest): AsyncGenerator<string> {
-    const result = await this.translate(_request);
+  async *translateStream(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
+    const result = await this.translate(request, prompts, options);
     yield result.translated;
   }
 

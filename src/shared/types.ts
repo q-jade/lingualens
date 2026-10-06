@@ -35,6 +35,19 @@ export interface TranslateResult {
   tokensUsed?: number;
 }
 
+/**
+ * Messages exchanged on a `translate-stream` runtime Port (long-lived
+ * connection): the UI sends `start` once, the background answers with any
+ * number of `chunk` messages followed by exactly one `done` or `error`.
+ * Ports are needed because `runtime.sendMessage` can only return a single
+ * response and cannot carry a stream.
+ */
+export type StreamPortMessage =
+  | { type: 'start'; payload: TranslateRequest }
+  | { type: 'chunk'; delta: string }
+  | { type: 'done'; result: TranslateResult }
+  | { type: 'error'; error: string };
+
 export interface ProviderConfig {
   id: string;
   type: 'openai-compat' | 'ollama' | 'openai' | 'lmstudio' | 'deepl' | 'google' | 'custom';

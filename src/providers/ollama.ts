@@ -1,5 +1,6 @@
-import { BaseProvider, type PromptOverrides } from './base';
+import { BaseProvider, type PromptOverrides, type TranslateCallOptions } from './base';
 import { getThinkingDisableRequestFields } from './thinking';
+import { StreamCapabilityError } from './stream-capability';
 import type { TranslateRequest, TranslateImageRequest, TranslateResult } from '../shared/types';
 
 export class OllamaProvider extends BaseProvider {
@@ -7,12 +8,17 @@ export class OllamaProvider extends BaseProvider {
     return this.config.baseUrl.replace(/\/+$/, '');
   }
 
-  async translate(request: TranslateRequest, prompts?: PromptOverrides): Promise<TranslateResult> {
+  async translate(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): Promise<TranslateResult> {
     const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: options?.signal,
       body: JSON.stringify({
         model: this.config.model,
         messages: [
@@ -44,12 +50,17 @@ export class OllamaProvider extends BaseProvider {
     };
   }
 
-  async *translateStream(request: TranslateRequest, prompts?: PromptOverrides): AsyncGenerator<string> {
+  async *translateStream(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
     const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: options?.signal,
       body: JSON.stringify({
         model: this.config.model,
         messages: [
@@ -62,19 +73,35 @@ export class OllamaProvider extends BaseProvider {
       }),
     });
 
-    if (!res.ok) throw new Error(`Ollama error ${res.status}`);
+    if (!res.ok) {
+      // 4xx on a streaming request: the endpoint rejects the stream parameter
+      // itself — a capability rejection the non-stream fallback can recover
+      // from. 5xx/429 stay transient and must not poison the health memory.
+      const body = await res.text();
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+        throw new StreamCapabilityError(`Ollama error ${res.status}: ${body}`);
+      }
+      throw new Error(`Ollama error ${res.status}: ${body}`);
+    }
 
     const reader = res.body?.getReader();
     if (!reader) throw new Error('No response body');
 
     const decoder = new TextDecoder();
     let buffer = '';
+    // Capability detection: Ollama streams NDJSON — a body with no parseable
+    // non-empty line at all means `stream:true` was ignored (proxy/older
+    // server answered a plain JSON or error object instead).
+    let sawNdjson = false;
+    let received = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
+      const decoded = decoder.decode(value, { stream: true });
+      received += decoded;
+      buffer += decoded;
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
@@ -82,12 +109,20 @@ export class OllamaProvider extends BaseProvider {
         if (!line.trim()) continue;
         try {
           const parsed = JSON.parse(line);
+          sawNdjson = true;
           if (parsed.message?.content) yield parsed.message.content;
           if (parsed.done) return;
         } catch {
           /* skip malformed lines */
         }
       }
+    }
+
+    if (!sawNdjson) {
+      const preview = received.trim().slice(0, 200);
+      throw new StreamCapabilityError(
+        `Streaming response contained no NDJSON lines. Body preview: ${preview}`,
+      );
     }
   }
 

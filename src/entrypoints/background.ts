@@ -1,4 +1,4 @@
-import { handleMessage, getSettings, saveSettings } from '../background/message-router';
+import { handleMessage, getSettings, saveSettings, handleTranslateStreamPort } from '../background/message-router';
 import { registerInstallOnboarding } from '../background/onboarding';
 import {
   isPageTranslateStarted,
@@ -10,6 +10,14 @@ import type { SelectionTriggerMode, RoutedSidepanelSelection } from '../shared/t
 
 export default defineBackground(() => {
   registerInstallOnboarding();
+
+  // Streaming translation channel: UIs open a `translate-stream` port and
+  // receive translation deltas incrementally (sendMessage cannot carry a
+  // stream). See handleTranslateStreamPort for the protocol.
+  browser.runtime.onConnect.addListener((port) => {
+    if (port.name === 'translate-stream') handleTranslateStreamPort(port);
+  });
+
   const pageTranslatePhaseByTab = new Map<number, PageTranslatePhase>();
 
   /**

@@ -1,5 +1,6 @@
-import { BaseProvider, type PromptOverrides } from './base';
+import { BaseProvider, type PromptOverrides, type TranslateCallOptions } from './base';
 import { getOpenAICompatExtraBody } from './thinking';
+import { StreamCapabilityError } from './stream-capability';
 import type { TranslateRequest, TranslateImageRequest, TranslateResult } from '../shared/types';
 
 /** OpenAI vision content part: text or image (data URL or https URL). */
@@ -32,12 +33,17 @@ export class OpenAICompatProvider extends BaseProvider {
     };
   }
 
-  async translate(request: TranslateRequest, prompts?: PromptOverrides): Promise<TranslateResult> {
+  async translate(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): Promise<TranslateResult> {
     const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.headers,
+      signal: options?.signal,
       body: JSON.stringify(
         this.buildChatCompletionBody(
           [
@@ -63,12 +69,17 @@ export class OpenAICompatProvider extends BaseProvider {
     };
   }
 
-  async *translateStream(request: TranslateRequest, prompts?: PromptOverrides): AsyncGenerator<string> {
+  async *translateStream(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
     const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.headers,
+      signal: options?.signal,
       body: JSON.stringify(
         this.buildChatCompletionBody(
           [
@@ -80,25 +91,44 @@ export class OpenAICompatProvider extends BaseProvider {
       ),
     });
 
-    if (!res.ok) throw new Error(`API error ${res.status}`);
+    if (!res.ok) {
+      // 4xx on a streaming request usually means the endpoint rejects the
+      // stream parameter itself (gateways that only do plain request/response)
+      // — a capability rejection the non-stream fallback can recover from.
+      // 5xx/429 stay generic: they are transient and must not poison the
+      // streaming-health memory.
+      const body = await res.text();
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+        throw new StreamCapabilityError(`API error ${res.status}: ${body}`);
+      }
+      throw new Error(`API error ${res.status}: ${body}`);
+    }
 
     const reader = res.body?.getReader();
     if (!reader) throw new Error('No response body');
 
     const decoder = new TextDecoder();
     let buffer = '';
+    // Capability detection: a 200 response that carries NO `data:` line at all
+    // means the server ignored `stream:true` and answered plain JSON (or an
+    // error object) — the SSE parser has nothing to consume.
+    let sawDataLine = false;
+    let received = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
+      const decoded = decoder.decode(value, { stream: true });
+      received += decoded;
+      buffer += decoded;
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        sawDataLine = true;
         const payload = trimmed.slice(6);
         if (payload === '[DONE]') return;
 
@@ -110,6 +140,13 @@ export class OpenAICompatProvider extends BaseProvider {
           /* skip malformed chunks */
         }
       }
+    }
+
+    if (!sawDataLine) {
+      const preview = received.trim().slice(0, 200);
+      throw new StreamCapabilityError(
+        `Streaming response contained no SSE events. Body preview: ${preview}`,
+      );
     }
   }
 

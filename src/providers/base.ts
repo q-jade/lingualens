@@ -13,17 +13,29 @@ export interface PromptOverrides {
   additionalPrompt?: string;
 }
 
+/**
+ * Per-call transport options. `signal` aborts the underlying fetch: the
+ * streaming port handler creates one AbortController whose signal follows the
+ * whole "stream attempt → non-stream fallback retry" orchestration, so a UI
+ * disconnect cancels BOTH attempts (streaming and degraded).
+ */
+export interface TranslateCallOptions {
+  signal?: AbortSignal;
+}
+
 export abstract class BaseProvider {
   constructor(protected config: ProviderConfig) {}
 
   abstract translate(
     request: TranslateRequest,
     prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
   ): Promise<TranslateResult>;
 
   abstract translateStream(
     request: TranslateRequest,
     prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
   ): AsyncGenerator<string>;
 
   abstract testConnection(): Promise<boolean>;

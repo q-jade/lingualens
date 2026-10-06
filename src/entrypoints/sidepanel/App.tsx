@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AppSettings, TranslateResult, MessageResponse, RoutedSidepanelSelection } from '../../shared/types';
+import type { AppSettings, MessageResponse, RoutedSidepanelSelection } from '../../shared/types';
 import { SUPPORTED_LANGUAGES } from '../../shared/constants';
 import { getTranslatorLanguages, setTranslatorLanguages, subscribeTranslatorLanguages } from '../../shared/translator-languages';
 import { ProviderPicker } from '../../shared/ProviderPicker';
 import { CopyButton } from '../../shared/CopyButton';
 import { shortcutLabel } from '../../shared/shortcut';
+import { startStreamTranslate } from '../../shared/stream-translate';
 
 interface HistoryEntry {
   id: number;
@@ -48,6 +49,9 @@ export function App() {
   sourceLangRef.current = sourceLang;
   targetLangRef.current = targetLang;
   historyRef.current = history;
+  // Cancel for the in-flight streaming request — a re-translate disconnects
+  // the old port (background aborts the request) before starting a new one.
+  const cancelStreamRef = useRef<(() => void) | null>(null);
 
   // Focus the input as soon as the panel opens so the user can start typing immediately.
   useEffect(() => {
@@ -108,7 +112,7 @@ export function App() {
     };
   }, []);
 
-  const translateText = async (
+  const translateText = (
     text: string,
     explicitSourceLang?: string,
     explicitTargetLang?: string,
@@ -118,48 +122,58 @@ export function App() {
     const dstLang = explicitTargetLang || targetLangRef.current;
     if (!trimmed || !srcLang || !dstLang) return;
 
+    // A newer request owns the panel: cancel the previous stream first so
+    // the background aborts its request instead of racing this one.
+    cancelStreamRef.current?.();
     setLoading(true);
     setError(null);
     setTranslation('');
 
-    const res: MessageResponse<TranslateResult> = await browser.runtime.sendMessage({
-      type: 'TRANSLATE',
-      payload: { text: trimmed, sourceLang: srcLang, targetLang: dstLang, applyAdditionalPrompt: true },
-    });
+    cancelStreamRef.current = startStreamTranslate(
+      { text: trimmed, sourceLang: srcLang, targetLang: dstLang, applyAdditionalPrompt: true },
+      {
+        // Incremental render — this is the point of streaming.
+        onChunk: (delta) => setTranslation((prev) => prev + delta),
+        // The done result carries the trim()'d full text and the provider
+        // that ACTUALLY produced it (possibly a fallback) — overwrite the
+        // accumulated deltas and record history exactly like the one-shot
+        // path did.
+        onDone: (result) => {
+          setTranslation(result.translated);
+          setLoading(false);
+          cancelStreamRef.current = null;
 
-    setLoading(false);
-    if (res.success) {
-      setTranslation(res.data.translated);
-      const entry: HistoryEntry = {
-        id: Date.now(),
-        source: trimmed,
-        translated: res.data.translated,
-        targetLang: dstLang,
-        provider: res.data.provider,
-        timestamp: Date.now(),
-      };
-      const deduplicated = historyRef.current.filter(
-        (h) => h.source !== trimmed || h.targetLang !== dstLang || h.provider !== res.data.provider,
-      );
-      const updated = [entry, ...deduplicated].slice(0, 50);
-      setHistory(updated);
-      try {
-        await browser.storage.local.set({ translationHistory: updated });
-      } catch (err) {
-        if (err instanceof Error && /quota/i.test(err.message)) {
-          // Quota exceeded — keep only the most recent half
-          const trimmedHistory = updated.slice(0, Math.max(1, Math.floor(updated.length / 2)));
-          setHistory(trimmedHistory);
-          try {
-            await browser.storage.local.set({ translationHistory: trimmedHistory });
-          } catch {
-            // Give up — in-memory history still works this session
-          }
-        }
-      }
-    } else {
-      setError(translateError(res.error));
-    }
+          const entry: HistoryEntry = {
+            id: Date.now(),
+            source: trimmed,
+            translated: result.translated,
+            targetLang: dstLang,
+            provider: result.provider,
+            timestamp: Date.now(),
+          };
+          const deduplicated = historyRef.current.filter(
+            (h) => h.source !== trimmed || h.targetLang !== dstLang || h.provider !== result.provider,
+          );
+          const updated = [entry, ...deduplicated].slice(0, 50);
+          setHistory(updated);
+          void browser.storage.local.set({ translationHistory: updated }).catch((err: unknown) => {
+            if (err instanceof Error && /quota/i.test(err.message)) {
+              // Quota exceeded — keep only the most recent half
+              const trimmedHistory = updated.slice(0, Math.max(1, Math.floor(updated.length / 2)));
+              setHistory(trimmedHistory);
+              void browser.storage.local.set({ translationHistory: trimmedHistory }).catch(() => {
+                // Give up — in-memory history still works this session
+              });
+            }
+          });
+        },
+        onError: (err) => {
+          setError(translateError(err));
+          setLoading(false);
+          cancelStreamRef.current = null;
+        },
+      },
+    );
   };
 
   const handleTranslate = () => void translateText(sourceText);
@@ -229,6 +243,10 @@ export function App() {
 
   const swapLanguages = () => {
     if (!langsReady || sourceLang === 'auto') return;
+    // The swap overwrites the result area — a still-running stream would
+    // append its late chunks onto the swapped text. Kill it first.
+    cancelStreamRef.current?.();
+    cancelStreamRef.current = null;
     const nextSource = targetLang;
     const nextTarget = sourceLang;
     setSourceLang(nextSource);
@@ -239,6 +257,11 @@ export function App() {
   };
 
   const loadHistoryEntry = (entry: HistoryEntry) => {
+    // Same protection as swapLanguages: the loaded entry owns the result
+    // area now, a stale stream must not append onto it.
+    cancelStreamRef.current?.();
+    cancelStreamRef.current = null;
+    setLoading(false);
     setSourceText(entry.source);
     setTranslation(entry.translated);
     setTargetLang(entry.targetLang);
@@ -386,13 +409,19 @@ export function App() {
               {error && <div className="ll-error px-4 py-3 text-sm">{error}</div>}
               {!error && (
                 <div className="flex-1 overflow-y-auto px-4 py-3 bg-gray-50/60">
-                  {loading ? (
+                  {/* Translation takes precedence over the spinner: with
+                      streaming, chunks arrive while loading is still true —
+                      hiding the text behind the spinner would defeat the
+                      purpose of streaming. The spinner only covers the empty
+                      first-token wait; while text is visible the translate
+                      button's spinner signals the ongoing work. */}
+                  {translation ? (
+                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{translation}</p>
+                  ) : loading ? (
                     <div className="flex items-center gap-2 text-sm text-gray-400">
                       <span className="ll-spinner" />
                       {t('sidepanel.translating')}
                     </div>
-                  ) : translation ? (
-                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{translation}</p>
                   ) : (
                     <p className="text-sm text-gray-400">{t('sidepanel.translationPlaceholder')}</p>
                   )}

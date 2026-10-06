@@ -1,4 +1,4 @@
-import { BaseProvider } from './base';
+import { BaseProvider, type PromptOverrides, type TranslateCallOptions } from './base';
 import { toGoogleLang } from '../shared/languages';
 import type { TranslateRequest, TranslateResult } from '../shared/types';
 
@@ -8,7 +8,11 @@ export class GoogleTranslateProvider extends BaseProvider {
     return `${base}/language/translate/v2`;
   }
 
-  async translate(request: TranslateRequest): Promise<TranslateResult> {
+  async translate(
+    request: TranslateRequest,
+    _prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): Promise<TranslateResult> {
     const params = new URLSearchParams({
       q: request.text,
       target: toGoogleLang(request.targetLang),
@@ -19,7 +23,10 @@ export class GoogleTranslateProvider extends BaseProvider {
       params.set('source', toGoogleLang(request.sourceLang));
     }
 
-    const res = await fetch(`${this.apiUrl}?${params}`, { method: 'POST' });
+    const res = await fetch(`${this.apiUrl}?${params}`, {
+      method: 'POST',
+      signal: options?.signal,
+    });
 
     if (!res.ok) {
       const body = await res.text();
@@ -36,8 +43,12 @@ export class GoogleTranslateProvider extends BaseProvider {
     };
   }
 
-  async *translateStream(_request: TranslateRequest): AsyncGenerator<string> {
-    const result = await this.translate(_request);
+  async *translateStream(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
+    const result = await this.translate(request, prompts, options);
     yield result.translated;
   }
 
