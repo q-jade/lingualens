@@ -1,6 +1,6 @@
 # LinguaLens Privacy Policy
 
-**Last updated:** May 20, 2026
+**Last updated:** October 7, 2026
 
 This policy describes how the **LinguaLens** browser extension (“the extension”, “we”) handles information when you use it. LinguaLens is published by Qi Wang. If you have questions, open an issue at [github.com/q-jade/lingualens](https://github.com/q-jade/lingualens).
 
@@ -8,7 +8,7 @@ This policy describes how the **LinguaLens** browser extension (“the extension
 
 - LinguaLens **does not run its own translation servers**.
 - Text you choose to translate is sent **only to the translation providers you configure** (for example Ollama on your machine, OpenAI, DeepL, or a custom API URL).
-- When you translate an image, the image is downloaded by the extension and sent to the enabled provider(s) as base64 data.
+- When you translate an image, the extension retrieves it, may downscale it to a 1568 px long edge, then sends it to the enabled provider(s) as base64 data.
 - Settings and API keys are stored **locally in your browser**, not on our servers.
 - We **do not sell** your data.
 
@@ -19,7 +19,7 @@ Depending on how you use the extension, the following may be processed:
 | Data | Where it goes | Purpose |
 |------|----------------|---------|
 | Text you select, enter in the popup/side panel, or page content you choose to translate | The **provider(s) you enable** in Settings | Translation |
-| Images you choose to translate (selection covering an image or the image context menu) | Downloaded by the extension, then sent as base64 to the **provider(s) you enable** | Image translation |
+| Images you choose to translate (selection covering an image or the image context menu) | Retrieved by the extension, optionally downscaled to a 1568 px long edge, then sent as base64 to the **provider(s) you enable** | Image translation |
 | Provider settings (base URL, model, API keys, prompts) | **Local browser storage** (`chrome.storage.local` / equivalent) | Configuration |
 | Cached translation results | **Local browser storage** | Faster repeat translations |
 | Recent translations in the side panel | **Local browser storage** | History in the side panel UI |

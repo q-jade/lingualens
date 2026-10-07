@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.10.0] - 2026-10-07
+
+### Added
+
+- Stream LLM translations to the popup, side panel, and selection panel, with a non-streaming fallback and a circuit breaker for providers with limited streaming support.
+- Fetch and display available models in the provider model picker while keeping manual model entry available.
+
+### Changed
+
+- Downscale large images to a 1568 px long edge before translation to reduce payload size and token cost.
+- Update provider defaults: use `gpt-5.4-mini` for OpenAI, leave Ollama and OpenAI-compatible model IDs unset, and show an example URL for OpenAI-compatible endpoints instead of defaulting to Ollama's URL.
+
+### Fixed
+
+- Preserve specific image processing errors when page-side extraction fails, and show localized messages for each error.
+
 ## [0.9.0] - 2026-09-28
 
 ### Added
@@ -194,6 +210,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.10.0]: https://github.com/q-jade/lingualens/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/q-jade/lingualens/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/q-jade/lingualens/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/q-jade/lingualens/compare/v0.8.0...v0.8.1

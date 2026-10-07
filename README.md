@@ -11,6 +11,7 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 ## Features
 
 - **Selection translation** — Select text on any page; a floating trigger appears. Choose from four trigger modes: icon, instant, modifier key, or off. Right-click **Translate** or use the keyboard shortcut for one-step translation. Pin the panel to translate multiple selections without reopening. Switch providers or the target language — with instant re-translation — directly from the panel.
+- **Image translation** — Select an image or right-click it to translate its text with a vision-capable LLM. See [Image translation](#image-translation) for setup and usage.
 - **Full-page translation** — Inject bilingual translations inline while preserving layout. Choose **Quality** (larger chunks, better context) or **Speed** (smaller chunks, faster updates) in settings.
 - **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation, and a customizable HTTP template. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
 - **Provider fallback** — If the default provider fails, try the next configured provider in order.
@@ -194,7 +195,7 @@ LinguaLens does not run its own translation servers; text is sent only to provid
 - Content scripts cannot run on browser internal pages or the extension store. On such pages the right-click menu routes the selection to the side panel; the `Alt+T` shortcut is not available there.
 - PDF viewer support depends on the browser: Chrome 141+ translates selections in-page via the floating panel; Edge's built-in PDF viewer routes them to the side panel. Firefox's PDF viewer does not expose selections to extensions.
 - Very large pages may take time and many API calls when using full-page translation.
-- Image translation needs a vision-capable model; text-only models return an error. Images are fetched by the extension and sent to the provider as base64; page-scoped `blob:` URLs and images behind hotlink protection may fail to load.
+- Image translation needs a vision-capable model; text-only models return an error. Images over 20 MB are rejected; other images may be downscaled to a 1568 px long edge before being sent to the provider as base64. Page-scoped `blob:` URLs and images behind hotlink protection may fail to load.
 - Firefox build uses Manifest V2; feature parity with Chrome is not guaranteed (no side panel).
 - Side panel requires Chromium 114+.
 
