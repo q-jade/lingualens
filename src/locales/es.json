@@ -136,6 +136,9 @@
     "close": "Cerrar",
     "noImageProvider": "No hay ningún proveedor con capacidad de imagen activo. Habilita un proveedor de visión en Ajustes.",
     "imageFetchFailed": "No se pudo cargar la imagen.",
+    "notAnImage": "El archivo seleccionado no es una imagen.",
+    "imageTooLarge": "La imagen es demasiado grande (tamaño máximo: 20 MB).",
+    "imageReadFailed": "No se pudo leer la imagen.",
     "noTextInImage": "No se encontró texto legible en la imagen."
   },
   "statusBar": {

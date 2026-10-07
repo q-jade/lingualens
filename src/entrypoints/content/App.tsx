@@ -23,10 +23,9 @@ const ERROR_KEYS: Record<string, string> = {
   TRANSLATION_FAILED: 'content.translationFailed',
   NO_IMAGE_PROVIDER: 'content.noImageProvider',
   IMAGE_FETCH_FAILED: 'content.imageFetchFailed',
-  BLOB_IMAGE: 'content.imageFetchFailed',
-  NOT_AN_IMAGE: 'content.imageFetchFailed',
-  IMAGE_TOO_LARGE: 'content.imageFetchFailed',
-  IMAGE_READ_FAILED: 'content.imageFetchFailed',
+  NOT_AN_IMAGE: 'content.notAnImage',
+  IMAGE_TOO_LARGE: 'content.imageTooLarge',
+  IMAGE_READ_FAILED: 'content.imageReadFailed',
 };
 
 /** Sentinel the built-in image prompt outputs when an image has no text. */

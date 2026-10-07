@@ -136,6 +136,9 @@
     "close": "Close",
     "noImageProvider": "No image-capable provider is active. Enable a vision provider in Settings.",
     "imageFetchFailed": "Could not load the image.",
+    "notAnImage": "The selected file is not an image.",
+    "imageTooLarge": "The image is too large (maximum size: 20 MB).",
+    "imageReadFailed": "Could not read the image.",
     "noTextInImage": "No readable text found in the image."
   },
   "statusBar": {

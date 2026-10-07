@@ -136,6 +136,9 @@
     "close": "Schließen",
     "noImageProvider": "Kein bildfähiger Provider aktiv. In den Einstellungen einen Vision-Provider aktivieren.",
     "imageFetchFailed": "Bild konnte nicht geladen werden.",
+    "notAnImage": "Die ausgewählte Datei ist kein Bild.",
+    "imageTooLarge": "Das Bild ist zu groß (maximale Größe: 20 MB).",
+    "imageReadFailed": "Bild konnte nicht gelesen werden.",
     "noTextInImage": "Kein Text im Bild gefunden."
   },
   "statusBar": {

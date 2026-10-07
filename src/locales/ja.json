@@ -136,6 +136,9 @@
     "close": "閉じる",
     "noImageProvider": "画像に対応したプロバイダーが有効ではありません。設定でビジョン対応プロバイダーを有効にしてください。",
     "imageFetchFailed": "画像を読み込めませんでした。",
+    "notAnImage": "選択したファイルは画像ではありません。",
+    "imageTooLarge": "画像サイズが大きすぎます（上限：20 MB）。",
+    "imageReadFailed": "画像を読み取れませんでした。",
     "noTextInImage": "画像に読み取れるテキストが見つかりません。"
   },
   "statusBar": {

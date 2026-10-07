@@ -136,6 +136,9 @@
     "close": "닫기",
     "noImageProvider": "이미지를 지원하는 공급자가 활성화되어 있지 않습니다. 설정에서 비전 공급자를 활성화하세요.",
     "imageFetchFailed": "이미지를 불러올 수 없습니다.",
+    "notAnImage": "선택한 파일은 이미지가 아닙니다.",
+    "imageTooLarge": "이미지가 너무 큽니다 (최대 크기: 20 MB).",
+    "imageReadFailed": "이미지를 읽을 수 없습니다.",
     "noTextInImage": "이미지에서 읽을 수 있는 텍스트를 찾지 못했습니다."
   },
   "statusBar": {

@@ -136,6 +136,9 @@
     "close": "關閉",
     "noImageProvider": "沒有支援圖片的 Provider 可用。請在設定中啟用具備視覺能力的 Provider。",
     "imageFetchFailed": "圖片載入失敗。",
+    "notAnImage": "所選檔案不是圖片。",
+    "imageTooLarge": "圖片過大（最大支援 20 MB）。",
+    "imageReadFailed": "無法讀取圖片。",
     "noTextInImage": "圖片中未發現可辨識的文字。"
   },
   "statusBar": {

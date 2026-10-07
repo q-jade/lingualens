@@ -136,6 +136,9 @@
     "close": "Fermer",
     "noImageProvider": "Aucun fournisseur compatible image actif. Activez un fournisseur de vision dans les paramètres.",
     "imageFetchFailed": "Impossible de charger l’image.",
+    "notAnImage": "Le fichier sélectionné n’est pas une image.",
+    "imageTooLarge": "L’image est trop volumineuse (taille maximale : 20 Mo).",
+    "imageReadFailed": "Impossible de lire l’image.",
     "noTextInImage": "Aucun texte lisible trouvé dans l’image."
   },
   "statusBar": {

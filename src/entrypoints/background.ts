@@ -422,14 +422,25 @@ export default defineBackground(() => {
   async function resolveImageDataUrl(tabId: number, imageUrl: string): Promise<string> {
     try {
       return await fetchImageAsDataUrl(imageUrl);
-    } catch {
-      const res = await browser.tabs.sendMessage(tabId, {
-        type: 'EXTRACT_IMAGE_DATA_URL',
-        payload: { imageUrl },
-      });
-      const dataUrl = (res as { dataUrl?: string } | undefined)?.dataUrl;
-      if (!dataUrl) throw new Error('IMAGE_FETCH_FAILED');
-      return dataUrl;
+    } catch (backgroundError) {
+      try {
+        const res = await browser.tabs.sendMessage(tabId, {
+          type: 'EXTRACT_IMAGE_DATA_URL',
+          payload: { imageUrl },
+        });
+        const dataUrl = (res as { dataUrl?: string } | undefined)?.dataUrl;
+        if (dataUrl) return dataUrl;
+      } catch {
+        // Preserve the background fetch error if page-side extraction also fails.
+      }
+
+      if (
+        backgroundError instanceof Error &&
+        ['NOT_AN_IMAGE', 'IMAGE_TOO_LARGE', 'IMAGE_READ_FAILED'].includes(backgroundError.message)
+      ) {
+        throw backgroundError;
+      }
+      throw new Error('IMAGE_FETCH_FAILED');
     }
   }
 
