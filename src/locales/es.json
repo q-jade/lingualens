@@ -112,7 +112,6 @@
     "verificationFailed": "Error en la verificación",
     "verifiedResult": "¡Verificado! \"Hello\" → \"{{result}}\"",
     "lmStudioNote": "Usa la API nativa de LM Studio <code>/api/v1/chat</code> (no OpenAI <code>/v1</code>).",
-    "lmStudioModelPlaceholder": "vacío = modelo cargado actualmente",
     "fetchModels": "Obtener modelos disponibles",
     "fetchingModels": "Obteniendo modelos…",
     "refreshModels": "Actualizar lista de modelos",

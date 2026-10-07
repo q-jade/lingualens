@@ -551,7 +551,9 @@ export function App() {
                                 type="text"
                                 value={provider.baseUrl}
                                 onChange={(e) => updateProvider(provider.id, { baseUrl: e.target.value })}
-                                placeholder={provider.type === 'lmstudio' ? 'http://localhost:1234' : undefined}
+                                placeholder={provider.type === 'openai-compat'
+                                  ? 'https://api.example.com/v1'
+                                  : undefined}
                                 className="input font-mono w-full"
                               />
                             </Field>

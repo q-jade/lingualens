@@ -112,7 +112,6 @@
     "verificationFailed": "확인 실패",
     "verifiedResult": "확인 성공! \"Hello\" → \"{{result}}\"",
     "lmStudioNote": "LM Studio 네이티브 <code>/api/v1/chat</code>를 사용합니다 (OpenAI <code>/v1</code>이 아님).",
-    "lmStudioModelPlaceholder": "비워 두면 = 현재 로드된 모델",
     "fetchModels": "사용 가능한 모델 가져오기",
     "fetchingModels": "모델 가져오는 중…",
     "refreshModels": "모델 목록 새로 고침",

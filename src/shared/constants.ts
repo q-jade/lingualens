@@ -39,7 +39,7 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
   'openai-compat': {
     type: 'openai-compat',
     name: 'OpenAI Compatible',
-    baseUrl: 'http://localhost:11434/v1',
+    baseUrl: '',
     model: '',
     supportsImage: true,
   },
@@ -47,7 +47,7 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     type: 'ollama',
     name: 'Ollama',
     baseUrl: 'http://localhost:11434',
-    model: 'gemma3:4b',
+    model: '',
     supportsImage: true,
   },
   lmstudio: {
@@ -61,14 +61,14 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     type: 'openai',
     name: 'OpenAI',
     baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4o-mini',
+    model: 'gpt-5.4-mini',
     supportsImage: true,
   },
   deepseek: {
     type: 'openai-compat',
     name: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com',
-    model: 'deepseek-v4-flash',
+    model: 'deepseek-flash',
     supportsImage: true,
   },
   deepl: {
@@ -103,7 +103,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
       name: 'Ollama',
       enabled: true,
       baseUrl: 'http://localhost:11434',
-      model: 'gemma3:4b',
+      model: '',
       disableThinking: true,
       supportsImage: true,
     },

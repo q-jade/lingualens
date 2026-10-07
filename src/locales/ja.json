@@ -112,7 +112,6 @@
     "verificationFailed": "検証に失敗しました",
     "verifiedResult": "検証成功！\"Hello\" → \"{{result}}\"",
     "lmStudioNote": "LM Studio ネイティブ <code>/api/v1/chat</code> を使用（OpenAI <code>/v1</code> ではありません）。",
-    "lmStudioModelPlaceholder": "空欄 = 現在ロード中のモデル",
     "fetchModels": "利用可能なモデルを取得",
     "fetchingModels": "モデルを取得中…",
     "refreshModels": "モデル一覧を更新",

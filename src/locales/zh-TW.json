@@ -112,7 +112,6 @@
     "verificationFailed": "驗證失敗",
     "verifiedResult": "驗證通過！\"Hello\" → \"{{result}}\"",
     "lmStudioNote": "使用 LM Studio 原生 <code>/api/v1/chat</code>（非 OpenAI <code>/v1</code>）。",
-    "lmStudioModelPlaceholder": "留空 = 目前載入的模型",
     "fetchModels": "取得可用模型",
     "fetchingModels": "正在取得模型…",
     "refreshModels": "重新整理模型清單",

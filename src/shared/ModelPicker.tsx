@@ -103,11 +103,9 @@ export function ModelPicker({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={provider.type === 'ollama'
-            ? 'gemma3:4b'
-            : provider.type === 'lmstudio'
-              ? t('options.lmStudioModelPlaceholder')
-              : 'gpt-4o-mini'}
+          placeholder={provider.type === 'lmstudio' || provider.type === 'ollama'
+            ? undefined
+            : 'gpt-5.4-mini'}
           className="input font-mono flex-1 min-w-0"
         />
         <button

@@ -112,7 +112,6 @@
     "verificationFailed": "Prüfung fehlgeschlagen",
     "verifiedResult": "Verifiziert! \"Hello\" → \"{{result}}\"",
     "lmStudioNote": "Verwendet LM Studio-native <code>/api/v1/chat</code> (nicht OpenAI <code>/v1</code>).",
-    "lmStudioModelPlaceholder": "leer = aktuell geladenes Modell",
     "fetchModels": "Verfügbare Modelle abrufen",
     "fetchingModels": "Modelle werden abgerufen …",
     "refreshModels": "Modellliste aktualisieren",

@@ -112,7 +112,6 @@
     "verificationFailed": "Ошибка проверки",
     "verifiedResult": "Проверено! \"Hello\" → \"{{result}}\"",
     "lmStudioNote": "Используется нативный API LM Studio <code>/api/v1/chat</code> (не OpenAI <code>/v1</code>).",
-    "lmStudioModelPlaceholder": "пусто = текущая загруженная модель",
     "fetchModels": "Получить доступные модели",
     "fetchingModels": "Получение моделей…",
     "refreshModels": "Обновить список моделей",
