@@ -13,6 +13,8 @@ export default defineConfig({
       'http://localhost/*',
       'http://127.0.0.1/*',
       'https://api.deepseek.com/*',
+      'https://open.bigmodel.cn/*',
+      'https://api.z.ai/*',
       'https://api.openai.com/*',
       'https://api-free.deepl.com/*',
       'https://api.deepl.com/*',

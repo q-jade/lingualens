@@ -71,6 +71,20 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     model: 'deepseek-flash',
     supportsImage: true,
   },
+  bigmodel: {
+    type: 'openai-compat',
+    name: 'BigModel',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    model: 'glm-5.3-flash',
+    supportsImage: true,
+  },
+  'z.ai': {
+    type: 'openai-compat',
+    name: 'Z.ai',
+    baseUrl: 'https://api.z.ai/api/paas/v4',
+    model: 'glm-5.3-flash',
+    supportsImage: true,
+  },
   deepl: {
     type: 'deepl',
     name: 'DeepL',

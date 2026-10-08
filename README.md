@@ -140,11 +140,13 @@ If shortcuts do nothing, open your browser’s extension shortcut settings and a
 | OpenAI Compatible | Cloud / local | Usually | Any OpenAI-style `/v1/chat/completions` endpoint |
 | OpenAI | Cloud | Yes | `https://api.openai.com/v1` |
 | DeepSeek | Cloud | Yes | Preset uses `https://api.deepseek.com` |
+| BigModel (Zhipu) | Cloud | Yes | Preset uses `https://open.bigmodel.cn/api/paas/v4` |
+| Z.ai (Zhipu) | Cloud | Yes | International endpoint `https://api.z.ai/api/paas/v4` |
 | DeepL | Cloud | Yes | Free or Pro API base URL |
 | Google Translate | Cloud | Yes | Google Cloud Translation API |
 | Custom API | Any | Optional | Configurable method, headers, body template, JSON response path |
 
-**Host permissions:** The extension manifest allows requests only to declared hosts (localhost, OpenAI, DeepSeek, DeepL, Google, etc.). Custom or self-hosted API URLs outside that list may be blocked by the browser until additional permissions are granted — plan endpoints accordingly.
+**Host permissions:** The extension manifest allows requests only to declared hosts (localhost, OpenAI, DeepSeek, BigModel/Z.ai, DeepL, Google, etc.). Custom or self-hosted API URLs outside that list may be blocked by the browser until additional permissions are granted — plan endpoints accordingly.
 
 ## Settings reference
 

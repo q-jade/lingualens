@@ -25,6 +25,17 @@ export function isDeepSeekProvider(config: ProviderConfig): boolean {
   }
 }
 
+/** Zhipu (BigModel open platform / Z.ai international) GLM endpoints. */
+export function isZhipuProvider(config: ProviderConfig): boolean {
+  try {
+    const host = new URL(config.baseUrl).hostname.toLowerCase();
+    return host === 'open.bigmodel.cn' || host.endsWith('.bigmodel.cn')
+      || host === 'api.z.ai' || host.endsWith('.z.ai');
+  } catch {
+    return /bigmodel\.cn|z\.ai/i.test(config.baseUrl);
+  }
+}
+
 /**
  * Extra fields merged into OpenAI-compatible chat/completions JSON (SDK `extra_body` semantics:
  * top-level keys, not a nested `"extra_body"` object).
@@ -35,6 +46,15 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
   }
 
   if (isDeepSeekProvider(config)) {
+    return { thinking: { type: 'disabled' } };
+  }
+
+  // GLM-5.3 / GLM-5.3-FLASH: thinking is always on and cannot be disabled;
+  // its intensity is controlled by `reasoning_effort` (official docs).
+  if (isZhipuProvider(config)) {
+    if (/^glm-5\.3(-flash\w*)?($|[-.])/i.test(config.model ?? '')) {
+      return { reasoning_effort: 'low' };
+    }
     return { thinking: { type: 'disabled' } };
   }
 

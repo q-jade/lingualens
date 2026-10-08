@@ -774,7 +774,7 @@ function AddProviderMenu({ onAdd }: { onAdd: (type: ProviderConfig['type']) => v
         {t('options.addProvider')}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-md border border-gray-200 py-1 w-48 z-10">
+        <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-md border border-gray-200 py-1 w-48 z-10 max-h-72 overflow-y-auto">
           {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
             <button
               key={key}

@@ -399,6 +399,20 @@ const DEEPSEEK_WHALE: ReactNode = (
   />
 );
 
+/**
+ * Zhipu AI's brand mark — the "Z" from the official logo, taken from the
+ * official SVG (z-cdn.chatglm.cn/z-ai/static/logo.svg, viewBox 0 0 30 30,
+ * scaled ×0.8 to 24 and re-centered). Three filled pieces: top bar, diagonal,
+ * bottom bar.
+ */
+const ZHIPU_MARK: ReactNode = (
+  <g fill="currentColor" stroke="none">
+    <path d="M12.58 5.68 l-1.04 1.48 c-0.16 0.23 -0.43 0.38 -0.72 0.38 h-5.68 V5.67 C4.93 5.68 12.58 5.68 12.58 5.68 Z" />
+    <path d="M19.64 5.68 L10.71 18.33 H4.76 L13.69 5.68 H19.64 Z" />
+    <path d="M11.82 18.33 l1.05 -1.49 c0.16 -0.23 0.43 -0.38 0.72 -0.38 h5.67 v1.86 H11.82 Z" />
+  </g>
+);
+
 /** Small line icon for a provider (used in cards and pickers). */
 export function ProviderIcon({
   type,
@@ -412,7 +426,9 @@ export function ProviderIcon({
   size?: number;
   className?: string;
 }) {
-  const isDeepSeek = name?.toLowerCase().includes('deepseek');
+  const lower = name?.toLowerCase() ?? '';
+  const isDeepSeek = lower.includes('deepseek');
+  const isZhipu = lower.includes('bigmodel') || lower.includes('z.ai');
   return (
     <svg
       width={size}
@@ -427,7 +443,7 @@ export function ProviderIcon({
       className={className}
       aria-hidden="true"
     >
-      {isDeepSeek ? DEEPSEEK_WHALE : ICON_PATHS[type]}
+      {isDeepSeek ? DEEPSEEK_WHALE : isZhipu ? ZHIPU_MARK : ICON_PATHS[type]}
     </svg>
   );
 }
