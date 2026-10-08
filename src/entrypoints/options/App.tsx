@@ -510,7 +510,7 @@ export function App() {
                   {settings.providers.map((provider) => {
                     const expanded = expandedProvider === provider.id;
                     return (
-                      <div key={provider.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div key={provider.id} className="border border-gray-200 rounded-lg">
                         {/* Provider header */}
                         <div
                           className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
