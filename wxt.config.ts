@@ -15,6 +15,7 @@ export default defineConfig({
       'https://api.deepseek.com/*',
       'https://open.bigmodel.cn/*',
       'https://api.z.ai/*',
+      'https://openrouter.ai/*',
       'https://api.openai.com/*',
       'https://api-free.deepl.com/*',
       'https://api.deepl.com/*',

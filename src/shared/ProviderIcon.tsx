@@ -413,6 +413,19 @@ const ZHIPU_MARK: ReactNode = (
   </g>
 );
 
+/**
+ * OpenRouter's brand mark — the "O" with a diagonal cut, from the official
+ * glyph (openrouter.ai/brand/logos/transparent/glyph/svg/glyph-ink.svg,
+ * viewBox 0 0 1024 730). Scaled to fit 24 wide and vertically centred.
+ */
+const OPENROUTER_MARK: ReactNode = (
+  <g fill="currentColor" stroke="none">
+    <g transform="translate(0 3.4453) scale(0.0234375)">
+      <path d="M795.893 0C915.776 0 1012.95 97.9963 1012.95 218.88C1012.95 339.764 915.776 437.76 795.893 437.76L1011.2 654.869C1038.55 682.447 1019.18 729.6 980.504 729.6H361.77C161.97 729.6 0 566.273 0 364.8C0 163.327 161.97 0 361.77 0L795.893 0ZM361.77 145.92C241.89 145.92 144.708 243.916 144.708 364.8C144.708 485.684 241.89 583.68 361.77 583.68C481.649 583.68 578.831 485.684 578.831 364.8C578.831 243.916 481.649 145.92 361.77 145.92Z" />
+    </g>
+  </g>
+);
+
 /** Small line icon for a provider (used in cards and pickers). */
 export function ProviderIcon({
   type,
@@ -429,6 +442,7 @@ export function ProviderIcon({
   const lower = name?.toLowerCase() ?? '';
   const isDeepSeek = lower.includes('deepseek');
   const isZhipu = lower.includes('bigmodel') || lower.includes('z.ai');
+  const isOpenRouter = lower.includes('openrouter');
   return (
     <svg
       width={size}
@@ -443,7 +457,10 @@ export function ProviderIcon({
       className={className}
       aria-hidden="true"
     >
-      {isDeepSeek ? DEEPSEEK_WHALE : isZhipu ? ZHIPU_MARK : ICON_PATHS[type]}
+      {isDeepSeek ? DEEPSEEK_WHALE
+        : isZhipu ? ZHIPU_MARK
+          : isOpenRouter ? OPENROUTER_MARK
+            : ICON_PATHS[type]}
     </svg>
   );
 }

@@ -85,6 +85,13 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     model: 'glm-5.3-flash',
     supportsImage: true,
   },
+  openrouter: {
+    type: 'openai-compat',
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: '',
+    supportsImage: true,
+  },
   deepl: {
     type: 'deepl',
     name: 'DeepL',

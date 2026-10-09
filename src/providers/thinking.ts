@@ -36,6 +36,16 @@ export function isZhipuProvider(config: ProviderConfig): boolean {
   }
 }
 
+/** OpenRouter gateway (unified `reasoning` parameter). */
+export function isOpenRouterProvider(config: ProviderConfig): boolean {
+  try {
+    const host = new URL(config.baseUrl).hostname.toLowerCase();
+    return host === 'openrouter.ai' || host.endsWith('.openrouter.ai');
+  } catch {
+    return /openrouter\.ai/i.test(config.baseUrl);
+  }
+}
+
 /**
  * Extra fields merged into OpenAI-compatible chat/completions JSON (SDK `extra_body` semantics:
  * top-level keys, not a nested `"extra_body"` object).
@@ -56,6 +66,13 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
       return { reasoning_effort: 'low' };
     }
     return { thinking: { type: 'disabled' } };
+  }
+
+  // OpenRouter normalises everything into a unified `reasoning` object whose
+  // Chat Completions body accepts only `effort` / `summary`; `none` disables
+  // reasoning entirely.
+  if (isOpenRouterProvider(config)) {
+    return { reasoning: { effort: 'none' } };
   }
 
   return {
