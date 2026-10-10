@@ -46,6 +46,16 @@ export function isOpenRouterProvider(config: ProviderConfig): boolean {
   }
 }
 
+/** Google Gemini (its OpenAI-compatibility layer). */
+export function isGeminiProvider(config: ProviderConfig): boolean {
+  try {
+    const host = new URL(config.baseUrl).hostname.toLowerCase();
+    return host === 'generativelanguage.googleapis.com';
+  } catch {
+    return /generativelanguage\.googleapis\.com/i.test(config.baseUrl);
+  }
+}
+
 /**
  * Extra fields merged into OpenAI-compatible chat/completions JSON (SDK `extra_body` semantics:
  * top-level keys, not a nested `"extra_body"` object).
@@ -73,6 +83,17 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
   // reasoning entirely.
   if (isOpenRouterProvider(config)) {
     return { reasoning: { effort: 'none' } };
+  }
+
+  // Gemini's compat layer maps `reasoning_effort` onto its own per-model levels
+  // (`minimal` is the lowest tier it accepts; models without a native minimal
+  // level, e.g. 3.x Pro, downgrade it to low). Only the 2.5 Flash family can
+  // turn reasoning off with `none`; 2.5 Pro and every 3.x model always reason.
+  if (isGeminiProvider(config)) {
+    if (/^gemini-2\.5-flash/i.test(config.model ?? '')) {
+      return { reasoning_effort: 'none' };
+    }
+    return { reasoning_effort: 'minimal' };
   }
 
   return {

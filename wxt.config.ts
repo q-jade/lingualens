@@ -16,6 +16,7 @@ export default defineConfig({
       'https://open.bigmodel.cn/*',
       'https://api.z.ai/*',
       'https://openrouter.ai/*',
+      'https://generativelanguage.googleapis.com/*',
       'https://api.openai.com/*',
       'https://api-free.deepl.com/*',
       'https://api.deepl.com/*',

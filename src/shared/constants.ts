@@ -92,6 +92,13 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     model: '',
     supportsImage: true,
   },
+  gemini: {
+    type: 'openai-compat',
+    name: 'Google Gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    model: 'gemini-3.8-flash',
+    supportsImage: true,
+  },
   deepl: {
     type: 'deepl',
     name: 'DeepL',
