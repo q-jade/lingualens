@@ -99,6 +99,13 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     model: 'gemini-3.8-flash',
     supportsImage: true,
   },
+  qwen: {
+    type: 'openai-compat',
+    name: 'Qwen',
+    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    model: 'qwen3.8-flash',
+    supportsImage: true,
+  },
   deepl: {
     type: 'deepl',
     name: 'DeepL',

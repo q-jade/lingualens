@@ -112,6 +112,7 @@
     "verificationFailed": "Ошибка проверки",
     "verifiedResult": "Проверено! \"Hello\" → \"{{result}}\"",
     "lmStudioNote": "Используется нативный API LM Studio <code>/api/v1/chat</code> (не OpenAI <code>/v1</code>).",
+    "bailianUrlNote": "Qwen предоставляется Alibaba Cloud Bailian, который переходит с <code>dashscope.aliyuncs.com</code> на URL рабочего пространства. При ошибках укажите URL рабочего пространства из консоли Bailian.",
     "fetchModels": "Получить доступные модели",
     "fetchingModels": "Получение моделей…",
     "refreshModels": "Обновить список моделей",

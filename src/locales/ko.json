@@ -112,6 +112,7 @@
     "verificationFailed": "확인 실패",
     "verifiedResult": "확인 성공! \"Hello\" → \"{{result}}\"",
     "lmStudioNote": "LM Studio 네이티브 <code>/api/v1/chat</code>를 사용합니다 (OpenAI <code>/v1</code>이 아님).",
+    "bailianUrlNote": "Qwen은 Alibaba Cloud Bailian에서 제공하며, 이 플랫폼은 <code>dashscope.aliyuncs.com</code>에서 workspace 전용 URL로 이전 중입니다. 오류가 발생하면 Bailian 콘솔의 workspace URL을 입력하세요.",
     "fetchModels": "사용 가능한 모델 가져오기",
     "fetchingModels": "모델 가져오는 중…",
     "refreshModels": "모델 목록 새로 고침",

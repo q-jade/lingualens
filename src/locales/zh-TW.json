@@ -112,6 +112,7 @@
     "verificationFailed": "驗證失敗",
     "verifiedResult": "驗證通過！\"Hello\" → \"{{result}}\"",
     "lmStudioNote": "使用 LM Studio 原生 <code>/api/v1/chat</code>（非 OpenAI <code>/v1</code>）。",
+    "bailianUrlNote": "Qwen 由阿里雲百煉提供，後者正在從 <code>dashscope.aliyuncs.com</code> 遷移至 workspace 專屬 URL。若遇錯誤，可填入百煉控制台中的 workspace URL。",
     "fetchModels": "取得可用模型",
     "fetchingModels": "正在取得模型…",
     "refreshModels": "重新整理模型清單",

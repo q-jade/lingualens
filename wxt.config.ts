@@ -17,6 +17,11 @@ export default defineConfig({
       'https://api.z.ai/*',
       'https://openrouter.ai/*',
       'https://generativelanguage.googleapis.com/*',
+      // Bailian (Qwen): the classic host plus any subdomain, so the
+      // workspace-scoped `{WorkspaceId}.{region}.maas.aliyuncs.com` URLs the
+      // platform is migrating to also work without a manifest change.
+      'https://dashscope.aliyuncs.com/*',
+      'https://*.aliyuncs.com/*',
       'https://api.openai.com/*',
       'https://api-free.deepl.com/*',
       'https://api.deepl.com/*',

@@ -57,6 +57,24 @@ export function isGeminiProvider(config: ProviderConfig): boolean {
 }
 
 /**
+ * Alibaba Cloud Bailian (Model Studio) OpenAI-compatible gateway. The Qwen
+ * preset uses the classic `dashscope.aliyuncs.com/compatible-mode/v1` host, but
+ * the platform is migrating to workspace-scoped
+ * `{WorkspaceId}.{region}.maas.aliyuncs.com` URLs — so match on the
+ * aliyuncs.com host plus the Bailian-only `/compatible-mode` path instead of a
+ * brand-specific hostname.
+ */
+export function isBailianProvider(config: ProviderConfig): boolean {
+  try {
+    const url = new URL(config.baseUrl);
+    return /(^|\.)aliyuncs\.com$/i.test(url.hostname)
+      && url.pathname.includes('/compatible-mode');
+  } catch {
+    return /aliyuncs\.com\/compatible-mode/i.test(config.baseUrl);
+  }
+}
+
+/**
  * Extra fields merged into OpenAI-compatible chat/completions JSON (SDK `extra_body` semantics:
  * top-level keys, not a nested `"extra_body"` object).
  */
@@ -94,6 +112,13 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
       return { reasoning_effort: 'none' };
     }
     return { reasoning_effort: 'minimal' };
+  }
+
+  // Bailian takes a top-level `enable_thinking` boolean (not nested under
+  // `chat_template_kwargs`). It applies to hybrid-reasoning models; the default
+  // Qwen preset is one of those. Thinking-only models never read it.
+  if (isBailianProvider(config)) {
+    return { enable_thinking: false };
   }
 
   return {

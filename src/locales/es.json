@@ -112,6 +112,7 @@
     "verificationFailed": "Error en la verificación",
     "verifiedResult": "¡Verificado! \"Hello\" → \"{{result}}\"",
     "lmStudioNote": "Usa la API nativa de LM Studio <code>/api/v1/chat</code> (no OpenAI <code>/v1</code>).",
+    "bailianUrlNote": "Qwen lo ofrece Alibaba Cloud Bailian, que está migrando de <code>dashscope.aliyuncs.com</code> a URL por workspace. Si hay errores, introduce aquí la URL de tu workspace desde la consola de Bailian.",
     "fetchModels": "Obtener modelos disponibles",
     "fetchingModels": "Obteniendo modelos…",
     "refreshModels": "Actualizar lista de modelos",

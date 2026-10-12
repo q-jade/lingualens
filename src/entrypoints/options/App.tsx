@@ -11,6 +11,13 @@ import { shortcutLabel } from '../../shared/shortcut';
 import { version as EXT_VERSION, repository } from '../../../package.json';
 import { AVAILABLE_UI_LANGUAGES, setUILanguage, getUILanguage } from '../../shared/i18n';
 
+/**
+ * Legacy Alibaba DashScope hosts. The platform is migrating to per-user
+ * workspace URLs, so the migration note is shown only while the URL still
+ * points at one of these — it disappears once the user pastes a workspace URL.
+ */
+const LEGACY_DASHSCOPE_URL = /^https?:\/\/dashscope(-intl|-us)?\.aliyuncs\.com(\/|$)/i;
+
 export function App() {
   const { t } = useTranslation();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -557,6 +564,9 @@ export function App() {
                                 className="input font-mono w-full"
                               />
                             </Field>
+                            {LEGACY_DASHSCOPE_URL.test(provider.baseUrl) && (
+                              <p className="ll-hint -mt-1" dangerouslySetInnerHTML={{ __html: t('options.bailianUrlNote') }} />
+                            )}
                             {provider.type === 'lmstudio' && (
                               <p className="ll-hint -mt-1" dangerouslySetInnerHTML={{ __html: t('options.lmStudioNote') }} />
                             )}
