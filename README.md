@@ -145,11 +145,13 @@ If shortcuts do nothing, open your browser’s extension shortcut settings and a
 | OpenRouter | Cloud | Yes | Aggregator (`https://openrouter.ai/api/v1`); pick any `vendor/model` |
 | Google Gemini | Cloud | Yes | OpenAI-compatibility layer (`generativelanguage.googleapis.com/v1beta/openai`) |
 | Qwen | Cloud | Yes | Alibaba Cloud Bailian (`https://dashscope.aliyuncs.com/compatible-mode/v1`) |
+| MiniMax | Cloud | Yes | China platform `https://api.minimax.cn/v1` |
+| MiniMax Global | Cloud | Yes | International platform `https://api.minimax.io/v1` |
 | DeepL | Cloud | Yes | Free or Pro API base URL |
 | Google Translate | Cloud | Yes | Google Cloud Translation API |
 | Custom API | Any | Optional | Configurable method, headers, body template, JSON response path |
 
-**Host permissions:** The extension manifest allows requests only to declared hosts (localhost, OpenAI, DeepSeek, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, DeepL, Google, etc.). Custom or self-hosted API URLs outside that list may be blocked by the browser until additional permissions are granted — plan endpoints accordingly.
+**Host permissions:** The extension manifest allows requests only to declared hosts (localhost, OpenAI, DeepSeek, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, MiniMax, DeepL, Google, etc.). Custom or self-hosted API URLs outside that list may be blocked by the browser until additional permissions are granted — plan endpoints accordingly.
 
 ## Settings reference
 

@@ -106,6 +106,20 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     model: 'qwen3.8-flash',
     supportsImage: true,
   },
+  minimax: {
+    type: 'openai-compat',
+    name: 'MiniMax',
+    baseUrl: 'https://api.minimax.cn/v1',
+    model: 'MiniMax-M3',
+    supportsImage: true,
+  },
+  'minimax-global': {
+    type: 'openai-compat',
+    name: 'MiniMax Global',
+    baseUrl: 'https://api.minimax.io/v1',
+    model: 'MiniMax-M3',
+    supportsImage: true,
+  },
   deepl: {
     type: 'deepl',
     name: 'DeepL',

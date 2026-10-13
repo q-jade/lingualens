@@ -75,6 +75,23 @@ export function isBailianProvider(config: ProviderConfig): boolean {
 }
 
 /**
+ * MiniMax (China `api.minimax.cn` / international `api.minimax.io`). The
+ * `minimaxi.*` hosts are the same service under its legacy API domains, so
+ * accept them too for people pasting an older base URL.
+ */
+export function isMiniMaxProvider(config: ProviderConfig): boolean {
+  try {
+    const host = new URL(config.baseUrl).hostname.toLowerCase();
+    return host === 'api.minimax.cn' || host.endsWith('.minimax.cn')
+      || host === 'api.minimax.io' || host.endsWith('.minimax.io')
+      || host === 'api.minimaxi.com' || host.endsWith('.minimaxi.com')
+      || host === 'api.minimaxi.chat' || host.endsWith('.minimaxi.chat');
+  } catch {
+    return /minimax(i)?\.(cn|io|com|chat)/i.test(config.baseUrl);
+  }
+}
+
+/**
  * Extra fields merged into OpenAI-compatible chat/completions JSON (SDK `extra_body` semantics:
  * top-level keys, not a nested `"extra_body"` object).
  */
@@ -119,6 +136,24 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
   // Qwen preset is one of those. Thinking-only models never read it.
   if (isBailianProvider(config)) {
     return { enable_thinking: false };
+  }
+
+  // MiniMax's thinking controls differ per model family (official OpenAI-compat
+  // docs): `reasoning_effort` is honoured by M3.1-Flash-Preview only, and that
+  // model always reasons — `thinking.type = "disabled"` fails with a 400
+  // ("requires adaptive thinking"), so the lowest effort tier is the closest
+  // thing to switching it off. Plain M3 does accept the explicit disable and
+  // then answers without thinking. M2.x accepts `disabled` but ignores it, so
+  // the field is left out rather than sent as a no-op.
+  if (isMiniMaxProvider(config)) {
+    const model = config.model ?? '';
+    if (/^minimax-m3\.1/i.test(model)) {
+      return { reasoning_effort: 'low' };
+    }
+    if (/^minimax-m3($|[-.])/i.test(model)) {
+      return { thinking: { type: 'disabled' } };
+    }
+    return {};
   }
 
   return {
