@@ -19,6 +19,7 @@ export default defineConfig({
       'https://generativelanguage.googleapis.com/*',
       'https://api.minimax.cn/*',
       'https://api.minimax.io/*',
+      'https://integrate.api.nvidia.com/*',
       // Bailian (Qwen): the classic host plus any subdomain, so the
       // workspace-scoped `{WorkspaceId}.{region}.maas.aliyuncs.com` URLs the
       // platform is migrating to also work without a manifest change.

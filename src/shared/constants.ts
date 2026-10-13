@@ -120,6 +120,13 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     model: 'MiniMax-M3',
     supportsImage: true,
   },
+  nvidia: {
+    type: 'openai-compat',
+    name: 'NVIDIA',
+    baseUrl: 'https://integrate.api.nvidia.com/v1',
+    model: 'nvidia/nemotron-3-super-120b-a12b',
+    supportsImage: false,
+  },
   deepl: {
     type: 'deepl',
     name: 'DeepL',

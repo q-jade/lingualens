@@ -92,6 +92,18 @@ export function isMiniMaxProvider(config: ProviderConfig): boolean {
 }
 
 /**
+ * NVIDIA NIM (`integrate.api.nvidia.com`), which fronts many vendors' models.
+ */
+export function isNvidiaProvider(config: ProviderConfig): boolean {
+  try {
+    const host = new URL(config.baseUrl).hostname.toLowerCase();
+    return host === 'integrate.api.nvidia.com';
+  } catch {
+    return /integrate\.api\.nvidia\.com/i.test(config.baseUrl);
+  }
+}
+
+/**
  * Extra fields merged into OpenAI-compatible chat/completions JSON (SDK `extra_body` semantics:
  * top-level keys, not a nested `"extra_body"` object).
  */
@@ -154,6 +166,20 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
       return { thinking: { type: 'disabled' } };
     }
     return {};
+  }
+
+  // NVIDIA NIM's reasoning switch is per model family. The Nemotron family
+  // reads `chat_template_kwargs.enable_thinking` (its own snippets translate
+  // `reasoning_effort: "none"` into exactly that, and nemotron-3.5-lightning
+  // declares no `reasoning_effort` field at all), so send only that key there.
+  // gpt-oss is the exception: its `reasoning_effort` enum is
+  // low|medium|high with no `none`, so reasoning cannot be switched off and
+  // the lowest tier is the best available.
+  if (isNvidiaProvider(config)) {
+    if (/^openai\/gpt-oss/i.test(config.model ?? '')) {
+      return { reasoning_effort: 'low' };
+    }
+    return { chat_template_kwargs: { enable_thinking: false } };
   }
 
   return {
