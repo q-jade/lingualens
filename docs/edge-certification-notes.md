@@ -10,6 +10,6 @@ Recommended testing method (no API key required, works entirely offline):
 6. Image translation: select an image (or right-click it) and click the trigger / "Translate Image" menu item — the panel shows the image with the text inside it translated
 7. Right-click the page and choose "Translate This Page" for full-page bilingual translation
 
-If Ollama is unavailable, the extension also supports OpenAI, DeepSeek, DeepL Free, Google Cloud Translation, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, MiniMax, NVIDIA, and any OpenAI-compatible endpoint (API keys provided by the tester). Each provider has a "Verify" button in Settings. Without a verified provider, translation shows "No active provider".
+If Ollama is unavailable, the extension also supports any cloud preset — OpenAI-compatible LLM endpoints, DeepL, or Google Cloud Translation — using API keys provided by the tester. Each provider has a "Verify" button in Settings. Without a verified provider, translation shows "No active provider".
 
 The extension cannot function without a user-configured translation backend because it is a client-side routing tool, not a translation service itself.
