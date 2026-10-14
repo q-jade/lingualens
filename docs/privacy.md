@@ -1,6 +1,6 @@
 # LinguaLens Privacy Policy
 
-**Last updated:** October 7, 2026
+**Last updated:** October 14, 2026
 
 This policy describes how the **LinguaLens** browser extension (“the extension”, “we”) handles information when you use it. LinguaLens is published by Qi Wang. If you have questions, open an issue at [github.com/q-jade/lingualens](https://github.com/q-jade/lingualens).
 
@@ -28,7 +28,7 @@ We do not operate a central account system or cloud database for your translatio
 
 ## Third-party services
 
-When you enable a provider, your text and API credentials (if required) are sent to that third party under **their** terms and privacy policies. You are responsible for choosing providers you trust. Examples include OpenAI, DeepSeek, DeepL, Google Cloud Translation, or software you host yourself (Ollama, LM Studio, custom HTTP APIs).
+When you enable a provider, your text and API credentials (if required) are sent to that third party under **their** terms and privacy policies. You are responsible for choosing providers you trust. Examples include OpenAI, DeepSeek, DeepL, Google Cloud Translation, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, MiniMax, NVIDIA, or software you host yourself (Ollama, LM Studio, custom HTTP APIs).
 
 LinguaLens only initiates requests you trigger through normal use (translate selection, translate page, popup, side panel, keyboard shortcuts, or context menu).
 

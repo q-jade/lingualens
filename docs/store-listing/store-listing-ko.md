@@ -23,6 +23,14 @@ LINGUALENS를 선택하는 이유
 • DeepSeek — api.deepseek.com
 • DeepL — 무료 또는 Pro API 엔드포인트
 • Google Cloud Translation — translation.googleapis.com
+• BigModel (Zhipu) — open.bigmodel.cn
+• Z.ai (Zhipu) — api.z.ai
+• OpenRouter — openrouter.ai
+• Google Gemini — generativelanguage.googleapis.com
+• Qwen — dashscope.aliyuncs.com
+• MiniMax — api.minimax.cn
+• MiniMax Global — api.minimax.io
+• NVIDIA — integrate.api.nvidia.com
 • OpenAI 호환 — /v1/chat/completions를 노출하는 사용자 지정 base URL
 
 각 제공업체는 저장 전에 설정에서 연결을 확인할 수 있습니다. API 키(필요한 경우)는 브라우저 로컬 저장소에 저장됩니다.

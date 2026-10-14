@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.11.0] - 2026-10-14
+
+### Added
+
+- Provider presets for Zhipu BigModel and Z.ai, OpenRouter, Google Gemini, Qwen (Alibaba Cloud Bailian), MiniMax (China and Global), and NVIDIA — each with a brand icon, a recommended default model, and the vendor's own reasoning settings.
+
+### Changed
+
+- A provider's brand icon and vendor-specific request options are now resolved from its base URL instead of its protocol type, so renaming a provider keeps its icon.
+
+### Fixed
+
+- The model picker dropdown in Settings is no longer clipped by the provider card.
+
 ## [0.10.0] - 2026-10-07
 
 ### Added
@@ -210,6 +224,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.11.0]: https://github.com/q-jade/lingualens/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/q-jade/lingualens/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/q-jade/lingualens/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/q-jade/lingualens/compare/v0.8.1...v0.8.2

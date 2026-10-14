@@ -19,7 +19,7 @@ LINGUALENS를 선택하는 이유
 • LM Studio — LM Studio의 네이티브 로컬 API 사용
 
 클라우드 프리셋
-• OpenAI, DeepSeek, DeepL (무료 & Pro), Google Cloud Translation
+• OpenAI, DeepSeek, DeepL (무료 & Pro), Google Cloud Translation, BigModel (Zhipu), Z.ai (Zhipu), OpenRouter, Google Gemini, Qwen, MiniMax, MiniMax Global, NVIDIA
 • OpenAI 호환 — /v1/chat/completions를 노출하는 사용자 지정 base URL
 
 각 제공업체는 저장 전에 설정에서 연결을 확인할 수 있습니다. API 키(필요한 경우)는 브라우저 로컬 저장소에 저장됩니다.

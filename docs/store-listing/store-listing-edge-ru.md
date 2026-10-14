@@ -19,7 +19,7 @@ LinguaLens — это расширение для перевода в брауз
 • LM Studio — Использует собственный локальный API LM Studio
 
 Облачные предустановки
-• OpenAI, DeepSeek, DeepL (Бесплатный и Pro), Google Cloud Translation
+• OpenAI, DeepSeek, DeepL (Бесплатный и Pro), Google Cloud Translation, BigModel (Zhipu), Z.ai (Zhipu), OpenRouter, Google Gemini, Qwen, MiniMax, MiniMax Global, NVIDIA
 • OpenAI-совместимый — Любой пользовательский base URL с /v1/chat/completions
 
 Проверьте подключение каждого провайдера в Настройках перед сохранением. API-ключи (если требуются) хранятся локально в хранилище браузера.

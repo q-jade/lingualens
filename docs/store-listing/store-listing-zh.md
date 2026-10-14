@@ -23,6 +23,14 @@ LinguaLens 是一款注重灵活性的浏览器翻译扩展。与绑定单一云
 • DeepSeek — api.deepseek.com
 • DeepL — 免费版或专业版 API 端点
 • Google Cloud Translation — translation.googleapis.com
+• BigModel（智谱）— open.bigmodel.cn
+• Z.ai（智谱）— api.z.ai
+• OpenRouter — openrouter.ai
+• Google Gemini — generativelanguage.googleapis.com
+• Qwen（千问）— dashscope.aliyuncs.com
+• MiniMax — api.minimax.cn
+• MiniMax Global — api.minimax.io
+• NVIDIA — integrate.api.nvidia.com
 • OpenAI 兼容 — 任意用户指定的 base URL，对接 /v1/chat/completions
 
 每个服务可在设置中验证连通性后再保存。API 密钥（如需要）仅存储在浏览器本地存储中。

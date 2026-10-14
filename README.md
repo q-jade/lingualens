@@ -4,7 +4,7 @@
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jpmdhkgjoppnfnnebhmjjnbhpmcploec?label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/lingualens/jpmdhkgjoppnfnnebhmjjnbhpmcploec)
 [![Edge Add-ons](https://img.shields.io/badge/dynamic/json?label=Edge%20Add-ons&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2Fbdpgakpajghfgehcdhknlcacelkgeleo)](https://microsoftedge.microsoft.com/addons/detail/bdpgakpajghfgehcdhknlcacelkgeleo)
 
-**Translate anything on the web** — with local LLMs (Ollama, LM Studio), cloud APIs (OpenAI, DeepSeek, DeepL, Google Translate), or your own HTTP endpoint.
+**Translate anything on the web** — with local LLMs (Ollama, LM Studio), cloud APIs (OpenAI, DeepSeek, DeepL, Google Translate, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, MiniMax, NVIDIA), or your own HTTP endpoint.
 
 LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. It adds selection translation, full-page bilingual translation, a popup translator, and a Chrome side panel with history — all routed through a configurable provider chain with caching and automatic fallback.
 
@@ -13,7 +13,7 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 - **Selection translation** — Select text on any page; a floating trigger appears. Choose from four trigger modes: icon, instant, modifier key, or off. Right-click **Translate** or use the keyboard shortcut for one-step translation. Pin the panel to translate multiple selections without reopening. Switch providers or the target language — with instant re-translation — directly from the panel.
 - **Image translation** — Select an image or right-click it to translate its text with a vision-capable LLM. See [Image translation](#image-translation) for setup and usage.
 - **Full-page translation** — Inject bilingual translations inline while preserving layout. Choose **Quality** (larger chunks, better context) or **Speed** (smaller chunks, faster updates) in settings.
-- **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
+- **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, MiniMax, NVIDIA. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
 - **Provider fallback** — If the default provider fails, try the next configured provider in order.
 - **Translation cache** — Repeated text is served from an in-memory cache with debounced persistence.
 - **Popup & side panel** — Quick translate from the toolbar popup; open the side panel (Chrome 114+) for a larger UI with session history, back navigation, and draggable layout.

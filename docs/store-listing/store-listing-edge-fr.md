@@ -19,7 +19,7 @@ Local
 • LM Studio — Utilise l'API locale native de LM Studio
 
 Préréglages cloud
-• OpenAI, DeepSeek, DeepL (gratuit & Pro), Google Cloud Translation
+• OpenAI, DeepSeek, DeepL (gratuit & Pro), Google Cloud Translation, BigModel (Zhipu), Z.ai (Zhipu), OpenRouter, Google Gemini, Qwen, MiniMax, MiniMax Global, NVIDIA
 • Compatible OpenAI — Toute URL de base fournie par l'utilisateur exposant /v1/chat/completions
 
 Vérifiez la connectivité de chaque fournisseur depuis les Paramètres avant d'enregistrer. Les clés API (si nécessaires) sont stockées localement dans le stockage du navigateur.
