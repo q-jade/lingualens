@@ -1,6 +1,6 @@
 用你选择的翻译服务翻译网页
 
-LinguaLens 是一款注重灵活性的浏览器翻译扩展。与绑定单一云服务商的工具不同，LinguaLens 让你决定每次翻译在哪里运行：在本地用私有 LLM、通过主流云端 API、经由任何 OpenAI 兼容网关，或通过可自定义的 HTTP API 模板。设置默认翻译服务、添加可选的备用链，即使主服务不可用，翻译仍可继续进行。
+LinguaLens 是一款注重灵活性的浏览器翻译扩展。与绑定单一云服务商的工具不同，LinguaLens 让你决定每次翻译在哪里运行：在本地用私有 LLM、通过主流云端 API、经由任何 OpenAI 兼容网关。设置默认翻译服务、添加可选的备用链，即使主服务不可用，翻译仍可继续进行。
 
 为什么选择 LINGUALENS
 
@@ -8,7 +8,6 @@ LinguaLens 是一款注重灵活性的浏览器翻译扩展。与绑定单一云
 • 本地优先 — 使用 Ollama 或 LM Studio，敏感文本无需离开你的设备。
 • 需要时上云 — 支持 OpenAI、DeepSeek、DeepL、Google Cloud Translation 等。
 • OpenAI 兼容端点 — 可对接任何暴露 /v1/chat/completions 的网关和代理。
-• 自定义 HTTP API — 可配置请求方法、请求头、JSON 请求体模板和响应路径，适配私有系统。
 • 弹性工作流 — 按顺序配置备用翻译服务，默认服务故障时自动切换。
 • 透明隐私模型 — LinguaLens 不运行任何翻译服务器；你决定文本发送到哪里。
 • 多语言界面 — 支持 9 种 UI 语言：English、中文（简/繁）、日本語、한국어、Français、Deutsch、Español、Русский。
@@ -24,10 +23,7 @@ LinguaLens 是一款注重灵活性的浏览器翻译扩展。与绑定单一云
 • DeepSeek — api.deepseek.com
 • DeepL — 免费版或专业版 API 端点
 • Google Cloud Translation — translation.googleapis.com
-
-高级
 • OpenAI 兼容 — 任意用户指定的 base URL，对接 /v1/chat/completions
-• 自定义 API — 完全可配置的 HTTP 请求模板
 
 每个服务可在设置中验证连通性后再保存。API 密钥（如需要）仅存储在浏览器本地存储中。
 

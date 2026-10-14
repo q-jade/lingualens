@@ -1,6 +1,6 @@
 Übersetzen Sie das Web mit den Anbietern Ihrer Wahl
 
-LinguaLens ist eine Browser-Übersetzungserweiterung, die auf Flexibilität ausgelegt ist. Anders als Tools, die an einen einzelnen Cloud-Anbieter gebunden sind, lässt LinguaLens Sie entscheiden, wo jede Übersetzung ausgeführt wird: auf Ihrem eigenen Rechner mit lokalen LLMs, über große Cloud-APIs, über ein OpenAI-kompatibles Gateway oder über eine anpassbare HTTP-API-Vorlage. Legen Sie einen Standardanbieter fest, fügen Sie eine optionale Fallback-Kette hinzu, und die Übersetzung läuft weiter, selbst wenn Ihr primärer Dienst nicht verfügbar ist.
+LinguaLens ist eine Browser-Übersetzungserweiterung, die auf Flexibilität ausgelegt ist. Anders als Tools, die an einen einzelnen Cloud-Anbieter gebunden sind, lässt LinguaLens Sie entscheiden, wo jede Übersetzung ausgeführt wird: auf Ihrem eigenen Rechner mit lokalen LLMs, über große Cloud-APIs, über ein OpenAI-kompatibles Gateway. Legen Sie einen Standardanbieter fest, fügen Sie eine optionale Fallback-Kette hinzu, und die Übersetzung läuft weiter, selbst wenn Ihr primärer Dienst nicht verfügbar ist.
 
 WARUM LINGUALENS
 
@@ -8,7 +8,6 @@ WARUM LINGUALENS
 • Local-First-Option — Nutzen Sie Ollama oder LM Studio, damit sensible Texte auf Ihrem Rechner bleiben.
 • Cloud, wenn nötig — OpenAI, DeepSeek, DeepL, Google Cloud Translation und mehr.
 • OpenAI-kompatible Endpunkte — Funktioniert mit jedem Gateway oder Proxy, der /v1/chat/completions bereitstellt.
-• Benutzerdefinierte HTTP-API — Konfigurieren Sie Methode, Header, JSON-Body-Vorlage und Antwortpfad für proprietäre Systeme.
 • Robuster Workflow — Geordnete Fallback-Anbieter, falls der Standard mitten in der Sitzung ausfällt.
 • Ehrliches Datenschutzmodell — LinguaLens betreibt keine eigenen Übersetzungsserver; Sie entscheiden, wer Ihren Text erhält.
 • Mehrsprachige Oberfläche — 9 UI-Sprachen: English, 中文 (vereinfacht/traditionell), 日本語, 한국어, Français, Deutsch, Español, Русский.
@@ -24,10 +23,7 @@ Cloud-Voreinstellungen
 • DeepSeek — api.deepseek.com
 • DeepL — Kostenloser oder Pro-API-Endpunkt
 • Google Cloud Translation — translation.googleapis.com
-
-Erweitert
 • OpenAI-kompatibel — Beliebige benutzerdefinierte Basis-URL mit /v1/chat/completions
-• Benutzerdefinierte API — Vollständig konfigurierbare HTTP-Anfragevorlage
 
 Überprüfen Sie die Konnektivität jedes Anbieters in den Einstellungen vor dem Speichern. API-Schlüssel (falls erforderlich) werden lokal im Browserspeicher abgelegt.
 

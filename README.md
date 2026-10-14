@@ -13,7 +13,7 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 - **Selection translation** — Select text on any page; a floating trigger appears. Choose from four trigger modes: icon, instant, modifier key, or off. Right-click **Translate** or use the keyboard shortcut for one-step translation. Pin the panel to translate multiple selections without reopening. Switch providers or the target language — with instant re-translation — directly from the panel.
 - **Image translation** — Select an image or right-click it to translate its text with a vision-capable LLM. See [Image translation](#image-translation) for setup and usage.
 - **Full-page translation** — Inject bilingual translations inline while preserving layout. Choose **Quality** (larger chunks, better context) or **Speed** (smaller chunks, faster updates) in settings.
-- **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation, and a customizable HTTP template. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
+- **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
 - **Provider fallback** — If the default provider fails, try the next configured provider in order.
 - **Translation cache** — Repeated text is served from an in-memory cache with debounced persistence.
 - **Popup & side panel** — Quick translate from the toolbar popup; open the side panel (Chrome 114+) for a larger UI with session history, back navigation, and draggable layout.
@@ -150,7 +150,6 @@ If shortcuts do nothing, open your browser’s extension shortcut settings and a
 | NVIDIA | Cloud | Yes | NIM endpoint `https://integrate.api.nvidia.com/v1`; default model is text-only |
 | DeepL | Cloud | Yes | Free or Pro API base URL |
 | Google Translate | Cloud | Yes | Google Cloud Translation API |
-| Custom API | Any | Optional | Configurable method, headers, body template, JSON response path |
 
 **Host permissions:** The extension manifest allows requests only to declared hosts (localhost, OpenAI, DeepSeek, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, MiniMax, NVIDIA, DeepL, Google, etc.). Custom or self-hosted API URLs outside that list may be blocked by the browser until additional permissions are granted — plan endpoints accordingly.
 

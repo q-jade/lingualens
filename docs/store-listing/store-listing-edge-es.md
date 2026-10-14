@@ -1,6 +1,6 @@
 Traduce la web con los proveedores que elijas
 
-LinguaLens es una extensión de traducción para navegadores diseñada para la flexibilidad. A diferencia de las herramientas vinculadas a un único proveedor cloud, LinguaLens te permite decidir dónde se ejecuta cada traducción: en tu propio equipo con LLMs locales, a través de las principales APIs cloud, mediante cualquier puerta de enlace compatible con OpenAI, o a través de una plantilla de API HTTP personalizable. Establece un proveedor por defecto, añade una cadena de respaldo opcional, y la traducción continúa incluso cuando tu servicio principal no está disponible.
+LinguaLens es una extensión de traducción para navegadores diseñada para la flexibilidad. A diferencia de las herramientas vinculadas a un único proveedor cloud, LinguaLens te permite decidir dónde se ejecuta cada traducción: en tu propio equipo con LLMs locales, a través de las principales APIs cloud, mediante cualquier puerta de enlace compatible con OpenAI. Establece un proveedor por defecto, añade una cadena de respaldo opcional, y la traducción continúa incluso cuando tu servicio principal no está disponible.
 
 POR QUÉ LINGUALENS
 
@@ -8,7 +8,6 @@ POR QUÉ LINGUALENS
 • Opción local primero — Usa Ollama o LM Studio para que el texto sensible permanezca en tu equipo.
 • Cloud cuando lo necesites — OpenAI, DeepSeek, DeepL, Google Cloud Translation y más.
 • Endpoints compatibles con OpenAI — Funciona con cualquier puerta de enlace o proxy que exponga /v1/chat/completions.
-• API HTTP personalizada — Configura método, cabeceras, plantilla de cuerpo JSON y ruta de respuesta para sistemas propietarios.
 • Flujo de trabajo resiliente — Proveedores de respaldo ordenados si el predeterminado falla durante la sesión.
 • Modelo de privacidad honesto — LinguaLens no ejecuta servidores de traducción propios; tú decides quién recibe tu texto.
 • Interfaz multilingüe — 9 idiomas de interfaz: English, 中文 (simplificado/tradicional), 日本語, 한국어, Français, Deutsch, Español, Русский.
@@ -21,10 +20,7 @@ Local
 
 Preajustes cloud
 • OpenAI, DeepSeek, DeepL (Gratuito y Pro), Google Cloud Translation
-
-Avanzado
 • Compatible con OpenAI — Cualquier URL base proporcionada por el usuario que exponga /v1/chat/completions
-• API personalizada — Plantilla de solicitud HTTP totalmente configurable
 
 Verifica la conectividad de cada proveedor desde Configuración antes de guardar. Las claves API (cuando son necesarias) se almacenan localmente en el almacenamiento del navegador.
 

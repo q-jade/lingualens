@@ -1,6 +1,6 @@
 Translate the web with the providers you choose
 
-LinguaLens is a browser translation extension built for flexibility. Unlike tools tied to a single cloud vendor, LinguaLens lets you decide where every translation runs: on your own computer with local LLMs, through major cloud APIs, via any OpenAI-compatible gateway, or through a customizable HTTP API template. Set a default provider, add an optional fallback chain, and translation continues even when your primary service is unavailable.
+LinguaLens is a browser translation extension built for flexibility. Unlike tools tied to a single cloud vendor, LinguaLens lets you decide where every translation runs: on your own computer with local LLMs, through major cloud APIs, via any OpenAI-compatible gateway. Set a default provider, add an optional fallback chain, and translation continues even when your primary service is unavailable.
 
 WHY LINGUALENS
 
@@ -8,7 +8,6 @@ WHY LINGUALENS
 • Local-first option — Use Ollama or LM Studio so sensitive text can stay on your machine.
 • Cloud when you need it — OpenAI, DeepSeek, DeepL, Google Cloud Translation, and more.
 • OpenAI-compatible endpoints — Works with any gateway or proxy that exposes /v1/chat/completions.
-• Custom HTTP API — Configure method, headers, JSON body template, and response path for proprietary stacks.
 • Resilient workflow — Ordered fallback providers if the default fails mid-session.
 • Honest privacy model — LinguaLens runs no translation servers; you choose who receives your text.
 • Multi-language interface — 9 UI languages: English, 中文 (简/繁), 日本語, 한국어, Français, Deutsch, Español, Русский.
@@ -24,10 +23,7 @@ Cloud Presets
 • DeepSeek — api.deepseek.com
 • DeepL — Free or Pro API endpoint
 • Google Cloud Translation — translation.googleapis.com
-
-Advanced
 • OpenAI Compatible — Any user-supplied base URL exposing /v1/chat/completions
-• Custom API — Fully configurable HTTP request template
 
 Verify each provider's connectivity from Settings before saving. API keys (when required) are stored locally in your browser storage.
 

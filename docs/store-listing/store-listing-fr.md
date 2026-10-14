@@ -1,6 +1,6 @@
 Traduisez le web avec les fournisseurs de votre choix
 
-LinguaLens est une extension de traduction pour navigateur conçue pour la flexibilité. Contrairement aux outils liés à un seul fournisseur cloud, LinguaLens vous permet de décider où chaque traduction s'exécute : sur votre propre machine avec des LLM locaux, via les principales API cloud, par n'importe quelle passerelle compatible OpenAI, ou via un modèle d'API HTTP personnalisable. Définissez un fournisseur par défaut, ajoutez une chaîne de secours optionnelle, et la traduction continue même quand votre service principal est indisponible.
+LinguaLens est une extension de traduction pour navigateur conçue pour la flexibilité. Contrairement aux outils liés à un seul fournisseur cloud, LinguaLens vous permet de décider où chaque traduction s'exécute : sur votre propre machine avec des LLM locaux, via les principales API cloud, par n'importe quelle passerelle compatible OpenAI. Définissez un fournisseur par défaut, ajoutez une chaîne de secours optionnelle, et la traduction continue même quand votre service principal est indisponible.
 
 POURQUOI LINGUALENS
 
@@ -8,7 +8,6 @@ POURQUOI LINGUALENS
 • Local d'abord — Utilisez Ollama ou LM Studio pour que le texte sensible reste sur votre machine.
 • Le cloud quand vous en avez besoin — OpenAI, DeepSeek, DeepL, Google Cloud Translation et plus encore.
 • Points de terminaison compatibles OpenAI — Fonctionne avec toute passerelle ou proxy exposant /v1/chat/completions.
-• API HTTP personnalisée — Configurez la méthode, les en-têtes, le modèle de corps JSON et le chemin de réponse pour les stacks propriétaires.
 • Flux de travail résilient — Fournisseurs de secours ordonnés si le défaut échoue en cours de session.
 • Modèle de confidentialité honnête — LinguaLens n'exploite aucun serveur de traduction ; vous choisissez qui reçoit votre texte.
 • Interface multilingue — 9 langues d'interface : English, 中文 (simplifié/traditionnel), 日本語, 한국어, Français, Deutsch, Español, Русский.
@@ -24,10 +23,7 @@ Préréglages cloud
 • DeepSeek — api.deepseek.com
 • DeepL — Point de terminaison API gratuit ou Pro
 • Google Cloud Translation — translation.googleapis.com
-
-Avancé
 • Compatible OpenAI — Toute URL de base fournie par l'utilisateur exposant /v1/chat/completions
-• API personnalisée — Modèle de requête HTTP entièrement configurable
 
 Vérifiez la connectivité de chaque fournisseur depuis les Paramètres avant d'enregistrer. Les clés API (si nécessaires) sont stockées localement dans le stockage du navigateur.
 
