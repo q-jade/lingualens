@@ -88,15 +88,19 @@ export function App() {
     markDirty();
   };
 
-  const addProvider = (type: ProviderConfig['type']) => {
-    const preset = PROVIDER_PRESETS[type];
+  const addProvider = (presetKey: string) => {
+    const preset = PROVIDER_PRESETS[presetKey];
     if (!preset) return;
-    const id = `${type}-${Date.now()}`;
+    const id = `${presetKey}-${Date.now()}`;
     const newProvider: ProviderConfig = {
       ...preset,
       id,
       enabled: true,
-      ...(isLlmProvider(type) ? { disableThinking: true, supportsImage: true } : {}),
+      // `preset.type` is the protocol — the key is only the preset's name in
+      // PROVIDER_PRESETS and must not be passed where a type is expected. The
+      // preset already declares `supportsImage`, so only fill in the default
+      // for the thinking switch.
+      ...(isLlmProvider(preset.type) ? { disableThinking: true } : {}),
     };
     setSettings((s) => ({ ...s, providers: [...s.providers, newProvider] }));
     setExpandedProvider(id);
@@ -267,9 +271,6 @@ export function App() {
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [dirty]);
-
-  const needsModel = (type: ProviderConfig['type']) =>
-    ['openai-compat', 'ollama', 'openai', 'lmstudio'].includes(type);
 
   const handleUiLangChange = async (lang: string) => {
     setUiLang(lang);
@@ -507,7 +508,7 @@ export function App() {
               <Section
                 title={t('options.providers')}
                 action={
-                  <AddProviderMenu onAdd={(type) => addProvider(type)} />
+                  <AddProviderMenu onAdd={addProvider} />
                 }
               >
                 {settings.providers.length === 0 && (
@@ -532,7 +533,7 @@ export function App() {
                             />
                           </label>
                           <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${provider.enabled ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
-                            <ProviderIcon type={provider.type} name={provider.name} size={14} />
+                            <ProviderIcon type={provider.type} baseUrl={provider.baseUrl} size={14} />
                           </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
@@ -575,7 +576,9 @@ export function App() {
                                 <input type="password" value={provider.apiKey || ''} onChange={(e) => updateProvider(provider.id, { apiKey: e.target.value })} placeholder="sk-…" className="input font-mono w-full" />
                               </Field>
                             )}
-                            {needsModel(provider.type) && (
+                            {/* Every LLM provider carries a model id, so the picker
+                                rides on the same predicate as the toggles below. */}
+                            {isLlmProvider(provider.type) && (
                               <Field label={t('options.model')}>
                                 <ModelPicker
                                   provider={provider}
@@ -761,7 +764,7 @@ export function App() {
   );
 }
 
-function AddProviderMenu({ onAdd }: { onAdd: (type: ProviderConfig['type']) => void }) {
+function AddProviderMenu({ onAdd }: { onAdd: (presetKey: string) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -788,10 +791,10 @@ function AddProviderMenu({ onAdd }: { onAdd: (type: ProviderConfig['type']) => v
           {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
             <button
               key={key}
-              onClick={() => { onAdd(key as ProviderConfig['type']); setOpen(false); }}
+              onClick={() => { onAdd(key); setOpen(false); }}
               className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors"
             >
-              <span className="text-gray-400 shrink-0"><ProviderIcon type={key as ProviderConfig['type']} name={preset.name} size={14} /></span>
+              <span className="text-gray-400 shrink-0"><ProviderIcon type={preset.type} baseUrl={preset.baseUrl} size={14} /></span>
               {preset.name}
             </button>
           ))}

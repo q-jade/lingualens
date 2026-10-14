@@ -158,7 +158,6 @@
   "providerTypes": {
     "openai-compat": "OpenAI-kompatibel",
     "ollama": "Ollama",
-    "openai": "OpenAI",
     "lmstudio": "LM Studio",
     "deepl": "DeepL",
     "google": "Google Übersetzer",

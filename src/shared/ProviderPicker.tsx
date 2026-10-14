@@ -97,7 +97,7 @@ export function ProviderPicker({
         {currentProvider && (
           <ProviderIcon
             type={currentProvider.type}
-            name={currentProvider.name}
+            baseUrl={currentProvider.baseUrl}
             size={14}
             className="shrink-0"
           />
@@ -139,7 +139,7 @@ export function ProviderPicker({
                 <span className="flex w-3.5 shrink-0 items-center justify-center">
                   <ProviderIcon
                     type={provider.type}
-                    name={provider.name}
+                    baseUrl={provider.baseUrl}
                     size={14}
                   />
                 </span>

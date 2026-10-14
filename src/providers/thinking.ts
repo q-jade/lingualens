@@ -1,9 +1,9 @@
 import type { ProviderConfig } from '../shared/types';
+import { getProviderBrand } from '../shared/provider-brand';
 
 const LLM_PROVIDER_TYPES: ProviderConfig['type'][] = [
   'openai-compat',
   'ollama',
-  'openai',
   'lmstudio',
 ];
 
@@ -16,93 +16,6 @@ export function isThinkingDisabled(config: ProviderConfig): boolean {
   return config.disableThinking !== false;
 }
 
-export function isDeepSeekProvider(config: ProviderConfig): boolean {
-  try {
-    const host = new URL(config.baseUrl).hostname.toLowerCase();
-    return host === 'api.deepseek.com' || host.endsWith('.deepseek.com');
-  } catch {
-    return /deepseek\.com/i.test(config.baseUrl);
-  }
-}
-
-/** Zhipu (BigModel open platform / Z.ai international) GLM endpoints. */
-export function isZhipuProvider(config: ProviderConfig): boolean {
-  try {
-    const host = new URL(config.baseUrl).hostname.toLowerCase();
-    return host === 'open.bigmodel.cn' || host.endsWith('.bigmodel.cn')
-      || host === 'api.z.ai' || host.endsWith('.z.ai');
-  } catch {
-    return /bigmodel\.cn|z\.ai/i.test(config.baseUrl);
-  }
-}
-
-/** OpenRouter gateway (unified `reasoning` parameter). */
-export function isOpenRouterProvider(config: ProviderConfig): boolean {
-  try {
-    const host = new URL(config.baseUrl).hostname.toLowerCase();
-    return host === 'openrouter.ai' || host.endsWith('.openrouter.ai');
-  } catch {
-    return /openrouter\.ai/i.test(config.baseUrl);
-  }
-}
-
-/** Google Gemini (its OpenAI-compatibility layer). */
-export function isGeminiProvider(config: ProviderConfig): boolean {
-  try {
-    const host = new URL(config.baseUrl).hostname.toLowerCase();
-    return host === 'generativelanguage.googleapis.com';
-  } catch {
-    return /generativelanguage\.googleapis\.com/i.test(config.baseUrl);
-  }
-}
-
-/**
- * Alibaba Cloud Bailian (Model Studio) OpenAI-compatible gateway. The Qwen
- * preset uses the classic `dashscope.aliyuncs.com/compatible-mode/v1` host, but
- * the platform is migrating to workspace-scoped
- * `{WorkspaceId}.{region}.maas.aliyuncs.com` URLs — so match on the
- * aliyuncs.com host plus the Bailian-only `/compatible-mode` path instead of a
- * brand-specific hostname.
- */
-export function isBailianProvider(config: ProviderConfig): boolean {
-  try {
-    const url = new URL(config.baseUrl);
-    return /(^|\.)aliyuncs\.com$/i.test(url.hostname)
-      && url.pathname.includes('/compatible-mode');
-  } catch {
-    return /aliyuncs\.com\/compatible-mode/i.test(config.baseUrl);
-  }
-}
-
-/**
- * MiniMax (China `api.minimax.cn` / international `api.minimax.io`). The
- * `minimaxi.*` hosts are the same service under its legacy API domains, so
- * accept them too for people pasting an older base URL.
- */
-export function isMiniMaxProvider(config: ProviderConfig): boolean {
-  try {
-    const host = new URL(config.baseUrl).hostname.toLowerCase();
-    return host === 'api.minimax.cn' || host.endsWith('.minimax.cn')
-      || host === 'api.minimax.io' || host.endsWith('.minimax.io')
-      || host === 'api.minimaxi.com' || host.endsWith('.minimaxi.com')
-      || host === 'api.minimaxi.chat' || host.endsWith('.minimaxi.chat');
-  } catch {
-    return /minimax(i)?\.(cn|io|com|chat)/i.test(config.baseUrl);
-  }
-}
-
-/**
- * NVIDIA NIM (`integrate.api.nvidia.com`), which fronts many vendors' models.
- */
-export function isNvidiaProvider(config: ProviderConfig): boolean {
-  try {
-    const host = new URL(config.baseUrl).hostname.toLowerCase();
-    return host === 'integrate.api.nvidia.com';
-  } catch {
-    return /integrate\.api\.nvidia\.com/i.test(config.baseUrl);
-  }
-}
-
 /**
  * Extra fields merged into OpenAI-compatible chat/completions JSON (SDK `extra_body` semantics:
  * top-level keys, not a nested `"extra_body"` object).
@@ -112,13 +25,18 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
     return {};
   }
 
-  if (isDeepSeekProvider(config)) {
+  // The vendor is resolved from the base URL (`shared/provider-brand`), so a
+  // hand-entered URL gets the same treatment as a preset. Only one brand can
+  // match, so these branches are order-independent.
+  const brand = getProviderBrand(config.baseUrl);
+
+  if (brand === 'deepseek') {
     return { thinking: { type: 'disabled' } };
   }
 
   // GLM-5.3 / GLM-5.3-FLASH: thinking is always on and cannot be disabled;
   // its intensity is controlled by `reasoning_effort` (official docs).
-  if (isZhipuProvider(config)) {
+  if (brand === 'zhipu') {
     if (/^glm-5\.3(-flash\w*)?($|[-.])/i.test(config.model ?? '')) {
       return { reasoning_effort: 'low' };
     }
@@ -128,7 +46,7 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
   // OpenRouter normalises everything into a unified `reasoning` object whose
   // Chat Completions body accepts only `effort` / `summary`; `none` disables
   // reasoning entirely.
-  if (isOpenRouterProvider(config)) {
+  if (brand === 'openrouter') {
     return { reasoning: { effort: 'none' } };
   }
 
@@ -136,17 +54,18 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
   // (`minimal` is the lowest tier it accepts; models without a native minimal
   // level, e.g. 3.x Pro, downgrade it to low). Only the 2.5 Flash family can
   // turn reasoning off with `none`; 2.5 Pro and every 3.x model always reason.
-  if (isGeminiProvider(config)) {
+  if (brand === 'gemini') {
     if (/^gemini-2\.5-flash/i.test(config.model ?? '')) {
       return { reasoning_effort: 'none' };
     }
     return { reasoning_effort: 'minimal' };
   }
 
-  // Bailian takes a top-level `enable_thinking` boolean (not nested under
-  // `chat_template_kwargs`). It applies to hybrid-reasoning models; the default
-  // Qwen preset is one of those. Thinking-only models never read it.
-  if (isBailianProvider(config)) {
+  // The Qwen preset is served by the Bailian gateway, which takes a top-level
+  // `enable_thinking` boolean (not nested under `chat_template_kwargs`). It
+  // applies to hybrid-reasoning models; the default Qwen preset is one of
+  // those. Thinking-only models never read it.
+  if (brand === 'qwen') {
     return { enable_thinking: false };
   }
 
@@ -157,7 +76,7 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
   // thing to switching it off. Plain M3 does accept the explicit disable and
   // then answers without thinking. M2.x accepts `disabled` but ignores it, so
   // the field is left out rather than sent as a no-op.
-  if (isMiniMaxProvider(config)) {
+  if (brand === 'minimax') {
     const model = config.model ?? '';
     if (/^minimax-m3\.1/i.test(model)) {
       return { reasoning_effort: 'low' };
@@ -175,7 +94,7 @@ export function getOpenAICompatExtraBody(config: ProviderConfig): Record<string,
   // gpt-oss is the exception: its `reasoning_effort` enum is
   // low|medium|high with no `none`, so reasoning cannot be switched off and
   // the lowest tier is the best available.
-  if (isNvidiaProvider(config)) {
+  if (brand === 'nvidia') {
     if (/^openai\/gpt-oss/i.test(config.model ?? '')) {
       return { reasoning_effort: 'low' };
     }
@@ -212,7 +131,6 @@ export function getThinkingDisableRequestFields(
     case 'ollama':
       return { think: false };
     case 'openai-compat':
-    case 'openai':
       return getOpenAICompatExtraBody(config);
     case 'lmstudio':
       return getLmStudioThinkingFields(config);

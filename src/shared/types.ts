@@ -50,7 +50,12 @@ export type StreamPortMessage =
 
 export interface ProviderConfig {
   id: string;
-  type: 'openai-compat' | 'ollama' | 'openai' | 'lmstudio' | 'deepl' | 'google' | 'custom';
+  /**
+   * The wire protocol, not the vendor. A provider's brand (logo, per-vendor
+   * request quirks) is derived from `baseUrl` — see `shared/provider-brand.ts`,
+   * which is why OpenAI needs no type of its own.
+   */
+  type: 'openai-compat' | 'ollama' | 'lmstudio' | 'deepl' | 'google' | 'custom';
   name: string;
   enabled: boolean;
   baseUrl: string;

@@ -58,7 +58,9 @@ export const PROVIDER_PRESETS: Record<string, Omit<ProviderConfig, 'id' | 'enabl
     supportsImage: true,
   },
   openai: {
-    type: 'openai',
+    // A plain OpenAI-compatible endpoint: the knot glyph comes from the brand
+    // resolver (the URL identifies the vendor), not from a dedicated type.
+    type: 'openai-compat',
     name: 'OpenAI',
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-5.4-mini',

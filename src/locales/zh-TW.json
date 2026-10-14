@@ -158,7 +158,6 @@
   "providerTypes": {
     "openai-compat": "OpenAI 相容",
     "ollama": "Ollama",
-    "openai": "OpenAI",
     "lmstudio": "LM Studio",
     "deepl": "DeepL",
     "google": "Google 翻譯",

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ProviderConfig } from './types';
 import { iconSize } from './icon-size';
+import { getProviderBrand, type ProviderBrand } from './provider-brand';
 
 const ICON_PATHS: Record<ProviderConfig['type'], ReactNode> = {
   'openai-compat': (
@@ -106,44 +107,6 @@ const ICON_PATHS: Record<ProviderConfig['type'], ReactNode> = {
         '11.901C15.783 12.108 16.018 12.162 16.333 12.08C16.515 12.032 16.696 11.879 16.783 ' +
         '11.7C16.858 11.549 16.876 11.439 16.852 11.267C16.797 10.872 16.566 10.586 16.222 ' +
         '10.485C16.122 10.455 15.927 10.455 15.817 10.485Z'
-      }
-    />
-  ),
-  openai: (
-    // OpenAI's official logomark — the hexagonal knot, traced from the
-    // brand asset at openai.com. Filled so the inner loops read as cutouts.
-    <path
-      fill="currentColor"
-      stroke="none"
-      fillRule="evenodd"
-      d={
-        // Outer ring: six rounded petals woven into a hexagonal loop
-        'M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9 ' +
-        'A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 ' +
-        '.7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001 ' +
-        'A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 ' +
-        '3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729 ' +
-        // Top-right petal and its inner loop
-        'zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948 .7948 0 0 0 ' +
-        '.3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944 ' +
-        // Bottom-right petal
-        'zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712 .7712 0 0 0 ' +
-        '.7806 0l5.8428-3.3685v2.3324a.0804 .0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1 ' +
-        '-6.1408-2.6464 ' +
-        // Bottom-left petal
-        'zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664 .7664 0 0 0 .3879.6765l5.8144 ' +
-        '3.3543-2.0201 1.1685a.0757 .0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872 ' +
-        // Top-left petal
-        'zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757 .0757 0 0 1 .071 0l4.8303 2.7913a4.4944 ' +
-        '4.4944 0 0 1-.6765 8.1042v-5.6772a.79 .79 0 0 0-.407-.667 ' +
-        // Top petal
-        'zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759 .7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662 ' +
-        '.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66 ' +
-        // Inner triangular loop (hole)
-        'zM8.3065 12.863l-2.02-1.1638a.0804 .0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 ' +
-        '7.3757-3.4537l-.142.0805L8.704 5.459a.7948 .7948 0 0 0-.3927.6813 ' +
-        // Center hexagon (hole)
-        'zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z'
       }
     />
   ),
@@ -302,6 +265,50 @@ const ICON_PATHS: Record<ProviderConfig['type'], ReactNode> = {
     </>
   ),
 };
+
+/**
+ * OpenAI's official logomark — the hexagonal knot, traced from the brand asset
+ * at openai.com. Filled so the inner loops read as cutouts.
+ *
+ * The OpenAI endpoint uses the plain `openai-compat` protocol, so this glyph is
+ * contributed by the brand map below rather than by a `ProviderConfig['type']`.
+ */
+const OPENAI_KNOT: ReactNode = (
+  <path
+    fill="currentColor"
+    stroke="none"
+    fillRule="evenodd"
+    d={
+      // Outer ring: six rounded petals woven into a hexagonal loop
+      'M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9 ' +
+      'A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 ' +
+      '.7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001 ' +
+      'A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 ' +
+      '3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729 ' +
+      // Top-right petal and its inner loop
+      'zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948 .7948 0 0 0 ' +
+      '.3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944 ' +
+      // Bottom-right petal
+      'zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712 .7712 0 0 0 ' +
+      '.7806 0l5.8428-3.3685v2.3324a.0804 .0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1 ' +
+      '-6.1408-2.6464 ' +
+      // Bottom-left petal
+      'zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664 .7664 0 0 0 .3879.6765l5.8144 ' +
+      '3.3543-2.0201 1.1685a.0757 .0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872 ' +
+      // Top-left petal
+      'zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757 .0757 0 0 1 .071 0l4.8303 2.7913a4.4944 ' +
+      '4.4944 0 0 1-.6765 8.1042v-5.6772a.79 .79 0 0 0-.407-.667 ' +
+      // Top petal
+      'zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759 .7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662 ' +
+      '.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66 ' +
+      // Inner triangular loop (hole)
+      'zM8.3065 12.863l-2.02-1.1638a.0804 .0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 ' +
+      '7.3757-3.4537l-.142.0805L8.704 5.459a.7948 .7948 0 0 0-.3927.6813 ' +
+      // Center hexagon (hole)
+      'zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z'
+    }
+  />
+);
 
 /**
  * DeepSeek's brand mark — a whale in profile, traced from the official logo
@@ -474,27 +481,41 @@ const NVIDIA_MARK: ReactNode = (
   />
 );
 
+/**
+ * Brand glyphs, keyed by the URL-derived brand (`getProviderBrand`). An unknown
+ * URL — or a brand that has no mark — falls back to the generic protocol icon
+ * in `ICON_PATHS`.
+ */
+const BRAND_MARKS: Partial<Record<ProviderBrand, ReactNode>> = {
+  openai: OPENAI_KNOT,
+  deepseek: DEEPSEEK_WHALE,
+  zhipu: ZHIPU_MARK,
+  openrouter: OPENROUTER_MARK,
+  gemini: GEMINI_MARK,
+  qwen: QWEN_MARK,
+  minimax: MINIMAX_MARK,
+  nvidia: NVIDIA_MARK,
+};
+
 /** Small line icon for a provider (used in cards and pickers). */
 export function ProviderIcon({
   type,
-  name,
+  baseUrl,
   size = 14,
   className,
 }: {
   type: ProviderConfig['type'];
-  /** Optional provider name — used to override the icon for branded presets (e.g. DeepSeek). */
-  name?: string;
+  /**
+   * The provider's API base URL. The glyph follows where requests are actually
+   * sent rather than the display name, so renaming a provider can neither
+   * change nor lose its icon.
+   */
+  baseUrl?: string;
   size?: number;
   className?: string;
 }) {
-  const lower = name?.toLowerCase() ?? '';
-  const isDeepSeek = lower.includes('deepseek');
-  const isZhipu = lower.includes('bigmodel') || lower.includes('z.ai');
-  const isOpenRouter = lower.includes('openrouter');
-  const isGemini = lower.includes('gemini');
-  const isQwen = lower.includes('qwen');
-  const isMinimax = lower.includes('minimax');
-  const isNvidia = lower.includes('nvidia');
+  const brand = baseUrl ? getProviderBrand(baseUrl) : null;
+  const mark = (brand ? BRAND_MARKS[brand] : undefined) ?? ICON_PATHS[type];
   return (
     <svg
       width={size}
@@ -509,14 +530,7 @@ export function ProviderIcon({
       className={className}
       aria-hidden="true"
     >
-      {isDeepSeek ? DEEPSEEK_WHALE
-        : isZhipu ? ZHIPU_MARK
-          : isOpenRouter ? OPENROUTER_MARK
-            : isGemini ? GEMINI_MARK
-              : isQwen ? QWEN_MARK
-                : isMinimax ? MINIMAX_MARK
-                  : isNvidia ? NVIDIA_MARK
-                    : ICON_PATHS[type]}
+      {mark}
     </svg>
   );
 }

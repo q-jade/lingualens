@@ -10,12 +10,32 @@ import type { Browser } from '@wxt-dev/browser';
 
 const providerManager = new ProviderManager();
 
+/**
+ * `type: 'openai'` used to distinguish OpenAI itself from the generic
+ * OpenAI-compatible preset, although both go over the same protocol. The vendor
+ * is now derived from the base URL instead, so configs stored under the old
+ * type are folded back onto `openai-compat` when they are read — otherwise
+ * `ProviderManager` would reject the unknown type.
+ */
+const LEGACY_PROVIDER_TYPES: Record<string, ProviderConfig['type']> = {
+  openai: 'openai-compat',
+};
+
+function normalizeProvider(provider: ProviderConfig): ProviderConfig {
+  const type = LEGACY_PROVIDER_TYPES[provider.type];
+  return type ? { ...provider, type } : provider;
+}
+
 function normalizeSettings(settings: AppSettings): AppSettings {
-  if (!settings.defaultProvider) return settings;
-  return {
+  const normalized: AppSettings = {
     ...settings,
-    fallbackProviders: (settings.fallbackProviders ?? []).filter(
-      (id) => id !== settings.defaultProvider,
+    providers: (settings.providers ?? []).map(normalizeProvider),
+  };
+  if (!normalized.defaultProvider) return normalized;
+  return {
+    ...normalized,
+    fallbackProviders: (normalized.fallbackProviders ?? []).filter(
+      (id) => id !== normalized.defaultProvider,
     ),
   };
 }

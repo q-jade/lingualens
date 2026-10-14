@@ -1258,7 +1258,7 @@ export function ContentApp({ onReady }: Props) {
                 {currentProvider && (
                   <ProviderIcon
                     type={currentProvider.type}
-                    name={currentProvider.name}
+                    baseUrl={currentProvider.baseUrl}
                     size={14}
                     className="st-provider-trigger-icon"
                   />
@@ -1502,7 +1502,7 @@ export function ContentApp({ onReady }: Props) {
                   void switchProvider(p.id);
                 }}
               >
-                <span className="st-mode-icon"><ProviderIcon type={p.type} name={p.name} size={14} /></span>
+                <span className="st-mode-icon"><ProviderIcon type={p.type} baseUrl={p.baseUrl} size={14} /></span>
                 <span className="st-mode-label">{p.name}</span>
                 {active && <span className="st-mode-check">✓</span>}
               </button>

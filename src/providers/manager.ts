@@ -13,7 +13,6 @@ export class ProviderManager {
   createProvider(config: ProviderConfig): BaseProvider {
     switch (config.type) {
       case 'openai-compat':
-      case 'openai':
         return new OpenAICompatProvider(config);
       case 'lmstudio':
         return new LmStudioProvider(config);
