@@ -23,14 +23,6 @@ LinguaLens — это расширение для перевода в брауз
 • DeepSeek — api.deepseek.com
 • DeepL — Бесплатный или Pro API эндпоинт
 • Google Cloud Translation — translation.googleapis.com
-• BigModel (Zhipu) — open.bigmodel.cn
-• Z.ai (Zhipu) — api.z.ai
-• OpenRouter — openrouter.ai
-• Google Gemini — generativelanguage.googleapis.com
-• Qwen — dashscope.aliyuncs.com
-• MiniMax — api.minimax.cn
-• MiniMax Global — api.minimax.io
-• NVIDIA — integrate.api.nvidia.com
 • OpenAI-совместимый — Любой пользовательский base URL с /v1/chat/completions
 
 Проверьте подключение каждого провайдера в Настройках перед сохранением. API-ключи (если требуются) хранятся локально в хранилище браузера.

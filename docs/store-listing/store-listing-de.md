@@ -23,14 +23,6 @@ Cloud-Voreinstellungen
 • DeepSeek — api.deepseek.com
 • DeepL — Kostenloser oder Pro-API-Endpunkt
 • Google Cloud Translation — translation.googleapis.com
-• BigModel (Zhipu) — open.bigmodel.cn
-• Z.ai (Zhipu) — api.z.ai
-• OpenRouter — openrouter.ai
-• Google Gemini — generativelanguage.googleapis.com
-• Qwen — dashscope.aliyuncs.com
-• MiniMax — api.minimax.cn
-• MiniMax Global — api.minimax.io
-• NVIDIA — integrate.api.nvidia.com
 • OpenAI-kompatibel — Beliebige benutzerdefinierte Basis-URL mit /v1/chat/completions
 
 Überprüfen Sie die Konnektivität jedes Anbieters in den Einstellungen vor dem Speichern. API-Schlüssel (falls erforderlich) werden lokal im Browserspeicher abgelegt.
