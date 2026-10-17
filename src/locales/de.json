@@ -13,6 +13,7 @@
     "restoreOriginalPage": "Originalseite wiederherstellen",
     "notAvailable": "Auf dieser Seite nicht verfügbar",
     "pageTranslateUnavailable": "Seitenübersetzung ist auf dieser Seite nicht verfügbar. Öffnen Sie eine normale Webseite und versuchen Sie es erneut.",
+    "pageTranslateAlreadyActive": "Die Seitenübersetzung läuft bereits. Warten Sie, bis sie abgeschlossen ist, oder stoppen Sie sie auf der Seite.",
     "noProvider": "Kein aktiver Anbieter konfiguriert. Öffnen Sie die Einstellungen, um einen hinzuzufügen.",
     "translationFailed": "Übersetzung fehlgeschlagen",
     "sidePanelNotAvailable": "Seitenleiste ist in diesem Browser nicht verfügbar. Versuchen Sie aktuelles Chrome oder Edge (Chromium).",

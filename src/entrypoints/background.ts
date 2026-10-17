@@ -1,4 +1,4 @@
-import { handleMessage, getSettings, saveSettings, handleTranslateStreamPort } from '../background/message-router';
+import { handleMessage, getSettings, saveSettings, handleTranslateStreamPort, buildProviderChain } from '../background/message-router';
 import { registerInstallOnboarding } from '../background/onboarding';
 import {
   isPageTranslateStarted,
@@ -668,11 +668,20 @@ export default defineBackground(() => {
           if (!isTranslatableTabUrl(tab.url)) {
             return { success: false, error: 'PAGE_TRANSLATE_UNAVAILABLE' };
           }
-          return getPageTranslatePhase(payload.tabId).then((phase) => {
-            if (phase !== 'idle') return { success: false, error: 'PAGE_TRANSLATE_ALREADY_ACTIVE' };
-            return browser.tabs
-              .sendMessage(payload.tabId, { type: 'PAGE_TRANSLATE_START' })
-              .then(() => ({ success: true }));
+          // No configured provider: the content-script engine would translate
+          // every segment with TRANSLATION_FAILED and never surface the cause.
+          // Fail fast here so the popup can show "no provider" instead of a
+          // silent, empty page translation.
+          return getSettings().then((settings) => {
+            if (buildProviderChain(settings).length === 0) {
+              return { success: false, error: 'NO_PROVIDER' };
+            }
+            return getPageTranslatePhase(payload.tabId).then((phase) => {
+              if (phase !== 'idle') return { success: false, error: 'PAGE_TRANSLATE_ALREADY_ACTIVE' };
+              return browser.tabs
+                .sendMessage(payload.tabId, { type: 'PAGE_TRANSLATE_START' })
+                .then(() => ({ success: true }));
+            });
           });
         })
         .then(sendResponse)

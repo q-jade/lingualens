@@ -13,6 +13,7 @@
     "restoreOriginalPage": "원래 페이지 복원",
     "notAvailable": "이 페이지에서 사용 불가",
     "pageTranslateUnavailable": "이 페이지에서는 페이지 번역을 사용할 수 없습니다. 일반 웹페이지를 열고 다시 시도하세요.",
+    "pageTranslateAlreadyActive": "페이지 번역이 이미 진행 중입니다. 완료될 때까지 기다리거나 페이지에서 중지하세요.",
     "noProvider": "활성화된 공급자가 없습니다. 설정을 열어 추가하세요.",
     "translationFailed": "번역 실패",
     "sidePanelNotAvailable": "이 브라우저에서는 사이드 패널을 사용할 수 없습니다. 최신 Chrome 또는 Edge(Chromium)를 사용해 보세요.",

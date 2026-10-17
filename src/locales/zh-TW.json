@@ -13,6 +13,7 @@
     "restoreOriginalPage": "恢復原始頁面",
     "notAvailable": "此頁面不可用",
     "pageTranslateUnavailable": "此頁面無法使用頁面翻譯功能。請開啟一般網頁後再試。",
+    "pageTranslateAlreadyActive": "整頁翻譯已在進行中。請等待完成，或在頁面上停止。",
     "noProvider": "未設定可用的翻譯提供者。請開啟設定新增一個。",
     "translationFailed": "翻譯失敗",
     "sidePanelNotAvailable": "此瀏覽器不支援側邊欄。請使用較新版本的 Chrome 或 Edge（Chromium）。",

@@ -34,7 +34,17 @@ async function openExtensionSidePanel(): Promise<string | null> {
 const ERROR_KEYS: Record<string, string> = {
   NO_PROVIDER: 'popup.noProvider',
   TRANSLATION_FAILED: 'popup.translationFailed',
+};
+
+/** Complete mapping of the error codes PAGE_TRANSLATE_PAGE can return, so an
+    unexpected code never reaches the UI untranslated. NO_PROVIDER is shared
+    with text translation; PAGE_TRANSLATE_ALREADY_ACTIVE is normally handled
+    in the click handler (phase switch, no banner) and only lands here if a
+    future call site forgets to special-case it. */
+const TRANSLATE_PAGE_ERROR_KEYS: Record<string, string> = {
+  NO_PROVIDER: 'popup.noProvider',
   PAGE_TRANSLATE_UNAVAILABLE: 'popup.pageTranslateUnavailable',
+  PAGE_TRANSLATE_ALREADY_ACTIVE: 'popup.pageTranslateAlreadyActive',
 };
 
 export function App() {
@@ -43,12 +53,18 @@ export function App() {
   const translateError = (err: string | undefined): string =>
     err ? (ERROR_KEYS[err] ? t(ERROR_KEYS[err]) : err) : t('popup.translationFailed');
 
+  const translatePageError = (err: string | undefined): string =>
+    err
+      ? (TRANSLATE_PAGE_ERROR_KEYS[err] ? t(TRANSLATE_PAGE_ERROR_KEYS[err]) : err)
+      : t('popup.pageTranslateUnavailable');
+
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [text, setText] = useState('');
   const [targetLang, setTargetLang] = useState<string | null>(null);
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pageTranslateError, setPageTranslateError] = useState<string | null>(null);
   const [pageTranslatePhase, setPageTranslatePhase] = useState<'idle' | 'running' | 'done'>('idle');
   const [pageTranslateSupported, setPageTranslateSupported] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -238,10 +254,13 @@ export function App() {
           <button
             onClick={async () => {
               if (!pageTranslateSupported) return;
+              // Every click starts a fresh attempt — drop the previous banner
+              // so a stale error never outlives the state it described.
+              setPageTranslateError(null);
               const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
               if (!tab?.id || !isTranslatableTabUrl(tab.url)) {
                 setPageTranslateSupported(false);
-                setError(t('popup.pageTranslateUnavailable'));
+                setPageTranslateError(t('popup.pageTranslateUnavailable'));
                 return;
               }
               try {
@@ -258,13 +277,18 @@ export function App() {
                   });
                   if (res?.success) {
                     window.close();
+                  } else if (res?.error === 'PAGE_TRANSLATE_ALREADY_ACTIVE') {
+                    // Another surface already owns the run. The phase switch is
+                    // the feedback (the button turns into "Stop Page Translation"),
+                    // so an error banner here would just be noise.
+                    setPageTranslatePhase('running');
+                    setPageTranslateError(null);
                   } else {
-                    if (res?.error === 'PAGE_TRANSLATE_ALREADY_ACTIVE') setPageTranslatePhase('running');
-                    setError(t('popup.pageTranslateUnavailable'));
+                    setPageTranslateError(translatePageError(res?.error));
                   }
                 }
               } catch {
-                setError(t('popup.pageTranslateUnavailable'));
+                setPageTranslateError(t('popup.pageTranslateUnavailable'));
               }
             }}
             disabled={!pageTranslateSupported}
@@ -287,6 +311,11 @@ export function App() {
                   ? t('popup.restoreOriginalPage')
                   : t('popup.translatePageTo', { lang: getLanguageName(settings.defaultTargetLang) })}
           </button>
+          {/* Page-translation error — shown right under the page-translate button
+              so it's clearly associated with that action, not the text input. */}
+          {pageTranslateError && (
+            <div className="ll-error mt-2 p-2 text-xs rounded-lg">{pageTranslateError}</div>
+          )}
           <div className="flex items-center gap-2 mt-3 mb-1.5">
             <span className="text-[calc(var(--ll-u)*11)] font-medium text-gray-500">{t('popup.selectionMode')}</span>
           </div>

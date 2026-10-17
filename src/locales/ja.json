@@ -13,6 +13,7 @@
     "restoreOriginalPage": "元のページに戻す",
     "notAvailable": "このページでは利用不可",
     "pageTranslateUnavailable": "このページではページ翻訳を利用できません。通常のウェブページを開いて再試行してください。",
+    "pageTranslateAlreadyActive": "ページ翻訳はすでに実行中です。完了を待つか、ページ上で停止してください。",
     "noProvider": "有効なプロバイダーが設定されていません。設定を開いて追加してください。",
     "translationFailed": "翻訳に失敗しました",
     "sidePanelNotAvailable": "このブラウザではサイドパネルを利用できません。最新の Chrome または Edge（Chromium）をお試しください。",

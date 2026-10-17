@@ -13,6 +13,7 @@
     "restoreOriginalPage": "Restaurar página original",
     "notAvailable": "No disponible en esta página",
     "pageTranslateUnavailable": "La traducción de página no está disponible aquí. Abra una página web normal e intente de nuevo.",
+    "pageTranslateAlreadyActive": "La traducción de página ya está en curso. Espere a que termine o deténgala desde la página.",
     "noProvider": "No hay proveedor activo configurado. Abra Configuración para agregar uno.",
     "translationFailed": "Error en la traducción",
     "sidePanelNotAvailable": "El panel lateral no está disponible en este navegador. Pruebe Chrome o Edge (Chromium) reciente.",

@@ -103,7 +103,7 @@ function textCachePromptTag(prompts: PromptOverrides): string {
     : effectiveBase;
 }
 
-function buildProviderChain(settings: AppSettings): ProviderConfig[] {
+export function buildProviderChain(settings: AppSettings): ProviderConfig[] {
   const chain: ProviderConfig[] = [];
   const seen = new Set<string>();
 
