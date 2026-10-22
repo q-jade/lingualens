@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode, SelectionTriggerMode, SelectionModifierKey, SettingsPatch } from '../../shared/types';
+import type { AppSettings, ProviderConfig, MessageResponse, ChunkingMode, SelectionTriggerMode, SelectionModifierKey, SettingsPatch, CacheStats } from '../../shared/types';
 import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT, SUPPORTED_LANGUAGES, PROVIDER_PRESETS } from '../../shared/constants';
 import { clearOnboardingPending, isOnboardingPending } from '../../shared/onboarding';
 import { isLlmProvider } from '../../providers/thinking';
@@ -30,6 +30,11 @@ export function App() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [uiLang, setUiLang] = useState(getUILanguage());
   const [activeSection, setActiveSection] = useState('ui-language');
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
+  const [cacheLoading, setCacheLoading] = useState(false);
+  const [cacheClearing, setCacheClearing] = useState(false);
+  const [cacheError, setCacheError] = useState<string | null>(null);
+  const [cacheCleared, setCacheCleared] = useState(false);
   const welcomeRef = useRef<HTMLDivElement>(null);
   const sectionEls = useRef<Record<string, HTMLElement | null>>({});
 
@@ -54,6 +59,7 @@ export function App() {
     { id: 'prompt', labelKey: 'options.promptTemplate' },
     { id: 'page', labelKey: 'options.pageTranslation' },
     { id: 'shortcuts', labelKey: 'options.keyboardShortcuts' },
+    { id: 'cache', labelKey: 'options.cache' },
   ];
 
   useEffect(() => {
@@ -79,6 +85,54 @@ export function App() {
       },
     );
   }, []);
+
+  const loadCacheStats = async () => {
+    setCacheLoading(true);
+    try {
+      const res: MessageResponse<CacheStats> = await browser.runtime.sendMessage(
+        { type: 'GET_CACHE_STATS' },
+      );
+      if (!res) {
+        setCacheError(t('options.cacheStatsFailed'));
+        return;
+      }
+      if (res.success) {
+        setCacheStats(res.data);
+        setCacheError(null);
+      } else {
+        setCacheError(res.error);
+      }
+    } catch (err) {
+      setCacheError(err instanceof Error ? err.message : t('options.cacheStatsFailed'));
+    } finally {
+      setCacheLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadCacheStats();
+  }, []);
+
+  const handleClearCache = async () => {
+    if (!window.confirm(t('options.cacheClearConfirm'))) return;
+    setCacheClearing(true);
+    setCacheCleared(false);
+    setCacheError(null);
+    try {
+      const res: MessageResponse<null> = await browser.runtime.sendMessage({ type: 'CLEAR_CACHE' });
+      if (!res || !res.success) {
+        setCacheError(!res ? t('options.noResponseFromBackground') : res.error);
+        return;
+      }
+      setCacheCleared(true);
+      await loadCacheStats();
+      setTimeout(() => setCacheCleared(false), 2000);
+    } catch (err) {
+      setCacheError(err instanceof Error ? err.message : t('options.cacheStatsFailed'));
+    } finally {
+      setCacheClearing(false);
+    }
+  };
 
   const updateProvider = (id: string, updates: Partial<ProviderConfig>) => {
     setSettings((s) => ({
@@ -723,6 +777,52 @@ export function App() {
               </button>
             </Section>
 
+            {/* Translation cache — immediate actions, not part of the settings form */}
+            <Section id="cache" registerRef={registerSection} title={t('options.cache')}>
+              <p className="ll-hint mb-4">{t('options.cacheDesc')}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label={t('options.cacheEntries')}>
+                  <p className="text-sm text-gray-800 tabular-nums">
+                    {cacheStats
+                      ? t('options.cacheUsage', { size: cacheStats.size, max: cacheStats.maxSize })
+                      : '—'}
+                  </p>
+                </Field>
+                <Field label={t('options.cacheStorage')}>
+                  <p className="text-sm text-gray-800 tabular-nums">
+                    {cacheStats ? formatBytes(cacheStats.bytes) : '—'}
+                  </p>
+                </Field>
+              </div>
+              <div className="flex items-center gap-3 mt-4 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => void handleClearCache()}
+                  disabled={cacheClearing || !cacheStats || cacheStats.size === 0}
+                  className="px-3 py-1.5 border border-red-200 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {cacheClearing ? t('options.clearingCache') : t('options.clearCache')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void loadCacheStats()}
+                  disabled={cacheLoading || cacheClearing}
+                  className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 disabled:opacity-40 transition-colors"
+                >
+                  {cacheLoading ? t('options.loading') : t('options.refresh')}
+                </button>
+                <span aria-live="polite" className="text-xs">
+                  {cacheCleared && (
+                    <span className="font-medium text-green-600 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5" /></svg>
+                      {t('options.cacheCleared')}
+                    </span>
+                  )}
+                  {cacheError && <span className="text-red-500">{cacheError}</span>}
+                </span>
+              </div>
+            </Section>
+
             {/* Save bar — sticky so unsaved changes never get lost off-screen */}
             <div className="sticky bottom-0 z-10 -mx-6 mt-6 px-6 py-3 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex items-center gap-3">
               {dirty ? (
@@ -827,4 +927,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </div>
   );
+}
+
+/** Human-readable byte size for the cache statistics (B / KB / MB). */
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) {
+    return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(bytes / 1024)} KB`;
+  }
+  return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(bytes / (1024 * 1024))} MB`;
 }

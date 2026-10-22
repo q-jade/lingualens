@@ -15,7 +15,7 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 - **Full-page translation** — Inject bilingual translations inline while preserving layout. Choose **Quality** (larger chunks, better context) or **Speed** (smaller chunks, faster updates) in settings.
 - **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, MiniMax, NVIDIA. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
 - **Provider fallback** — If the default provider fails, try the next configured provider in order.
-- **Translation cache** — Repeated text is served from an in-memory cache with debounced persistence.
+- **Translation cache** — Repeated text is served from an in-memory cache with debounced persistence. Settings shows the current cache size and storage usage, with a button to clear it.
 - **Popup & side panel** — Quick translate from the toolbar popup; open the side panel (Chrome 114+) for a larger UI with session history, back navigation, and draggable layout.
 - **LLM tuning** — Custom system prompt template plus an additional prompt for selection, popup, and side-panel translations (e.g. a dictionary-style template for single words); optional **disable thinking** for models that emit chain-of-thought (faster, cleaner output).
 

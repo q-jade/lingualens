@@ -1,4 +1,4 @@
-import type { TranslateResult } from '../shared/types';
+import type { CacheStats, TranslateResult } from '../shared/types';
 
 interface CacheEntry {
   result: TranslateResult;
@@ -12,10 +12,19 @@ const PERSIST_DEBOUNCE_MS = 3000;
 let memoryCache: Map<string, CacheEntry> | null = null;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let dirty = false;
+/**
+ * Bumped by `clearCache`. Async work that started before a clear (the initial
+ * storage read, an in-flight debounced write) compares it afterwards and
+ * gives up instead of resurrecting entries the user just deleted.
+ */
+let cacheGeneration = 0;
 
 async function getMemoryCache(): Promise<Map<string, CacheEntry>> {
   if (memoryCache) return memoryCache;
+  const generation = cacheGeneration;
   const data = await browser.storage.local.get(STORAGE_KEY);
+  // Cleared while the storage read was in flight — keep the empty map.
+  if (cacheGeneration !== generation) return memoryCache ?? new Map();
   const raw = data[STORAGE_KEY] as Record<string, CacheEntry> | undefined;
   memoryCache = raw ? new Map(Object.entries(raw)) : new Map();
   return memoryCache;
@@ -28,12 +37,17 @@ function isQuotaError(err: unknown): boolean {
 async function flushCache(): Promise<void> {
   if (!dirty || !memoryCache) return;
   dirty = false;
+  const generation = cacheGeneration;
   try {
     await browser.storage.local.set({
       [STORAGE_KEY]: Object.fromEntries(memoryCache),
     });
   } catch (err) {
-    if (!memoryCache || !isQuotaError(err)) return;
+    // A clear during the write already removed the stored key; retrying with
+    // the pre-clear entries would resurrect them, so bail out first. Once past
+    // this check, `memoryCache` is necessarily the same map as on entry — a
+    // clear is the only thing that replaces it, and it bumps the generation.
+    if (cacheGeneration !== generation || !isQuotaError(err)) return;
     // Quota exceeded — aggressively evict oldest 50% and retry once
     const entries = [...memoryCache.entries()].sort(
       (a, b) => a[1].accessedAt - b[1].accessedAt,
@@ -134,6 +148,7 @@ export async function setCache(
 }
 
 export async function clearCache(): Promise<void> {
+  cacheGeneration++;
   memoryCache = new Map();
   dirty = false;
   if (persistTimer) {
@@ -143,7 +158,16 @@ export async function clearCache(): Promise<void> {
   await browser.storage.local.remove(STORAGE_KEY);
 }
 
-export async function getCacheStats(): Promise<{ size: number; maxSize: number }> {
+export async function getCacheStats(): Promise<CacheStats> {
+  // Flush the debounced write first so the measured bytes match the entry
+  // count the user is about to see.
+  await flushCache();
   const cache = await getMemoryCache();
-  return { size: cache.size, maxSize: MAX_ENTRIES };
+  let bytes = 0;
+  try {
+    bytes = await browser.storage.local.getBytesInUse(STORAGE_KEY);
+  } catch {
+    // Not available in every engine/context — the count is still useful.
+  }
+  return { size: cache.size, maxSize: MAX_ENTRIES, bytes };
 }

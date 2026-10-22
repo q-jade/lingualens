@@ -35,6 +35,20 @@ export interface TranslateResult {
   tokensUsed?: number;
 }
 
+/** Snapshot of the background translation cache, shown on the options page. */
+export interface CacheStats {
+  /** Number of cached entries currently held in memory. */
+  size: number;
+  /** Entry limit after which the oldest entries are evicted. */
+  maxSize: number;
+  /**
+   * Bytes used by the persisted cache in `storage.local`. Approximate: the
+   * debounced write is flushed before measuring, but browser bookkeeping may
+   * differ slightly between engines.
+   */
+  bytes: number;
+}
+
 /**
  * Messages exchanged on a `translate-stream` runtime Port (long-lived
  * connection): the UI sends `start` once, the background answers with any
@@ -109,7 +123,9 @@ export type MessageType =
   | { type: 'VERIFY_CONFIG'; payload: { providerConfig: ProviderConfig } }
   | { type: 'LIST_MODELS'; payload: { providerConfig: ProviderConfig } }
   | { type: 'GET_SETTINGS' }
-  | { type: 'SAVE_SETTINGS'; payload: SettingsPatch };
+  | { type: 'SAVE_SETTINGS'; payload: SettingsPatch }
+  | { type: 'CLEAR_CACHE' }
+  | { type: 'GET_CACHE_STATS' };
 
 export type MessageResponse<T = unknown> =
   | { success: true; data: T }

@@ -1,6 +1,6 @@
 import { ProviderManager } from '../providers/manager';
 import { getCached, setCache, clearCache as clearTranslationCache, getCacheStats } from './cache';
-import type { AppSettings, ProviderConfig, TranslateRequest, TranslateImageRequest, MessageResponse, TranslateResult, SettingsPatch, StreamPortMessage } from '../shared/types';
+import type { AppSettings, ProviderConfig, TranslateRequest, TranslateImageRequest, MessageResponse, TranslateResult, SettingsPatch, StreamPortMessage, CacheStats } from '../shared/types';
 import type { PromptOverrides, TranslateCallOptions } from '../providers/base';
 import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT, DEFAULT_IMAGE_TRANSLATION_PROMPT } from '../shared/constants';
 import { isLlmProvider } from '../providers/thinking';
@@ -283,7 +283,7 @@ export async function handleMessage(message: Record<string, unknown>): Promise<M
       await clearTranslationCache();
       return { success: true, data: null };
     case 'GET_CACHE_STATS':
-      return { success: true, data: await getCacheStats() };
+      return { success: true, data: await getCacheStats() } satisfies MessageResponse<CacheStats>;
     default:
       return { success: false, error: `Unknown message type: ${message.type}` };
   }
