@@ -162,6 +162,7 @@ If shortcuts do nothing, open your browser’s extension shortcut settings and a
 - **Page translation** — **Quality** vs **Speed** chunking strategy.
 - **Disable thinking** (LLM providers) — Reduces reasoning output for faster translation (on by default for Ollama/LM Studio).
 - **Image support** (LLM providers) — The provider accepts images for image translation (on by default; turn off for text-only models). Requires a vision-capable model.
+- **Translation cache** — Shows the cached entry count and storage used. **Clear Cache** (confirmed) removes every entry so the same text can be requested from the provider again.
 
 API keys and settings are stored in **`browser.storage.local`** on your device only; they are not sent to LinguaLens servers (there are none).
 

@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.12.0] - 2026-10-26
+
+### Added
+
+- Settings now shows translation cache usage — cached entries and storage used — with a button to clear the cache.
+
+### Fixed
+
+- Page-translation errors in the popup now appear under the page-translate button instead of under the text translate button, and a missing provider is reported before the page is touched.
+- Starting a page translation that is already running turns the popup button into Stop Page Translation instead of showing an error.
+
 ## [0.11.0] - 2026-10-14
 
 ### Added
@@ -224,6 +235,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.12.0]: https://github.com/q-jade/lingualens/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/q-jade/lingualens/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/q-jade/lingualens/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/q-jade/lingualens/compare/v0.8.2...v0.9.0
