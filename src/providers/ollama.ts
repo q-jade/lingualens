@@ -13,6 +13,9 @@ export class OllamaProvider extends BaseProvider {
     prompts?: PromptOverrides,
     options?: TranslateCallOptions,
   ): Promise<TranslateResult> {
+    if (!request.text.trim()) {
+      return { translated: '', provider: this.config.name, cached: false };
+    }
     const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
@@ -55,6 +58,7 @@ export class OllamaProvider extends BaseProvider {
     prompts?: PromptOverrides,
     options?: TranslateCallOptions,
   ): AsyncGenerator<string> {
+    if (!request.text.trim()) return;
     const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
