@@ -3,9 +3,73 @@ import { getThinkingDisableRequestFields } from './thinking';
 import { StreamCapabilityError } from './stream-capability';
 import type { TranslateRequest, TranslateImageRequest, TranslateResult } from '../shared/types';
 
+interface OllamaTaggedModel {
+  name: string;
+  capabilities: string[];
+}
+
 export class OllamaProvider extends BaseProvider {
   private get baseUrl(): string {
     return this.config.baseUrl.replace(/\/+$/, '');
+  }
+
+  /**
+   * Cached /api/tags result. Cleared on failure so a later call retries;
+   * the list only changes when the user adds/removes models, which always
+   * follows a settings save that drops the whole provider cache.
+   */
+  private taggedModelsPromise: Promise<OllamaTaggedModel[]> | null = null;
+
+  private fetchTaggedModels(): Promise<OllamaTaggedModel[]> {
+    if (!this.taggedModelsPromise) {
+      this.taggedModelsPromise = (async () => {
+        const res = await fetch(`${this.baseUrl}/api/tags`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        return (data.models || []).map(
+          (m: { name: string; capabilities: string[] }) => ({
+            name: m.name,
+            capabilities: m.capabilities ?? [],
+          }),
+        );
+      })().catch((err) => {
+        this.taggedModelsPromise = null;
+        throw err;
+      });
+    }
+    return this.taggedModelsPromise;
+  }
+
+  /**
+   * Completion-only models (capabilities ["completion"], no "chat") have no
+   * meaningful chat template: the /api/chat system/user roles confuse them —
+   * instead of translating the user's text they translate the system prompt
+   * (reproduced over the wire with a HY-MT2-1.8B server). Such models must
+   * go through /api/generate, whose bare completion template is what they
+   * were fine-tuned on.
+   *
+   * Detection is best-effort: if the tags fetch fails, assume chat-capable
+   * and keep the traditional behavior.
+   */
+  private async isCompletionOnly(): Promise<boolean> {
+    try {
+      const models = await this.fetchTaggedModels();
+      const model = models.find((m) => m.name === this.config.model);
+      if (!model) return false; // unknown model name — assume chat-capable
+      return !model.capabilities.includes('chat');
+    } catch {
+      return false;
+    }
+  }
+
+  private async rejectOllamaError(res: Response): Promise<never> {
+    if (res.status === 403) {
+      throw new Error(
+        'Ollama rejected the request (403 Forbidden). Start Ollama with: OLLAMA_ORIGINS="chrome-extension://*" ollama serve',
+      );
+    }
+    const body = await res.text();
+    throw new Error(`Ollama error ${res.status}: ${body}`);
   }
 
   async translate(
@@ -18,35 +82,45 @@ export class OllamaProvider extends BaseProvider {
     }
     const { system, user } = this.buildPrompt(request, prompts);
 
-    const res = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: options?.signal,
-      body: JSON.stringify({
-        model: this.config.model,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        options: { temperature: 0.3 },
-        stream: false,
-        ...getThinkingDisableRequestFields(this.config),
-      }),
-    });
+    // Completion-only models take the instruction in the `system` field and
+    // the text in `prompt` — the chat API's message roles mislead them.
+    const useGenerate = await this.isCompletionOnly();
+    const res = useGenerate
+      ? await fetch(`${this.baseUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: options?.signal,
+          body: JSON.stringify({
+            model: this.config.model,
+            system,
+            prompt: user,
+            options: { temperature: 0.3 },
+            stream: false,
+            ...getThinkingDisableRequestFields(this.config),
+          }),
+        })
+      : await fetch(`${this.baseUrl}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: options?.signal,
+          body: JSON.stringify({
+            model: this.config.model,
+            messages: [
+              { role: 'system', content: system },
+              { role: 'user', content: user },
+            ],
+            options: { temperature: 0.3 },
+            stream: false,
+            ...getThinkingDisableRequestFields(this.config),
+          }),
+        });
 
-    if (!res.ok) {
-      if (res.status === 403) {
-        throw new Error(
-          'Ollama rejected the request (403 Forbidden). Start Ollama with: OLLAMA_ORIGINS="chrome-extension://*" ollama serve',
-        );
-      }
-      const body = await res.text();
-      throw new Error(`Ollama error ${res.status}: ${body}`);
-    }
+    if (!res.ok) return this.rejectOllamaError(res);
 
     const data = await res.json();
+    const content = useGenerate ? (data.response ?? '') : (data.message?.content ?? '');
     return {
-      translated: data.message?.content?.trim() ?? '',
+      translated: content.trim(),
       provider: this.config.name,
       cached: false,
       tokensUsed: (data.eval_count ?? 0) + (data.prompt_eval_count ?? 0),
@@ -61,31 +135,51 @@ export class OllamaProvider extends BaseProvider {
     if (!request.text.trim()) return;
     const { system, user } = this.buildPrompt(request, prompts);
 
-    const res = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: options?.signal,
-      body: JSON.stringify({
-        model: this.config.model,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        options: { temperature: 0.3 },
-        stream: true,
-        ...getThinkingDisableRequestFields(this.config),
-      }),
-    });
+    // Same completion-only routing as translate(): /api/generate with
+    // system/prompt fields instead of /api/chat with message roles.
+    const useGenerate = await this.isCompletionOnly();
+    const res = useGenerate
+      ? await fetch(`${this.baseUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: options?.signal,
+          body: JSON.stringify({
+            model: this.config.model,
+            system,
+            prompt: user,
+            options: { temperature: 0.3 },
+            stream: true,
+            ...getThinkingDisableRequestFields(this.config),
+          }),
+        })
+      : await fetch(`${this.baseUrl}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: options?.signal,
+          body: JSON.stringify({
+            model: this.config.model,
+            messages: [
+              { role: 'system', content: system },
+              { role: 'user', content: user },
+            ],
+            options: { temperature: 0.3 },
+            stream: true,
+            ...getThinkingDisableRequestFields(this.config),
+          }),
+        });
 
     if (!res.ok) {
       // 4xx on a streaming request: the endpoint rejects the stream parameter
       // itself — a capability rejection the non-stream fallback can recover
       // from. 5xx/429 stay transient and must not poison the health memory.
-      const body = await res.text();
       if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+        const body = await res.text();
         throw new StreamCapabilityError(`Ollama error ${res.status}: ${body}`);
       }
-      throw new Error(`Ollama error ${res.status}: ${body}`);
+      // `await` so the rejection propagates — `return`-ing the promise from
+      // an async generator would complete it silently with the promise as
+      // the final iteration value.
+      return await this.rejectOllamaError(res);
     }
 
     const reader = res.body?.getReader();
@@ -114,7 +208,11 @@ export class OllamaProvider extends BaseProvider {
         try {
           const parsed = JSON.parse(line);
           sawNdjson = true;
-          if (parsed.message?.content) yield parsed.message.content;
+          // /api/generate deltas live in `response`; /api/chat in
+          // `message.content`. The endpoint is chosen above, so only the
+          // matching field is read.
+          const delta = useGenerate ? parsed.response : parsed.message?.content;
+          if (delta) yield delta;
           if (parsed.done) return;
         } catch {
           /* skip malformed lines */
@@ -156,15 +254,7 @@ export class OllamaProvider extends BaseProvider {
       }),
     });
 
-    if (!res.ok) {
-      if (res.status === 403) {
-        throw new Error(
-          'Ollama rejected the request (403 Forbidden). Start Ollama with: OLLAMA_ORIGINS="chrome-extension://*" ollama serve',
-        );
-      }
-      const body = await res.text();
-      throw new Error(`Ollama error ${res.status}: ${body}`);
-    }
+    if (!res.ok) return this.rejectOllamaError(res);
 
     const data = await res.json();
     return {
@@ -189,9 +279,7 @@ export class OllamaProvider extends BaseProvider {
    * cause; an empty list only means the server is reachable but has no models.
    */
   async getAvailableModels(): Promise<string[]> {
-    const res = await fetch(`${this.baseUrl}/api/tags`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    return (data.models || []).map((m: { name: string }) => m.name);
+    const models = await this.fetchTaggedModels();
+    return models.map((m) => m.name);
   }
 }

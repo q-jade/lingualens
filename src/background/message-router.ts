@@ -1,11 +1,12 @@
 import { ProviderManager } from '../providers/manager';
 import { getCached, setCache, clearCache as clearTranslationCache, getCacheStats } from './cache';
 import type { AppSettings, ProviderConfig, TranslateRequest, TranslateImageRequest, MessageResponse, TranslateResult, SettingsPatch, StreamPortMessage, CacheStats } from '../shared/types';
-import type { PromptOverrides, TranslateCallOptions } from '../providers/base';
+import type { PromptOverrides, TranslateCallOptions, BaseProvider } from '../providers/base';
 import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT, DEFAULT_IMAGE_TRANSLATION_PROMPT } from '../shared/constants';
 import { isLlmProvider } from '../providers/thinking';
 import { isStreamCapabilityRejection } from '../providers/stream-capability';
 import { streamHealth } from './stream-health';
+import { looksLikeSelfTranslation } from '../shared/translation-guard';
 import type { Browser } from '@wxt-dev/browser';
 
 const providerManager = new ProviderManager();
@@ -125,6 +126,29 @@ export function buildProviderChain(settings: AppSettings): ProviderConfig[] {
   return chain;
 }
 
+/**
+ * Translate with a self-translation guard: small completion-only translation
+ * models occasionally emit a translation of the system prompt instead of the
+ * user's text. When the result lacks every anchor token of the source, retry
+ * once; if the retry is equally suspicious, keep the first result (a wrong
+ * translation is returned rather than a hard failure).
+ */
+async function translateWithSelfCheck(
+  provider: BaseProvider,
+  request: TranslateRequest,
+  prompts: PromptOverrides,
+  options?: TranslateCallOptions,
+): Promise<TranslateResult> {
+  const result = await provider.translate(request, prompts, options);
+  if (!looksLikeSelfTranslation(request.text, result.translated)) return result;
+  try {
+    const retry = await provider.translate(request, prompts, options);
+    return looksLikeSelfTranslation(request.text, retry.translated) ? result : retry;
+  } catch {
+    return result;
+  }
+}
+
 async function translateWithProvider(
   request: TranslateRequest,
   providerConfig: ProviderConfig,
@@ -142,7 +166,7 @@ async function translateWithProvider(
   // Prompt inputs are explicit arguments (resolved once in handleTranslate),
   // NOT fields on the request or the config: provider instances are cached by
   // ID in ProviderManager, so either would leak across requests.
-  const result = await provider.translate(request, prompts);
+  const result = await translateWithSelfCheck(provider, request, prompts);
 
   await setCache(request.text, request.sourceLang, request.targetLang, providerConfig.id, result, promptTag);
 
@@ -371,11 +395,24 @@ export function handleTranslateStreamPort(port: Browser.runtime.Port): void {
             if (!full.trim()) throw new Error('Provider returned an empty stream');
 
             streamHealth.recordSuccess(providerConfig.id);
-            const result: TranslateResult = {
+            let result: TranslateResult = {
               translated: full.trim(),
               provider: providerConfig.name,
               cached: false,
             };
+            if (looksLikeSelfTranslation(request.text, result.translated)) {
+              // The model translated its own instructions — re-run non-streaming
+              // once. A good retry replaces the streamed (wrong) chunks because
+              // the done result overwrites the UI's accumulated text.
+              try {
+                const retry = await provider.translate(request, prompts, options);
+                if (!looksLikeSelfTranslation(request.text, retry.translated)) {
+                  result = retry;
+                }
+              } catch {
+                /* keep the streamed result */
+              }
+            }
             // Same cache semantics as the one-shot path — written only after
             // the full text is known.
             await setCache(
@@ -406,7 +443,7 @@ export function handleTranslateStreamPort(port: Browser.runtime.Port): void {
         // only — delivered === true never reaches here). The signal keeps
         // the degraded attempt cancellable too.
         try {
-          const result = await provider.translate(request, prompts, options);
+          const result = await translateWithSelfCheck(provider, request, prompts, options);
           await setCache(
             request.text, request.sourceLang, request.targetLang, providerConfig.id, result, promptTag,
           );
