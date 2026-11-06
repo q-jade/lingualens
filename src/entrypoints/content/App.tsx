@@ -483,10 +483,8 @@ export function ContentApp({ onReady }: Props) {
 
     const session = ++pageSessionRef.current;
     applyPageTranslatePhase('running');
-    // Page translation hides the panel — any in-flight selection stream no
-    // longer owns UI. Disconnect it so the background aborts the request.
-    cancelRequestRef.current?.();
-    cancelRequestRef.current = null;
+    // Page translation hides the panel; the mode effect aborts any in-flight
+    // selection request (it no longer owns any UI).
     setMode('hidden');
     const initial = { total: 0, done: 0, errors: 0 };
     pageProgressRef.current = initial;
@@ -598,6 +596,21 @@ export function ContentApp({ onReady }: Props) {
   // open or briefly switches to the trigger) but resets once the panel closes.
   useEffect(() => {
     if (mode === 'hidden') {
+      // The panel is gone, so no request owns its output any more — abort the
+      // in-flight one. This is the single place that enforces it, which is why
+      // every close path is covered: Escape, the trigger losing its selection,
+      // the close button, and page translation taking over the page. Without
+      // it a closed panel leaves the request streaming to completion, burning
+      // provider tokens for a result the ownership token below discards.
+      //
+      // Cancelling here is silent by design: the client sets its `closed`
+      // latch BEFORE disconnecting, so its `onDisconnect` handler — which
+      // otherwise reports a crashed worker as TRANSLATION_FAILED, because a
+      // dropped port looks identical to a deliberate disconnect at the port
+      // level — returns early instead of surfacing an error for a cancel the
+      // user asked for.
+      cancelRequestRef.current?.();
+      cancelRequestRef.current = null;
       setPinned(false);
       setPinnedTrigger(null);
       displayedTargetRef.current = null;
@@ -1143,9 +1156,7 @@ export function ContentApp({ onReady }: Props) {
           selectedTextRef.current = '';
           return;
         }
-        // Panel gone → the in-flight stream no longer owns any UI. Drop it.
-        cancelRequestRef.current?.();
-        cancelRequestRef.current = null;
+        // Panel gone → the mode effect cancels the in-flight request.
         setMode('hidden');
       },
       isPageTranslationActive() {
@@ -1390,7 +1401,7 @@ export function ContentApp({ onReady }: Props) {
                   <path d="M12 17v5" /><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
                 </svg>
               </button>
-              <button onClick={() => { cancelRequestRef.current?.(); cancelRequestRef.current = null; setMode('hidden'); }} className="st-panel-close" title={t('content.close')} aria-label={t('content.close')}>
+              <button onClick={() => setMode('hidden')} className="st-panel-close" title={t('content.close')} aria-label={t('content.close')}>
                 <svg width="14" height="14" style={iconSize(14)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                 </svg>
