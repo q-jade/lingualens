@@ -1,6 +1,6 @@
 import { ProviderManager } from '../providers/manager';
 import { getCached, setCache, clearCache as clearTranslationCache, getCacheStats } from './cache';
-import type { AppSettings, ProviderConfig, TranslateRequest, TranslateImageRequest, MessageResponse, TranslateResult, SettingsPatch, StreamPortMessage, CacheStats } from '../shared/types';
+import type { AppSettings, ProviderConfig, TranslateRequest, TranslateImageRequest, MessageResponse, TranslateResult, SettingsPatch, StreamPortMessage, ImageStreamPortMessage, CacheStats } from '../shared/types';
 import type { PromptOverrides, TranslateCallOptions } from '../providers/base';
 import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, DEFAULT_ADDITIONAL_PROMPT, DEFAULT_IMAGE_TRANSLATION_PROMPT } from '../shared/constants';
 import { isLlmProvider } from '../providers/thinking';
@@ -179,18 +179,53 @@ export async function handleTranslate(
 }
 
 /**
- * Image translation: only vision-capable LLM providers participate. The prompt
- * is the built-in image template — promptTemplate / additionalPrompt settings
- * never apply. The cache key uses the image URL (not the pixel data) plus an
- * `image:` prompt-tag namespace, so image and text translations never collide.
+ * Image translation is restricted to vision-capable LLM providers — the only
+ * ones with a `translateImage` implementation (DeepL/Google/Custom never have
+ * one, and a provider can be marked text-only via `supportsImage`).
+ */
+function buildImageProviderChain(settings: AppSettings): ProviderConfig[] {
+  return buildProviderChain(settings).filter(
+    (p) => isLlmProvider(p.type) && p.supportsImage !== false,
+  );
+}
+
+/**
+ * Cache tag namespace for image translations. The built-in template is the
+ * only prompt input (promptTemplate / additionalPrompt never apply), so image
+ * and text entries can never collide.
+ */
+const IMAGE_CACHE_PROMPT_TAG = `image:${DEFAULT_IMAGE_TRANSLATION_PROMPT}`;
+
+/**
+ * Cache identity for an image: the page URL when there is one, or an explicit
+ * key from entry points that have no URL (pasted/selected local files pass
+ * their data URL). Only ever hashed by the cache layer — never stored verbatim.
+ */
+function imageCacheKey(request: TranslateImageRequest): string {
+  return request.cacheKey ?? request.imageUrl;
+}
+
+/**
+ * Streaming-health namespace for image translations, kept apart from the text
+ * namespace (which is the bare provider id): a vision endpoint that rejects
+ * `stream:true` must not disable text streaming for the same provider, and a
+ * text-stream outage must not push images onto the one-shot path.
+ */
+function imageStreamHealthKey(providerId: string): string {
+  return `${providerId}:image`;
+}
+
+/**
+ * Image translation (one-shot): only vision-capable LLM providers participate.
+ * The prompt is the built-in image template — promptTemplate / additionalPrompt
+ * settings never apply. Kept deliberately: the streaming port uses this path as
+ * its automatic fallback, and entry points may call it directly.
  */
 export async function handleTranslateImage(
   request: TranslateImageRequest,
 ): Promise<MessageResponse<TranslateResult>> {
   const settings = await getSettings();
-  const chain = buildProviderChain(settings).filter(
-    (p) => isLlmProvider(p.type) && p.supportsImage !== false,
-  );
+  const chain = buildImageProviderChain(settings);
 
   if (chain.length === 0) {
     return { success: false, error: 'NO_IMAGE_PROVIDER' };
@@ -199,13 +234,13 @@ export async function handleTranslateImage(
     return { success: false, error: 'IMAGE_FETCH_FAILED' };
   }
 
-  const promptTag = `image:${DEFAULT_IMAGE_TRANSLATION_PROMPT}`;
+  const cacheKey = imageCacheKey(request);
   let lastError = '';
 
   for (const providerConfig of chain) {
     try {
       const cached = await getCached(
-        request.imageUrl, request.sourceLang, request.targetLang, providerConfig.id, promptTag,
+        cacheKey, request.sourceLang, request.targetLang, providerConfig.id, IMAGE_CACHE_PROMPT_TAG,
       );
       if (cached) return { success: true, data: cached };
 
@@ -216,7 +251,7 @@ export async function handleTranslateImage(
       const result = await provider.translateImage(request, prompt);
 
       await setCache(
-        request.imageUrl, request.sourceLang, request.targetLang, providerConfig.id, result, promptTag,
+        cacheKey, request.sourceLang, request.targetLang, providerConfig.id, result, IMAGE_CACHE_PROMPT_TAG,
       );
       return { success: true, data: result };
     } catch (err) {
@@ -432,6 +467,158 @@ export function handleTranslateStreamPort(port: Browser.runtime.Port): void {
           type: 'error',
           error: err instanceof Error ? err.message : 'TRANSLATION_FAILED',
         } satisfies StreamPortMessage);
+      } catch {
+        /* port already disconnected */
+      }
+    }
+  });
+}
+
+/**
+ * Streaming image translation over a long-lived `translate-image-stream` Port.
+ * Mirrors `handleTranslateStreamPort` with the image-specific differences:
+ * the provider chain is vision-filtered, the prompt is the built-in image
+ * template (no PromptOverrides), the cache key is
+ * `request.cacheKey ?? request.imageUrl`, and streaming health lives in its
+ * own `${id}:image` namespace.
+ *
+ * Orchestration per provider in the fallback chain:
+ * 1. Cache hit → a single `chunk` + `done` (identical client behavior).
+ * 2. `streamHealth` gate → try `translateImageStream`, forwarding deltas.
+ * 3. Failure BEFORE the first chunk → record capability failures and retry
+ *    non-streaming on the SAME provider via `translateImage`.
+ * 4. Failure AFTER chunks were delivered → `error` only, never a retry
+ *    (it would splice two translations together).
+ *
+ * A UI `port.disconnect()` aborts the in-flight fetches through the shared
+ * AbortController, covering both the streaming attempt and the fallback.
+ */
+export function handleTranslateImageStreamPort(port: Browser.runtime.Port): void {
+  port.onMessage.addListener(async (raw: unknown) => {
+    const msg = raw as ImageStreamPortMessage;
+    if (msg?.type !== 'start') return;
+    const request = msg.payload as TranslateImageRequest;
+
+    try {
+      const settings = await getSettings();
+      const chain = buildImageProviderChain(settings);
+      if (chain.length === 0) {
+        port.postMessage({ type: 'error', error: 'NO_IMAGE_PROVIDER' } satisfies ImageStreamPortMessage);
+        return;
+      }
+      if (!request.image) {
+        port.postMessage({ type: 'error', error: 'IMAGE_FETCH_FAILED' } satisfies ImageStreamPortMessage);
+        return;
+      }
+
+      const cacheKey = imageCacheKey(request);
+      const options: TranslateCallOptions = {};
+
+      // Disconnect = cancel: abort the in-flight fetches of THIS request.
+      const controller = new AbortController();
+      options.signal = controller.signal;
+      port.onDisconnect.addListener(() => controller.abort());
+
+      let lastError = '';
+
+      for (const providerConfig of chain) {
+        // 1. Cache hit — degrade to one chunk + done.
+        try {
+          const cached = await getCached(
+            cacheKey, request.sourceLang, request.targetLang, providerConfig.id, IMAGE_CACHE_PROMPT_TAG,
+          );
+          if (cached) {
+            port.postMessage({ type: 'chunk', delta: cached.translated } satisfies ImageStreamPortMessage);
+            port.postMessage({ type: 'done', result: cached } satisfies ImageStreamPortMessage);
+            return;
+          }
+        } catch {
+          /* cache read failure is non-fatal — proceed to the provider */
+        }
+
+        const provider = providerManager.getProvider(providerConfig);
+        const healthKey = imageStreamHealthKey(providerConfig.id);
+        const prompt = provider.buildImagePrompt(request);
+
+        // 2. Streaming attempt with per-chunk forwarding.
+        if (provider.translateImageStream && streamHealth.shouldTryStream(healthKey)) {
+          let delivered = false;
+          let full = '';
+          try {
+            for await (const delta of provider.translateImageStream(request, prompt, options)) {
+              // Forward every non-empty delta verbatim: whitespace-only deltas
+              // are real content (paragraph breaks often arrive as "\n").
+              if (delta) {
+                delivered = true;
+                full += delta;
+                port.postMessage({ type: 'chunk', delta } satisfies ImageStreamPortMessage);
+              }
+            }
+            if (!full.trim()) throw new Error('Provider returned an empty stream');
+
+            streamHealth.recordSuccess(healthKey);
+            const result: TranslateResult = {
+              translated: full.trim(),
+              provider: providerConfig.name,
+              cached: false,
+            };
+            await setCache(
+              cacheKey, request.sourceLang, request.targetLang, providerConfig.id, result, IMAGE_CACHE_PROMPT_TAG,
+            );
+            port.postMessage({ type: 'done', result } satisfies ImageStreamPortMessage);
+            return;
+          } catch (err) {
+            if (controller.signal.aborted) return; // UI cancelled — stay silent
+            if (delivered) {
+              // 4. Mid-stream failure: chunks are already on the wire.
+              port.postMessage({
+                type: 'error',
+                error: err instanceof Error ? err.message : 'TRANSLATION_FAILED',
+              } satisfies ImageStreamPortMessage);
+              return;
+            }
+            // 3. Failed before the first chunk → transparent fallback below.
+            if (isStreamCapabilityRejection(err)) {
+              streamHealth.recordCapabilityFailure(healthKey);
+            }
+            lastError = err instanceof Error ? err.message : 'TRANSLATION_FAILED';
+          }
+        }
+
+        // 3. Non-stream fallback on the SAME provider (first-chunk window
+        // only — delivered === true never reaches here). Providers without
+        // `translateImage` simply move on to the next one.
+        if (!provider.translateImage) continue;
+        try {
+          const result = await provider.translateImage(request, prompt, options);
+          await setCache(
+            cacheKey, request.sourceLang, request.targetLang, providerConfig.id, result, IMAGE_CACHE_PROMPT_TAG,
+          );
+          // Degrade to one chunk + done so the client renders identically.
+          port.postMessage({ type: 'chunk', delta: result.translated } satisfies ImageStreamPortMessage);
+          port.postMessage({ type: 'done', result } satisfies ImageStreamPortMessage);
+          return;
+        } catch (err) {
+          if (controller.signal.aborted) return;
+          lastError = err instanceof Error ? err.message : 'TRANSLATION_FAILED';
+          // Next provider in the chain.
+        }
+      }
+
+      if (!controller.signal.aborted) {
+        port.postMessage({
+          type: 'error',
+          error: lastError || 'TRANSLATION_FAILED',
+        } satisfies ImageStreamPortMessage);
+      }
+    } catch (err) {
+      // Outer guard: settings/provider construction failed. A disconnected
+      // port throws on postMessage — swallow that, surface anything else.
+      try {
+        port.postMessage({
+          type: 'error',
+          error: err instanceof Error ? err.message : 'TRANSLATION_FAILED',
+        } satisfies ImageStreamPortMessage);
       } catch {
         /* port already disconnected */
       }

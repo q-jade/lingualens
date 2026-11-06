@@ -12,11 +12,13 @@ export interface TranslateRequest {
 
 /**
  * Translate the text inside an image (selection covering an image, or the
- * image context menu). Other entry points (popup, side panel, page
- * translation) do not carry images.
+ * image context menu). Page translation never carries images; the popup and
+ * side panel have no image entry point yet, but the request shape is already
+ * prepared for them (`cacheKey` for URL-less images plus the streaming port),
+ * so adding one needs no protocol change.
  */
 export interface TranslateImageRequest {
-  /** Page image URL (http/https/data/blob) — cache key and panel preview. */
+  /** Image URL (http/https/data/blob) — panel preview and default cache key. */
   imageUrl: string;
   /**
    * Image as a data URL. Filled in by the background (fetch, or content-script
@@ -24,6 +26,14 @@ export interface TranslateImageRequest {
    * not read `imageUrl` directly (blob: URLs are page-scoped).
    */
   image?: string;
+  /**
+   * Cache identity for images that have no stable URL — entry points reading a
+   * local file (file picker, paste, drag & drop) pass the data URL here, since
+   * the pixels are the only identity they have. The cache layer hashes this
+   * value, so a multi-megabyte data URL is never persisted verbatim. Falls back
+   * to `imageUrl` when omitted (the page-image case).
+   */
+  cacheKey?: string;
   sourceLang: string;
   targetLang: string;
 }
@@ -50,17 +60,32 @@ export interface CacheStats {
 }
 
 /**
- * Messages exchanged on a `translate-stream` runtime Port (long-lived
- * connection): the UI sends `start` once, the background answers with any
- * number of `chunk` messages followed by exactly one `done` or `error`.
- * Ports are needed because `runtime.sendMessage` can only return a single
- * response and cannot carry a stream.
+ * Port names of the two long-lived streaming channels. Text and image
+ * translation use separate ports because their orchestration differs (provider
+ * chain filter, prompt, cache namespace) — and because it keeps the existing
+ * text protocol untouched.
  */
-export type StreamPortMessage =
-  | { type: 'start'; payload: TranslateRequest }
+export const STREAM_PORT_NAME = 'translate-stream';
+export const IMAGE_STREAM_PORT_NAME = 'translate-image-stream';
+
+/**
+ * Messages exchanged on a streaming runtime Port (long-lived connection): the
+ * UI sends `start` once, the background answers with any number of `chunk`
+ * messages followed by exactly one `done` or `error`. Ports are needed because
+ * `runtime.sendMessage` can only return a single response and cannot carry a
+ * stream.
+ *
+ * Generic over the request type so text and image streaming share one protocol
+ * definition instead of duplicating the chunk/done/error shape.
+ */
+export type StreamPortMessages<P> =
+  | { type: 'start'; payload: P }
   | { type: 'chunk'; delta: string }
   | { type: 'done'; result: TranslateResult }
   | { type: 'error'; error: string };
+
+export type StreamPortMessage = StreamPortMessages<TranslateRequest>;
+export type ImageStreamPortMessage = StreamPortMessages<TranslateImageRequest>;
 
 export interface ProviderConfig {
   id: string;

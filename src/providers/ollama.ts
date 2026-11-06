@@ -50,49 +50,32 @@ export class OllamaProvider extends BaseProvider {
     };
   }
 
-  async *translateStream(
-    request: TranslateRequest,
-    prompts?: PromptOverrides,
-    options?: TranslateCallOptions,
-  ): AsyncGenerator<string> {
-    const { system, user } = this.buildPrompt(request, prompts);
-
-    const res = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: options?.signal,
-      body: JSON.stringify({
-        model: this.config.model,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        options: { temperature: 0.3 },
-        stream: true,
-        ...getThinkingDisableRequestFields(this.config),
-      }),
-    });
-
-    if (!res.ok) {
-      // 4xx on a streaming request: the endpoint rejects the stream parameter
-      // itself — a capability rejection the non-stream fallback can recover
-      // from. 5xx/429 stay transient and must not poison the health memory.
-      const body = await res.text();
-      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
-        throw new StreamCapabilityError(`Ollama error ${res.status}: ${body}`);
-      }
-      throw new Error(`Ollama error ${res.status}: ${body}`);
+  /**
+   * Classify a failed streaming response: 4xx (except 429) means the endpoint
+   * rejects the `stream` parameter itself — a capability rejection the
+   * non-stream fallback can recover from. 5xx/429 stay transient and must not
+   * poison the streaming-health memory.
+   */
+  private streamFailure(status: number, detail: string): Error {
+    if (status >= 400 && status < 500 && status !== 429) {
+      return new StreamCapabilityError(`Ollama error ${status}: ${detail}`);
     }
+    return new Error(`Ollama error ${status}: ${detail}`);
+  }
 
-    const reader = res.body?.getReader();
-    if (!reader) throw new Error('No response body');
-
+  /**
+   * Parse Ollama's NDJSON stream, yielding `message.content` until `done`.
+   * A body with no parseable non-empty line at all means `stream:true` was
+   * ignored (proxy/older server answered a plain JSON or error object) —
+   * reported as a capability rejection so the caller can fall back.
+   */
+  private async *parseNdjsonStream(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+    const reader = body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    // Capability detection: Ollama streams NDJSON — a body with no parseable
-    // non-empty line at all means `stream:true` was ignored (proxy/older
-    // server answered a plain JSON or error object instead).
+    // Capability detection: did any NDJSON line parse at all?
     let sawNdjson = false;
+    // Full raw body for the capability-error preview (after split/pop).
     let received = '';
 
     while (true) {
@@ -126,26 +109,64 @@ export class OllamaProvider extends BaseProvider {
     }
   }
 
-  /**
-   * Vision request: Ollama takes images as base64 (WITHOUT the data-URL
-   * prefix) in an `images` array on the message.
-   */
-  async translateImage(
-    request: TranslateImageRequest,
-    prompt: string,
-  ): Promise<TranslateResult> {
-    if (!request.image) throw new Error('Image data missing');
-    const base64 = request.image.replace(/^data:[^,]*,/, '');
+  async *translateStream(
+    request: TranslateRequest,
+    prompts?: PromptOverrides,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
+    const { system, user } = this.buildPrompt(request, prompts);
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: options?.signal,
       body: JSON.stringify({
         model: this.config.model,
         messages: [
-          { role: 'system', content: prompt },
-          { role: 'user', content: '', images: [base64] },
+          { role: 'system', content: system },
+          { role: 'user', content: user },
         ],
+        options: { temperature: 0.3 },
+        stream: true,
+        ...getThinkingDisableRequestFields(this.config),
+      }),
+    });
+
+    if (!res.ok) throw this.streamFailure(res.status, await res.text());
+
+    if (!res.body) throw new Error('No response body');
+
+    yield* this.parseNdjsonStream(res.body);
+  }
+
+  /**
+   * Vision messages: the built-in image prompt as the system message, the image
+   * as base64 (WITHOUT the data-URL prefix) in the message's `images` array.
+   * Shared by the one-shot and streaming vision paths so they cannot drift.
+   */
+  private buildImageMessages(prompt: string, image: string): Record<string, unknown>[] {
+    const base64 = image.replace(/^data:[^,]*,/, '');
+    return [
+      { role: 'system', content: prompt },
+      { role: 'user', content: '', images: [base64] },
+    ];
+  }
+
+  /** Vision request: one-shot, no deltas. */
+  async translateImage(
+    request: TranslateImageRequest,
+    prompt: string,
+    options?: TranslateCallOptions,
+  ): Promise<TranslateResult> {
+    if (!request.image) throw new Error('Image data missing');
+
+    const res = await fetch(`${this.baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: options?.signal,
+      body: JSON.stringify({
+        model: this.config.model,
+        messages: this.buildImageMessages(prompt, request.image),
         options: { temperature: 0.3 },
         stream: false,
         ...getThinkingDisableRequestFields(this.config),
@@ -169,6 +190,39 @@ export class OllamaProvider extends BaseProvider {
       cached: false,
       tokensUsed: (data.eval_count ?? 0) + (data.prompt_eval_count ?? 0),
     };
+  }
+
+  /**
+   * Vision request with `stream:true`, parsed with the same NDJSON loop as text
+   * translation. A 403 here becomes a capability rejection, which routes the
+   * caller into the one-shot fallback — where the OLLAMA_ORIGINS hint is
+   * produced instead of a bare status error.
+   */
+  async *translateImageStream(
+    request: TranslateImageRequest,
+    prompt: string,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
+    if (!request.image) throw new Error('Image data missing');
+
+    const res = await fetch(`${this.baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: options?.signal,
+      body: JSON.stringify({
+        model: this.config.model,
+        messages: this.buildImageMessages(prompt, request.image),
+        options: { temperature: 0.3 },
+        stream: true,
+        ...getThinkingDisableRequestFields(this.config),
+      }),
+    });
+
+    if (!res.ok) throw this.streamFailure(res.status, await res.text());
+
+    if (!res.body) throw new Error('No response body');
+
+    yield* this.parseNdjsonStream(res.body);
   }
 
   async testConnection(): Promise<boolean> {

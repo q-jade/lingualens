@@ -1,4 +1,4 @@
-import { handleMessage, getSettings, saveSettings, handleTranslateStreamPort, buildProviderChain } from '../background/message-router';
+import { handleMessage, getSettings, saveSettings, handleTranslateStreamPort, handleTranslateImageStreamPort, buildProviderChain } from '../background/message-router';
 import { registerInstallOnboarding } from '../background/onboarding';
 import {
   isPageTranslateStarted,
@@ -6,16 +6,19 @@ import {
 } from '../shared/page-translate-phase';
 import { isTranslatableTabUrl, isBrowserStoreUrl } from '../shared/translatable-tab';
 import { setTranslatorLanguages } from '../shared/translator-languages';
+import { IMAGE_STREAM_PORT_NAME, STREAM_PORT_NAME } from '../shared/types';
 import type { SelectionTriggerMode, RoutedSidepanelSelection } from '../shared/types';
 
 export default defineBackground(() => {
   registerInstallOnboarding();
 
-  // Streaming translation channel: UIs open a `translate-stream` port and
-  // receive translation deltas incrementally (sendMessage cannot carry a
-  // stream). See handleTranslateStreamPort for the protocol.
+  // Streaming translation channels: UIs open a long-lived port and receive
+  // deltas incrementally (sendMessage cannot carry a stream). Text and image
+  // translation use separate ports — see the port handlers for their
+  // protocols and fallback policies.
   browser.runtime.onConnect.addListener((port) => {
-    if (port.name === 'translate-stream') handleTranslateStreamPort(port);
+    if (port.name === STREAM_PORT_NAME) handleTranslateStreamPort(port);
+    else if (port.name === IMAGE_STREAM_PORT_NAME) handleTranslateImageStreamPort(port);
   });
 
   const pageTranslatePhaseByTab = new Map<number, PageTranslatePhase>();

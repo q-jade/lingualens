@@ -143,6 +143,19 @@ export class LmStudioProvider extends BaseProvider {
     return body;
   }
 
+  /**
+   * Classify a failed streaming response: 4xx (except 429) means the endpoint
+   * rejects the `stream` parameter itself — a capability rejection the
+   * non-stream fallback can recover from. 5xx/429 stay transient and must not
+   * poison the streaming-health memory.
+   */
+  private streamFailure(status: number, detail: string): Error {
+    if (status >= 400 && status < 500 && status !== 429) {
+      return new StreamCapabilityError(`LM Studio error ${status}: ${detail}`);
+    }
+    return new Error(`LM Studio error ${status}: ${detail}`);
+  }
+
   async translate(
     request: TranslateRequest,
     prompts?: PromptOverrides,
@@ -195,16 +208,7 @@ export class LmStudioProvider extends BaseProvider {
       body: JSON.stringify(this.buildChatBody(system, user, true)),
     });
 
-    if (!res.ok) {
-      // 4xx on a streaming request: the endpoint rejects the stream parameter
-      // itself — a capability rejection the non-stream fallback can recover
-      // from. 5xx/429 stay transient and must not poison the health memory.
-      const body = await res.text();
-      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
-        throw new StreamCapabilityError(`LM Studio error ${res.status}: ${body}`);
-      }
-      throw new Error(`LM Studio error ${res.status}: ${body}`);
-    }
+    if (!res.ok) throw this.streamFailure(res.status, await res.text());
 
     if (!res.body) throw new Error('No response body');
 
@@ -219,6 +223,7 @@ export class LmStudioProvider extends BaseProvider {
   async translateImage(
     request: TranslateImageRequest,
     prompt: string,
+    options?: TranslateCallOptions,
   ): Promise<TranslateResult> {
     if (!request.image) throw new Error('Image data missing');
 
@@ -232,6 +237,7 @@ export class LmStudioProvider extends BaseProvider {
     const res = await fetch(`${this.serverOrigin}/api/v1/chat`, {
       method: 'POST',
       headers: this.headers,
+      signal: options?.signal,
       body: JSON.stringify(this.buildChatBody(prompt, input, false)),
     });
 
@@ -257,6 +263,35 @@ export class LmStudioProvider extends BaseProvider {
       cached: false,
       tokensUsed,
     };
+  }
+
+  /**
+   * Vision request with `stream:true`, parsed with the same named-SSE loop as
+   * text translation (`message.delta` only; reasoning deltas are skipped).
+   */
+  async *translateImageStream(
+    request: TranslateImageRequest,
+    prompt: string,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string> {
+    if (!request.image) throw new Error('Image data missing');
+
+    const input: LmStudioInputItem[] = [
+      { type: 'image', data_url: request.image },
+    ];
+
+    const res = await fetch(`${this.serverOrigin}/api/v1/chat`, {
+      method: 'POST',
+      headers: this.headers,
+      signal: options?.signal,
+      body: JSON.stringify(this.buildChatBody(prompt, input, true)),
+    });
+
+    if (!res.ok) throw this.streamFailure(res.status, await res.text());
+
+    if (!res.body) throw new Error('No response body');
+
+    yield* parseLmStudioStream(res.body);
   }
 
   async testConnection(): Promise<boolean> {

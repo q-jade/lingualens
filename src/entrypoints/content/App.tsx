@@ -16,7 +16,7 @@ import {
 } from '../../shared/page-translate-phase';
 import { resolveDefaultTargetLang } from '../../shared/default-target-lang';
 import { SUPPORTED_LANGUAGES, getLanguageName } from '../../shared/languages';
-import { startStreamTranslate } from '../../shared/stream-translate';
+import { startImageStreamTranslate, startStreamTranslate } from '../../shared/stream-translate';
 
 const ERROR_KEYS: Record<string, string> = {
   NO_PROVIDER: 'content.noProvider',
@@ -30,6 +30,18 @@ const ERROR_KEYS: Record<string, string> = {
 
 /** Sentinel the built-in image prompt outputs when an image has no text. */
 const NO_TEXT_IN_IMAGE = 'NO_TEXT_IN_IMAGE';
+
+/**
+ * Text to render for an image stream in progress. The `NO_TEXT_IN_IMAGE`
+ * sentinel arrives in pieces, so while the accumulated text is still a prefix
+ * of it, render nothing — otherwise the panel would flash a truncation of the
+ * literal sentinel. Once the text diverges it is real content and passes
+ * through untouched; `onDone` still maps an exact sentinel to the localized
+ * message.
+ */
+function visibleImageStreamText(accumulated: string): string {
+  return NO_TEXT_IN_IMAGE.startsWith(accumulated.trimStart()) ? '' : accumulated;
+}
 
 function notifyPageTranslatePhase(phase: PageTranslatePhase) {
   browser.runtime.sendMessage({
@@ -394,8 +406,15 @@ export function ContentApp({ onReady }: Props) {
   const engineRef = useRef(new PageTranslateEngine());
   /** Mirrors `pageTranslatePhase` for sync guards inside message/async handlers. */
   const pageTranslatePhaseRef = useRef<PageTranslatePhase>('idle');
-  /** Cancel for the in-flight streaming selection translation (null = idle). */
-  const cancelStreamRef = useRef<(() => void) | null>(null);
+  /**
+   * Cancel for the in-flight translation that owns the panel — text or image
+   * stream (null = idle). Only one request may own the panel at a time, so a
+   * single slot covers both kinds. A superseded request is already silenced by
+   * the client's `closed` latch, so clearing the slot after the ownership
+   * check is defence in depth: the ordering costs nothing and keeps the
+   * invariant local instead of depending on that latch.
+   */
+  const cancelRequestRef = useRef<(() => void) | null>(null);
   /** Latest progress for `finally` / stop (React state may lag one tick). */
   const pageProgressRef = useRef<TranslateProgress | null>(null);
   /**
@@ -466,8 +485,8 @@ export function ContentApp({ onReady }: Props) {
     applyPageTranslatePhase('running');
     // Page translation hides the panel — any in-flight selection stream no
     // longer owns UI. Disconnect it so the background aborts the request.
-    cancelStreamRef.current?.();
-    cancelStreamRef.current = null;
+    cancelRequestRef.current?.();
+    cancelRequestRef.current = null;
     setMode('hidden');
     const initial = { total: 0, done: 0, errors: 0 };
     pageProgressRef.current = initial;
@@ -756,7 +775,7 @@ export function ContentApp({ onReady }: Props) {
    *  `textOverride` lets panel-level operations re-translate the DISPLAYED
    *  text instead of the pending selection (see retranslateDisplayed).
    *  Streams over a `translate-stream` port: deltas render incrementally,
-   *  and cancelStreamRef lets a newer request (or panel close) abort the
+   *  and cancelRequestRef lets a newer request (or panel close) abort the
    *  in-flight request instead of letting it run to completion. */
   const doTranslate = (targetLangOverride?: string, textOverride?: string) => {
     const text = textOverride ?? selectedTextRef.current;
@@ -772,14 +791,19 @@ export function ContentApp({ onReady }: Props) {
     // its response arrives (a newer request replaces the record).
     const target = { kind: 'text', text } as const;
     displayedTargetRef.current = target;
-    // A newer request owns the panel now — disconnect the previous port so
-    // the background aborts the superseded request.
-    cancelStreamRef.current?.();
+    // A newer request owns the panel now: disconnect the previous port so the
+    // background aborts the superseded request. `finish()` sets the client's
+    // internal `closed` latch before disconnecting, so a message already in
+    // flight for the old stream is dropped inside the client. That covers only
+    // port-backed requests — the ownership token checked in every callback is
+    // what covers a request that is still awaiting a plain message round-trip
+    // (see the data-URL step in doImageTranslate).
+    cancelRequestRef.current?.();
     setLoading(true);
     setError(null);
     setTranslation('');
 
-    cancelStreamRef.current = startStreamTranslate(
+    cancelRequestRef.current = startStreamTranslate(
       { text, sourceLang, targetLang, applyAdditionalPrompt: true },
       {
         // Every callback first checks the ownership token: a stale stream
@@ -791,14 +815,14 @@ export function ContentApp({ onReady }: Props) {
         // The done result is the trim()'d full text — overwrite the raw
         // accumulated deltas with it to match the non-streaming render.
         onDone: (result) => {
-          cancelStreamRef.current = null;
           if (displayedTargetRef.current !== target) return;
+          cancelRequestRef.current = null;
           setTranslation(result.translated);
           setLoading(false);
         },
         onError: (raw) => {
-          cancelStreamRef.current = null;
           if (displayedTargetRef.current !== target) return;
+          cancelRequestRef.current = null;
           setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : (raw || t('content.translationFailed')));
           setLoading(false);
         },
@@ -827,19 +851,24 @@ export function ContentApp({ onReady }: Props) {
     const sourceLang = settingsRef.current?.defaultSourceLang ?? 'auto';
 
     // The panel body now belongs to this image — ownership token, see doTranslate.
-    // Also cancel any in-flight TEXT stream: the token check would discard
-    // its chunks, but the request would keep running for nothing.
-    cancelStreamRef.current?.();
-    cancelStreamRef.current = null;
+    // Cancel any in-flight request (text or image stream) first: a superseded
+    // stream should stop consuming provider tokens instead of finishing a
+    // result nobody renders. Cancelling cannot be relied on alone here — the
+    // data-URL round-trip below registers no port, so the ownership token is
+    // the only thing that stops this request after a newer one takes over.
+    cancelRequestRef.current?.();
+    cancelRequestRef.current = null;
     const target = { kind: 'image', url: imageUrl } as const;
     displayedTargetRef.current = target;
     setLoading(true);
     setError(null);
     setTranslation('');
 
+    // Pixel data first: the background fetches the image (canvas fallback
+    // inside the page). Providers consume `image`, never the page URL — this
+    // step has no streaming equivalent and stays a plain message round-trip.
+    let dataUrl: string;
     try {
-      // Pixel data first: the background fetches the image (canvas fallback
-      // inside the page). Providers consume `image`, never the page URL.
       const resolved = await browser.runtime.sendMessage({
         type: 'RESOLVE_IMAGE_DATA_URL',
         payload: { imageUrl },
@@ -848,30 +877,47 @@ export function ContentApp({ onReady }: Props) {
       if (!resolved?.success || !resolved.dataUrl) {
         const raw = resolved?.error;
         setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : t('content.imageFetchFailed'));
+        setLoading(false);
         return;
       }
-
-      const response = await browser.runtime.sendMessage({
-        type: 'TRANSLATE_IMAGE',
-        payload: { imageUrl, image: resolved.dataUrl, sourceLang, targetLang },
-      });
-
-      // Stale response — a newer request owns the panel now.
-      if (displayedTargetRef.current !== target) return;
-      if (response?.success) {
-        const translated: string = response.data.translated;
-        setTranslation(translated === NO_TEXT_IN_IMAGE ? t('content.noTextInImage') : translated);
-      } else {
-        const raw = response?.error;
-        setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : (raw || t('content.translationFailed')));
-      }
+      dataUrl = resolved.dataUrl;
     } catch (err) {
       if (displayedTargetRef.current !== target) return;
       setError(err instanceof Error ? err.message : t('content.translationFailed'));
-    } finally {
-      // Only the owner ends the spinner — see doTranslate.
-      if (displayedTargetRef.current === target) setLoading(false);
+      setLoading(false);
+      return;
     }
+
+    // Stream over `translate-image-stream`: deltas render incrementally, and
+    // the background transparently falls back to the one-shot vision request
+    // when the endpoint cannot stream — so this is the only path the UI needs.
+    // `cacheKey` is the page URL, keeping the cache identity identical to the
+    // non-streaming path (including entries written before this change).
+    let accumulated = '';
+    cancelRequestRef.current = startImageStreamTranslate(
+      { imageUrl, image: dataUrl, sourceLang, targetLang, cacheKey: imageUrl },
+      {
+        onChunk: (delta) => {
+          if (displayedTargetRef.current !== target) return;
+          accumulated += delta;
+          setTranslation(visibleImageStreamText(accumulated));
+        },
+        onDone: (result) => {
+          if (displayedTargetRef.current !== target) return;
+          cancelRequestRef.current = null;
+          setTranslation(
+            result.translated === NO_TEXT_IN_IMAGE ? t('content.noTextInImage') : result.translated,
+          );
+          setLoading(false);
+        },
+        onError: (raw) => {
+          if (displayedTargetRef.current !== target) return;
+          cancelRequestRef.current = null;
+          setError(raw && ERROR_KEYS[raw] ? t(ERROR_KEYS[raw]) : (raw || t('content.translationFailed')));
+          setLoading(false);
+        },
+      },
+    );
   };
 
   const runImageTranslate = (panelAnchor: { x: number; y: number }) => {
@@ -1098,8 +1144,8 @@ export function ContentApp({ onReady }: Props) {
           return;
         }
         // Panel gone → the in-flight stream no longer owns any UI. Drop it.
-        cancelStreamRef.current?.();
-        cancelStreamRef.current = null;
+        cancelRequestRef.current?.();
+        cancelRequestRef.current = null;
         setMode('hidden');
       },
       isPageTranslationActive() {
@@ -1344,7 +1390,7 @@ export function ContentApp({ onReady }: Props) {
                   <path d="M12 17v5" /><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
                 </svg>
               </button>
-              <button onClick={() => { cancelStreamRef.current?.(); cancelStreamRef.current = null; setMode('hidden'); }} className="st-panel-close" title={t('content.close')} aria-label={t('content.close')}>
+              <button onClick={() => { cancelRequestRef.current?.(); cancelRequestRef.current = null; setMode('hidden'); }} className="st-panel-close" title={t('content.close')} aria-label={t('content.close')}>
                 <svg width="14" height="14" style={iconSize(14)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                 </svg>

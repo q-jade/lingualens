@@ -51,7 +51,22 @@ export abstract class BaseProvider {
   translateImage?(
     request: TranslateImageRequest,
     prompt: string,
+    options?: TranslateCallOptions,
   ): Promise<TranslateResult>;
+
+  /**
+   * Streaming variant of `translateImage`, yielding text deltas as the vision
+   * model produces them. Optional for the same reason: only vision-capable LLM
+   * providers implement it, and the background falls back to `translateImage`
+   * when it is missing or when the endpoint rejects `stream:true`. Prompt
+   * handling is identical to `translateImage` — built-in template with
+   * placeholders substituted, never PromptOverrides.
+   */
+  translateImageStream?(
+    request: TranslateImageRequest,
+    prompt: string,
+    options?: TranslateCallOptions,
+  ): AsyncGenerator<string>;
 
   /**
    * Compose the system prompt: base prompt (global template ?? default) plus
