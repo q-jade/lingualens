@@ -16,6 +16,7 @@ import {
 } from '../../shared/page-translate-phase';
 import { resolveDefaultTargetLang } from '../../shared/default-target-lang';
 import { SUPPORTED_LANGUAGES, getLanguageName } from '../../shared/languages';
+import { NO_TEXT_IN_IMAGE, visibleImageStreamText } from '../../shared/image-translation';
 import { startImageStreamTranslate, startStreamTranslate } from '../../shared/stream-translate';
 
 const ERROR_KEYS: Record<string, string> = {
@@ -27,21 +28,6 @@ const ERROR_KEYS: Record<string, string> = {
   IMAGE_TOO_LARGE: 'content.imageTooLarge',
   IMAGE_READ_FAILED: 'content.imageReadFailed',
 };
-
-/** Sentinel the built-in image prompt outputs when an image has no text. */
-const NO_TEXT_IN_IMAGE = 'NO_TEXT_IN_IMAGE';
-
-/**
- * Text to render for an image stream in progress. The `NO_TEXT_IN_IMAGE`
- * sentinel arrives in pieces, so while the accumulated text is still a prefix
- * of it, render nothing — otherwise the panel would flash a truncation of the
- * literal sentinel. Once the text diverges it is real content and passes
- * through untouched; `onDone` still maps an exact sentinel to the localized
- * message.
- */
-function visibleImageStreamText(accumulated: string): string {
-  return NO_TEXT_IN_IMAGE.startsWith(accumulated.trimStart()) ? '' : accumulated;
-}
 
 function notifyPageTranslatePhase(phase: PageTranslatePhase) {
   browser.runtime.sendMessage({
