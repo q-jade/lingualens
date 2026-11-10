@@ -6,8 +6,9 @@ import { getTranslatorLanguages, setTranslatorLanguages, subscribeTranslatorLang
 import { ProviderPicker } from '../../shared/ProviderPicker';
 import { CopyButton } from '../../shared/CopyButton';
 import { shortcutLabel } from '../../shared/shortcut';
-import { startStreamTranslate } from '../../shared/stream-translate';
+import { startImageStreamTranslate, startStreamTranslate } from '../../shared/stream-translate';
 import { blobToDataUrl, downscaleImageBlob, fetchImageAsDataUrl, MAX_IMAGE_BYTES } from '../../shared/image-data';
+import { NO_TEXT_IN_IMAGE, visibleImageStreamText } from '../../shared/image-translation';
 
 interface HistoryEntry {
   id: number;
@@ -34,6 +35,11 @@ interface LoadedImage {
 const ERROR_KEYS: Record<string, string> = {
   NO_PROVIDER: 'sidepanel.noProvider',
   TRANSLATION_FAILED: 'sidepanel.translationFailed',
+  NO_IMAGE_PROVIDER: 'sidepanel.noImageProvider',
+  IMAGE_FETCH_FAILED: 'sidepanel.imageFetchFailed',
+  NOT_AN_IMAGE: 'sidepanel.notAnImage',
+  IMAGE_TOO_LARGE: 'sidepanel.imageTooLarge',
+  IMAGE_READ_FAILED: 'sidepanel.imageReadFailed',
 };
 
 /**
@@ -92,7 +98,13 @@ export function App() {
   const langsReady = sourceLang !== null && targetLang !== null;
   const [sourceText, setSourceText] = useState('');
   const [translation, setTranslation] = useState('');
-  const [loading, setLoading] = useState(false);
+  /**
+   * A translation request is in flight (text OR image) — it drives the
+   * translate button's spinner and the loading state of the result pane. Not
+   * to be confused with `loadingImage`, which is only about reading pixels
+   * into the source before any request exists.
+   */
+  const [translating, setTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -104,7 +116,12 @@ export function App() {
    */
   const [inputMode, setInputMode] = useState<InputMode>('text');
   const [image, setImage] = useState<LoadedImage | null>(null);
-  const [imageLoading, setImageLoading] = useState(false);
+  /**
+   * Decoding/encoding an image into `image` (clipboard bitmap, local file, or
+   * a fetched web URL) has not finished yet. Purely a source-side state — no
+   * provider has been contacted, so `translating` stays false throughout.
+   */
+  const [loadingImage, setLoadingImage] = useState(false);
   /** Source-side failure (bad file, oversized, unreadable) — not a translation error. */
   const [sourceError, setSourceError] = useState<string | null>(null);
   /** True while a file or URL is dragged over the panel. */
@@ -202,7 +219,7 @@ export function App() {
     // A newer request owns the panel: cancel the previous stream first so
     // the background aborts its request instead of racing this one.
     cancelStreamRef.current?.();
-    setLoading(true);
+    setTranslating(true);
     setError(null);
     setTranslation('');
 
@@ -217,7 +234,7 @@ export function App() {
         // path did.
         onDone: (result) => {
           setTranslation(result.translated);
-          setLoading(false);
+          setTranslating(false);
           cancelStreamRef.current = null;
 
           const entry: HistoryEntry = {
@@ -246,7 +263,7 @@ export function App() {
         },
         onError: (err) => {
           setError(translateError(err));
-          setLoading(false);
+          setTranslating(false);
           cancelStreamRef.current = null;
         },
       },
@@ -260,7 +277,7 @@ export function App() {
   const resetResult = () => {
     cancelStreamRef.current?.();
     cancelStreamRef.current = null;
-    setLoading(false);
+    setTranslating(false);
     setTranslation('');
     setError(null);
   };
@@ -280,7 +297,7 @@ export function App() {
       setSourceError(t('sidepanel.imageTooLarge'));
       return;
     }
-    setImageLoading(true);
+    setLoadingImage(true);
     try {
       // Same downscale/encode path as page images: vision models resize to a
       // 1568 px long edge internally anyway, so this only cuts payload size.
@@ -293,14 +310,14 @@ export function App() {
     } catch {
       setSourceError(t('sidepanel.imageReadFailed'));
     } finally {
-      setImageLoading(false);
+      setLoadingImage(false);
     }
   };
 
   /** Load an image by URL (dragged from a web page, which yields no file). */
   const loadImageUrl = async (url: string) => {
     setSourceError(null);
-    setImageLoading(true);
+    setLoadingImage(true);
     try {
       const dataUrl = await fetchImageAsDataUrl(url);
       const size = await readImageSize(dataUrl);
@@ -317,7 +334,7 @@ export function App() {
             : t('sidepanel.imageFetchFailed'),
       );
     } finally {
-      setImageLoading(false);
+      setLoadingImage(false);
     }
   };
 
@@ -468,13 +485,91 @@ export function App() {
   }, []);
 
   /**
-   * Translate the source. Image translation is not wired up yet — this commit
-   * adds the input surface, so image mode has nothing to send.
+   * Translate the loaded image. The data URL is both the provider payload and
+   * the cache identity — a pasted or dropped image has no stable URL to key
+   * on, and the cache layer hashes the value instead of storing it.
+   */
+  const translateImage = () => {
+    if (!image) return;
+    const srcLang = sourceLangRef.current;
+    const dstLang = targetLangRef.current;
+    if (!srcLang || !dstLang) return;
+
+    // A newer request owns the result area: cancel the previous stream so the
+    // background aborts it instead of racing this one.
+    cancelStreamRef.current?.();
+    cancelStreamRef.current = null;
+    setTranslating(true);
+    setError(null);
+    setTranslation('');
+
+    let accumulated = '';
+    cancelStreamRef.current = startImageStreamTranslate(
+      // The pixels ARE the identity: there is no URL to key on, so the data URL
+      // doubles as the cache key. `imageUrl` stays empty instead of repeating
+      // it — providers read `image` only, and the cache falls back to
+      // `cacheKey` (see imageCacheKey in the background).
+      { imageUrl: '', image: image.dataUrl, cacheKey: image.dataUrl, sourceLang: srcLang, targetLang: dstLang },
+      {
+        onChunk: (delta) => {
+          accumulated += delta;
+          // The NO_TEXT_IN_IMAGE sentinel arrives in pieces — hide the prefix
+          // so the panel never flashes a truncation of the literal token.
+          setTranslation(visibleImageStreamText(accumulated));
+        },
+        // The done result is the trim()'d full text — overwrite the raw
+        // accumulated deltas to match the non-streaming render, and map an
+        // exact sentinel to the localized message.
+        onDone: (result) => {
+          cancelStreamRef.current = null;
+          setTranslation(
+            result.translated === NO_TEXT_IN_IMAGE
+              ? t('sidepanel.noTextInImage')
+              : result.translated,
+          );
+          setTranslating(false);
+        },
+        onError: (err) => {
+          cancelStreamRef.current = null;
+          setError(translateError(err));
+          setTranslating(false);
+        },
+      },
+    );
+  };
+
+  /**
+   * Translate whatever the source holds. Both modes share the result area and
+   * the cancel slot, so a switch between them supersedes the previous request
+   * (see resetResult).
    */
   const handleTranslate = () => {
-    if (inputMode !== 'text') return;
-    void translateText(sourceText);
+    if (inputMode === 'image') translateImage();
+    else void translateText(sourceText);
   };
+
+  /**
+   * Ctrl/Cmd+Enter, identical in both modes. It lives on the document rather
+   * than on the textarea so image mode (which has no focused input) can use it
+   * too — and, as a side effect, text mode keeps working when focus has moved
+   * off the box. The refs keep the one-time listener reading current state.
+   */
+  const translateShortcutRef = useRef<() => void>(() => { });
+  const shortcutActiveRef = useRef(false);
+  translateShortcutRef.current = handleTranslate;
+  // Hidden while the history view replaces the source/result panes.
+  shortcutActiveRef.current = !showHistory;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
+      if (!shortcutActiveRef.current) return;
+      event.preventDefault();
+      translateShortcutRef.current();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   // Selection routed from the background but languages not loaded yet — flush it
   // once the pair is known so the routed text always gets translated.
@@ -568,7 +663,7 @@ export function App() {
     // area now, a stale stream must not append onto it.
     cancelStreamRef.current?.();
     cancelStreamRef.current = null;
-    setLoading(false);
+    setTranslating(false);
     // History only holds text translations.
     setInputMode('text');
     // Same reasoning as switchInputMode: a load failure from the source being
@@ -710,12 +805,11 @@ export function App() {
                   value={sourceText}
                   onChange={(e) => setSourceText(e.target.value)}
                   placeholder={t('sidepanel.placeholder')}
+                  // Ctrl/Cmd+Enter is handled at the document level so both
+                  // modes share one shortcut implementation.
                   className="flex-1 w-full px-4 py-3 text-sm resize-none focus:outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleTranslate();
-                  }}
                 />
-              ) : imageLoading ? (
+              ) : loadingImage ? (
                 <div className="flex flex-1 items-center justify-center gap-2 text-sm text-gray-400">
                   <span className="ll-spinner" />
                   {t('sidepanel.imageLoading')}
@@ -790,15 +884,14 @@ export function App() {
                 <button
                   onClick={handleTranslate}
                   disabled={
-                    loading ||
-                    imageLoading ||
+                    translating ||
+                    loadingImage ||
                     !langsReady ||
-                    inputMode === 'image' ||
-                    !sourceText.trim()
+                    (inputMode === 'text' ? !sourceText.trim() : !image)
                   }
                   className="ll-btn-primary ll-btn-sm shrink-0"
                 >
-                  {loading ? (
+                  {translating ? (
                     <span className="flex items-center gap-1.5">
                       <span className="ll-spinner-light" />
                       {t('sidepanel.translating')}
@@ -822,14 +915,14 @@ export function App() {
               {!error && (
                 <div className="flex-1 overflow-y-auto px-4 py-3 bg-gray-50/60">
                   {/* Translation takes precedence over the spinner: with
-                      streaming, chunks arrive while loading is still true —
-                      hiding the text behind the spinner would defeat the
-                      purpose of streaming. The spinner only covers the empty
-                      first-token wait; while text is visible the translate
-                      button's spinner signals the ongoing work. */}
+                      streaming, chunks arrive while `translating` is still
+                      true — hiding the text behind the spinner would defeat
+                      the purpose of streaming. The spinner only covers the
+                      empty first-token wait; while text is visible the
+                      translate button's spinner signals the ongoing work. */}
                   {translation ? (
                     <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{translation}</p>
-                  ) : loading ? (
+                  ) : translating ? (
                     <div className="flex items-center gap-2 text-sm text-gray-400">
                       <span className="ll-spinner" />
                       {t('sidepanel.translating')}
@@ -839,7 +932,7 @@ export function App() {
                   )}
                 </div>
               )}
-              {translation && !loading && (
+              {translation && !translating && (
                 <CopyButton
                   key={translation}
                   text={translation}

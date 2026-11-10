@@ -11,12 +11,12 @@ LinguaLens is a browser extension built with [WXT](https://wxt.dev/) and React. 
 ## Features
 
 - **Selection translation** — Select text on any page; a floating trigger appears. Choose from four trigger modes: icon, instant, modifier key, or off. Right-click **Translate** or use the keyboard shortcut for one-step translation. Pin the panel to translate multiple selections without reopening. Switch providers or the target language — with instant re-translation — directly from the panel.
-- **Image translation** — Select an image or right-click it to translate its text with a vision-capable LLM. See [Image translation](#image-translation) for setup and usage.
+- **Image translation** — Select an image or right-click it to translate its text with a vision-capable LLM. The side panel also takes a pasted, dragged, or opened image. See [Image translation](#image-translation) for setup and usage.
 - **Full-page translation** — Inject bilingual translations inline while preserving layout. Choose **Quality** (larger chunks, better context) or **Speed** (smaller chunks, faster updates) in settings.
 - **Multiple providers** — Ollama, LM Studio, OpenAI-compatible APIs, OpenAI, DeepSeek, DeepL, Google Cloud Translation, BigModel/Z.ai, OpenRouter, Google Gemini, Qwen, MiniMax, NVIDIA. Switch provider from any UI surface — popup, side panel, or the translation panel itself.
 - **Provider fallback** — If the default provider fails, try the next configured provider in order.
 - **Translation cache** — Repeated text is served from an in-memory cache with debounced persistence. Settings shows the current cache size and storage usage, with a button to clear it.
-- **Popup & side panel** — Quick translate from the toolbar popup; open the side panel (Chrome 114+) for a larger UI with session history, back navigation, and draggable layout.
+- **Popup & side panel** — Quick translate from the toolbar popup; open the side panel (Chrome 114+) for a larger UI with text or image input, session history, back navigation, and draggable layout.
 - **LLM tuning** — Custom system prompt template plus an additional prompt for selection, popup, and side-panel translations (e.g. a dictionary-style template for single words); optional **disable thinking** for models that emit chain-of-thought (faster, cleaner output).
 
 ## Browser support
@@ -97,6 +97,8 @@ On pages where content scripts cannot run (`chrome://`, `edge://`, etc.), right-
 
 Mixed selections (text + image) prefer the image. Image translation follows the selection trigger modes like text; it requires an LLM provider with a vision-capable model (toggle **Image support** per provider in Settings, on by default). The image prompt is built-in and not user-editable.
 
+The side panel accepts images directly too: paste one, drag one in from a web page, or open a local file. Text works the same way — paste or drag it into the text box, or open a text file from disk. See [Popup & side panel](#popup--side-panel).
+
 ### Full-page translation
 
 - **Popup:** **Translate This Page**
@@ -107,8 +109,8 @@ Use the on-page status bar to stop or restore the original text.
 
 ### Popup & side panel
 
-- **Popup** — Enter text, pick target language, translate. Link to **Settings** and **Translate This Page**.
-- **Side panel** — Click **Side panel** in the popup (Chrome 114+). Supports source/target languages, swap, and recent history (stored locally).
+- **Popup** — Enter text, pick target language, translate. Link to **Settings** and **Translate This Page**. Text only; image translation lives in the side panel.
+- **Side panel** — Click **Side panel** in the popup (Chrome 114+). Switch the source between **Text** and **Image**; each mode keeps its own input. Both accept a paste, a drag, or a file: images load as an image, text and text files fill the text box. Recent text translations are stored locally as history; images are not.
 
 ### Selection trigger modes
 
