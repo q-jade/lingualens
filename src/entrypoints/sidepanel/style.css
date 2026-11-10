@@ -15,3 +15,126 @@ body,
 #root {
   height: 100%;
 }
+
+/*
+ * Source-area mode switch (text / image). The only explicit mode control —
+ * pasting or dropping a file switches modes implicitly.
+ */
+.side-mode-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(var(--ll-u) * 8);
+  padding: calc(var(--ll-u) * 6) calc(var(--ll-u) * 12);
+  border-bottom: 1px solid var(--ll-gray-100);
+  background: #fff;
+}
+
+.side-seg {
+  display: inline-flex;
+  gap: calc(var(--ll-u) * 2);
+  padding: calc(var(--ll-u) * 2);
+  border-radius: calc(var(--ll-u) * 8);
+  background: var(--ll-gray-100);
+}
+
+.side-seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--ll-u) * 4);
+  padding: calc(var(--ll-u) * 3) calc(var(--ll-u) * 10);
+  border: 0;
+  border-radius: calc(var(--ll-u) * 6);
+  background: transparent;
+  color: var(--ll-gray-500);
+  font-family: inherit;
+  font-size: calc(var(--ll-u) * 12);
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.side-seg-item:hover:not(.side-seg-item-active) {
+  color: var(--ll-gray-700);
+}
+.side-seg-item-active {
+  background: #fff;
+  color: var(--ll-indigo-700);
+  box-shadow: var(--ll-shadow-sm);
+}
+
+/*
+ * Empty image state — doubles as the paste/focus target. Clicking it both
+ * opens the file picker and gives the panel document keyboard focus, which
+ * Chrome does not grant when the side panel opens (crbug.com/40896667), so a
+ * direct Ctrl+V before any click would otherwise be lost.
+ */
+.side-drop {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--ll-u) * 6);
+  margin: calc(var(--ll-u) * 8) calc(var(--ll-u) * 12);
+  padding: calc(var(--ll-u) * 16);
+  border: 1px dashed var(--ll-gray-300);
+  border-radius: var(--ll-radius-lg);
+  background: var(--ll-gray-50);
+  color: var(--ll-gray-500);
+  font-family: inherit;
+  font-size: calc(var(--ll-u) * 12);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.side-drop:hover,
+.side-drop:focus-visible {
+  border-color: var(--ll-indigo-400);
+  background: var(--ll-indigo-50);
+  outline: none;
+}
+.side-drop-active {
+  border-color: var(--ll-indigo-500);
+  background: var(--ll-indigo-50);
+  color: var(--ll-indigo-700);
+}
+
+/* Loaded image — bounded so the result area keeps its half of the split. */
+.side-image-preview {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--ll-u) * 8) calc(var(--ll-u) * 12);
+  overflow: hidden;
+}
+.side-image-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  border: 1px solid var(--ll-gray-100);
+  border-radius: var(--ll-radius);
+  object-fit: contain;
+}
+
+/* Whole-panel highlight while a file or URL is dragged over the side panel. */
+.side-drop-overlay {
+  position: absolute;
+  inset: calc(var(--ll-u) * 4);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--ll-u) * 6);
+  border: 2px dashed var(--ll-indigo-400);
+  border-radius: var(--ll-radius-lg);
+  background: rgb(238 242 255 / 0.94);
+  color: var(--ll-indigo-700);
+  font-size: calc(var(--ll-u) * 13);
+  font-weight: 500;
+  text-align: center;
+  pointer-events: none;
+}

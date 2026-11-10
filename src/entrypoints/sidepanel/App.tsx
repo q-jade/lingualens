@@ -7,6 +7,7 @@ import { ProviderPicker } from '../../shared/ProviderPicker';
 import { CopyButton } from '../../shared/CopyButton';
 import { shortcutLabel } from '../../shared/shortcut';
 import { startStreamTranslate } from '../../shared/stream-translate';
+import { blobToDataUrl, downscaleImageBlob, fetchImageAsDataUrl, MAX_IMAGE_BYTES } from '../../shared/image-data';
 
 interface HistoryEntry {
   id: number;
@@ -17,10 +18,67 @@ interface HistoryEntry {
   timestamp: number;
 }
 
+type InputMode = 'text' | 'image';
+
+/** An image loaded from a file, the clipboard, or a web URL. */
+interface LoadedImage {
+  /** Decoded pixels — the provider payload AND the cache identity (no stable URL to key on). */
+  dataUrl: string;
+  /** File name, or the URL's last path segment. */
+  name: string;
+  /** Pixel dimensions; 0 when the probe failed (the image still translates). */
+  width: number;
+  height: number;
+}
+
 const ERROR_KEYS: Record<string, string> = {
   NO_PROVIDER: 'sidepanel.noProvider',
   TRANSLATION_FAILED: 'sidepanel.translationFailed',
 };
+
+/**
+ * Text files dropped into the panel are a convenience, not a bulk-import
+ * feature — the whole file becomes the input box.
+ */
+const MAX_TEXT_BYTES = 1024 * 1024;
+const TEXT_FILE_EXTENSION = /\.(txt|md|markdown|json|csv|tsv|log|srt|vtt|ya?ml|xml|html?|ini|conf|properties)$/i;
+const IMAGE_FILE_EXTENSION = /\.(png|jpe?g|gif|webp|bmp|avif|svg)$/i;
+
+/**
+ * Whether a dropped file is one this panel can consume. A drag from a web page
+ * can carry BOTH a URL and a synthetic "DownloadURL" file; the URL is preferred
+ * when the file itself is not usable (see the drop handler).
+ */
+function isConsumableFile(file: File): boolean {
+  return (
+    file.type.startsWith('image/') ||
+    IMAGE_FILE_EXTENSION.test(file.name) ||
+    file.type.startsWith('text/') ||
+    file.type === 'application/json' ||
+    TEXT_FILE_EXTENSION.test(file.name)
+  );
+}
+
+/** Name for an image dragged in from a web page, derived from its URL. */
+function imageNameFromUrl(url: string): string {
+  try {
+    const segments = new URL(url).pathname.split('/').filter(Boolean);
+    const name = decodeURIComponent(segments[segments.length - 1] ?? '');
+    return name || url;
+  } catch {
+    return url;
+  }
+}
+
+/** Pixel dimensions of a data URL; resolves 0×0 when it cannot be decoded. */
+function readImageSize(dataUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const probe = new Image();
+    probe.onload = () => resolve({ width: probe.naturalWidth, height: probe.naturalHeight });
+    probe.onerror = () => resolve({ width: 0, height: 0 });
+    probe.src = dataUrl;
+  });
+}
 
 export function App() {
   const { t } = useTranslation();
@@ -39,6 +97,20 @@ export function App() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
+  /**
+   * Text and image input keep separate state: switching modes never discards
+   * what the other mode holds. The RESULT area is shared, so changing the
+   * source (mode switch, new image, loaded text file) clears it.
+   */
+  const [inputMode, setInputMode] = useState<InputMode>('text');
+  const [image, setImage] = useState<LoadedImage | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  /** Source-side failure (bad file, oversized, unreadable) — not a translation error. */
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  /** True while a file or URL is dragged over the panel. */
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragDepthRef = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   // Latest-state mirrors so the one-time runtime message listener can translate
@@ -46,17 +118,22 @@ export function App() {
   const sourceLangRef = useRef<string | null>(null);
   const targetLangRef = useRef<string | null>(null);
   const historyRef = useRef<HistoryEntry[]>([]);
+  const inputModeRef = useRef<InputMode>('text');
   sourceLangRef.current = sourceLang;
   targetLangRef.current = targetLang;
   historyRef.current = history;
+  inputModeRef.current = inputMode;
   // Cancel for the in-flight streaming request — a re-translate disconnects
   // the old port (background aborts the request) before starting a new one.
   const cancelStreamRef = useRef<(() => void) | null>(null);
 
-  // Focus the input as soon as the panel opens so the user can start typing immediately.
+  // Focus the input as soon as the panel opens so the user can start typing
+  // immediately — and again whenever text mode becomes active, since the
+  // textarea is not mounted while image mode is showing (focusing it from the
+  // click handler would race that render).
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    if (inputMode === 'text') textareaRef.current?.focus();
+  }, [inputMode]);
 
   const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -176,7 +253,228 @@ export function App() {
     );
   };
 
-  const handleTranslate = () => void translateText(sourceText);
+  /**
+   * Drop whatever the result area shows and abort its stream. Source and
+   * result are one surface: replacing the source invalidates the result.
+   */
+  const resetResult = () => {
+    cancelStreamRef.current?.();
+    cancelStreamRef.current = null;
+    setLoading(false);
+    setTranslation('');
+    setError(null);
+  };
+
+  const switchInputMode = (next: InputMode) => {
+    if (next === inputModeRef.current) return;
+    // A load failure belongs to the mode that produced it: leaving that mode
+    // must not leave a stale "could not read the image" over the text box.
+    setSourceError(null);
+    resetResult();
+    setInputMode(next);
+  };
+
+  const loadImageFile = async (file: File) => {
+    setSourceError(null);
+    if (file.size > MAX_IMAGE_BYTES) {
+      setSourceError(t('sidepanel.imageTooLarge'));
+      return;
+    }
+    setImageLoading(true);
+    try {
+      // Same downscale/encode path as page images: vision models resize to a
+      // 1568 px long edge internally anyway, so this only cuts payload size.
+      const dataUrl = await blobToDataUrl(await downscaleImageBlob(file));
+      const size = await readImageSize(dataUrl);
+      switchInputMode('image');
+      // Replacing the image also invalidates a result for the previous one.
+      resetResult();
+      setImage({ dataUrl, name: file.name || t('sidepanel.modeImage'), ...size });
+    } catch {
+      setSourceError(t('sidepanel.imageReadFailed'));
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  /** Load an image by URL (dragged from a web page, which yields no file). */
+  const loadImageUrl = async (url: string) => {
+    setSourceError(null);
+    setImageLoading(true);
+    try {
+      const dataUrl = await fetchImageAsDataUrl(url);
+      const size = await readImageSize(dataUrl);
+      switchInputMode('image');
+      resetResult();
+      setImage({ dataUrl, name: imageNameFromUrl(url), ...size });
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      setSourceError(
+        code === 'NOT_AN_IMAGE'
+          ? t('sidepanel.notAnImage')
+          : code === 'IMAGE_TOO_LARGE'
+            ? t('sidepanel.imageTooLarge')
+            : t('sidepanel.imageFetchFailed'),
+      );
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const loadTextFile = async (file: File) => {
+    setSourceError(null);
+    if (file.size > MAX_TEXT_BYTES) {
+      setSourceError(t('sidepanel.textFileTooLarge'));
+      return;
+    }
+    try {
+      const text = await file.text();
+      resetResult();
+      setInputMode('text');
+      setSourceText(text);
+      textareaRef.current?.focus();
+    } catch {
+      setSourceError(t('sidepanel.textFileReadFailed'));
+    }
+  };
+
+  /** Route a dropped/selected file by type: image → image mode, text → input box. */
+  const handleFile = (file: File) => {
+    const isImage = file.type.startsWith('image/') || IMAGE_FILE_EXTENSION.test(file.name);
+    const isText =
+      file.type.startsWith('text/') ||
+      file.type === 'application/json' ||
+      TEXT_FILE_EXTENSION.test(file.name);
+    if (isImage) void loadImageFile(file);
+    else if (isText) void loadTextFile(file);
+    else setSourceError(t('sidepanel.unsupportedFile'));
+  };
+
+  const clearImage = () => {
+    resetResult();
+    setSourceError(null);
+    setImage(null);
+  };
+
+  /**
+   * Latest paste/drop actions for the document-level listeners registered
+   * once below: the listeners must outlive re-renders, while their messages
+   * need the current UI language.
+   */
+  const dropActionsRef = useRef({
+    file: (_file: File) => { },
+    url: (_url: string) => { },
+    failure: '',
+  });
+  dropActionsRef.current = {
+    file: handleFile,
+    url: (url: string) => void loadImageUrl(url),
+    failure: t('sidepanel.imageFetchFailed'),
+  };
+
+  // Paste and drag & drop listen on the document: the whole panel accepts an
+  // image, so the user does not have to aim at the drop zone. Text pasted or
+  // dragged into the textarea is handled by the browser itself.
+  useEffect(() => {
+    const isPayload = (transfer: DataTransfer | null) => {
+      const types = Array.from(transfer?.types ?? []);
+      return types.includes('Files') || types.includes('text/uri-list');
+    };
+
+    const onPaste = (event: ClipboardEvent) => {
+      const data = event.clipboardData;
+      if (!data) return;
+      for (const item of Array.from(data.items)) {
+        if (item.kind !== 'file' || !item.type.startsWith('image/')) continue;
+        const file = item.getAsFile();
+        if (!file) continue;
+        event.preventDefault();
+        dropActionsRef.current.file(file);
+        return;
+      }
+      // No image on the clipboard. In image mode there is no textarea to
+      // receive the text, so the paste would be silently swallowed — hand it
+      // to the text input instead (the two modes are one surface).
+      if (inputModeRef.current !== 'image') return;
+      const text = data.getData('text/plain');
+      if (!text.trim()) return;
+      event.preventDefault();
+      resetResult();
+      setSourceText(text);
+      setInputMode('text');
+      textareaRef.current?.focus();
+    };
+
+    const onDragEnter = (event: DragEvent) => {
+      if (!isPayload(event.dataTransfer)) return;
+      event.preventDefault();
+      dragDepthRef.current += 1;
+      setDragging(true);
+    };
+    const onDragOver = (event: DragEvent) => {
+      if (!isPayload(event.dataTransfer)) return;
+      // Required for `drop` to fire at all, and it stops the browser from
+      // navigating away to the dropped file.
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    };
+    const onDragLeave = (event: DragEvent) => {
+      if (!isPayload(event.dataTransfer)) return;
+      // dragenter/dragleave fire for every child element crossed: only the
+      // last one leaving the panel drops the counter to zero.
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      if (dragDepthRef.current === 0) setDragging(false);
+    };
+    const onDrop = (event: DragEvent) => {
+      if (!isPayload(event.dataTransfer)) return;
+      event.preventDefault();
+      dragDepthRef.current = 0;
+      setDragging(false);
+      const file = event.dataTransfer?.files?.[0];
+      // A web image drags as a URL; Chrome may also expose a synthetic
+      // "DownloadURL" File with no bytes. Prefer the file only when it is
+      // consumable AND actually carries data, otherwise fetch the URL.
+      if (file && file.size > 0 && isConsumableFile(file)) {
+        dropActionsRef.current.file(file);
+        return;
+      }
+      const url = (event.dataTransfer?.getData('text/uri-list') ?? '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find((line) => line && !line.startsWith('#') && /^https?:/i.test(line));
+      if (url) {
+        dropActionsRef.current.url(url);
+        return;
+      }
+      if (file) {
+        dropActionsRef.current.file(file);
+        return;
+      }
+      setSourceError(dropActionsRef.current.failure);
+    };
+
+    document.addEventListener('paste', onPaste);
+    window.addEventListener('dragenter', onDragEnter);
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('dragleave', onDragLeave);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      document.removeEventListener('paste', onPaste);
+      window.removeEventListener('dragenter', onDragEnter);
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('dragleave', onDragLeave);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, []);
+
+  /**
+   * Translate the source. Image translation is not wired up yet — this commit
+   * adds the input surface, so image mode has nothing to send.
+   */
+  const handleTranslate = () => {
+    if (inputMode !== 'text') return;
+    void translateText(sourceText);
+  };
 
   // Selection routed from the background but languages not loaded yet — flush it
   // once the pair is known so the routed text always gets translated.
@@ -186,6 +484,13 @@ export function App() {
   const routeSelectionToInput = (text: string, srcLang?: string, dstLang?: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    // A routed selection is always text — it replaces whatever the source
+    // showed, including an image.
+    switchInputMode('text');
+    // Redundant when the mode actually changed (switchInputMode clears it),
+    // but a route while ALREADY in text mode must not keep a stale load error
+    // over the incoming text.
+    setSourceError(null);
     setSourceText(trimmed);
     // Adopt the page-translation language pair for this routed selection so
     // the result matches what the page itself would have translated to.
@@ -242,7 +547,9 @@ export function App() {
   }, []);
 
   const swapLanguages = () => {
-    if (!langsReady || sourceLang === 'auto') return;
+    // Swap exchanges the source and result TEXT. Image mode has no source text
+    // to exchange, so it is disabled there (see the button's `disabled`).
+    if (!langsReady || sourceLang === 'auto' || inputMode === 'image') return;
     // The swap overwrites the result area — a still-running stream would
     // append its late chunks onto the swapped text. Kill it first.
     cancelStreamRef.current?.();
@@ -262,6 +569,11 @@ export function App() {
     cancelStreamRef.current?.();
     cancelStreamRef.current = null;
     setLoading(false);
+    // History only holds text translations.
+    setInputMode('text');
+    // Same reasoning as switchInputMode: a load failure from the source being
+    // replaced must not survive over the loaded entry.
+    setSourceError(null);
     setSourceText(entry.source);
     setTranslation(entry.translated);
     setTargetLang(entry.targetLang);
@@ -309,7 +621,7 @@ export function App() {
         </select>
         <button
           onClick={swapLanguages}
-          disabled={!langsReady}
+          disabled={!langsReady || sourceLang === 'auto' || inputMode === 'image'}
           className="p-1 text-gray-400 hover:text-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           title={t('sidepanel.swapLanguages')}
           aria-label={t('sidepanel.swapLanguages')}
@@ -354,36 +666,136 @@ export function App() {
           <>
             {/* Source */}
             <div className="flex flex-col min-h-0" style={{ flex: `${splitRatio} 1 0%` }}>
-              <textarea
-                ref={textareaRef}
-                value={sourceText}
-                onChange={(e) => setSourceText(e.target.value)}
-                placeholder={t('sidepanel.placeholder')}
-                className="flex-1 w-full px-4 py-3 text-sm resize-none focus:outline-none"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleTranslate();
+              {/* Mode switch — text and image keep separate state, and the mode
+                  also changes implicitly when a file is pasted or dropped. */}
+              <div className="side-mode-bar">
+                <div className="side-seg" role="group" aria-label={t('sidepanel.inputMode')}>
+                  {(['text', 'image'] as InputMode[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-pressed={inputMode === m}
+                      onClick={() => switchInputMode(m)}
+                      className={`side-seg-item ${inputMode === m ? 'side-seg-item-active' : ''}`}
+                    >
+                      {m === 'text' ? t('sidepanel.modeText') : t('sidepanel.modeImage')}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="ml-auto shrink-0 text-[calc(var(--ll-u)*11)] font-medium text-blue-500 hover:text-blue-600"
+                >
+                  {t('sidepanel.openFile')}
+                </button>
+              </div>
+              {sourceError && <div className="ll-error px-4 py-2 text-xs">{sourceError}</div>}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,text/plain,.txt,.md,.markdown,.json,.csv,.tsv,.log,.srt,.vtt,.yaml,.yml"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  // Reset so choosing the same file twice fires `change` again.
+                  e.target.value = '';
+                  if (file) handleFile(file);
                 }}
               />
+
+              {inputMode === 'text' ? (
+                <textarea
+                  ref={textareaRef}
+                  value={sourceText}
+                  onChange={(e) => setSourceText(e.target.value)}
+                  placeholder={t('sidepanel.placeholder')}
+                  className="flex-1 w-full px-4 py-3 text-sm resize-none focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleTranslate();
+                  }}
+                />
+              ) : imageLoading ? (
+                <div className="flex flex-1 items-center justify-center gap-2 text-sm text-gray-400">
+                  <span className="ll-spinner" />
+                  {t('sidepanel.imageLoading')}
+                </div>
+              ) : image ? (
+                <div className="side-image-preview">
+                  <img src={image.dataUrl} alt="" draggable={false} />
+                </div>
+              ) : (
+                // Clicking both opens the picker and gives the panel document
+                // keyboard focus, which Chrome does not do when the side panel
+                // opens — without that first click a Ctrl+V would be lost
+                // (crbug.com/40896667).
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`side-drop ${dragging ? 'side-drop-active' : ''}`}
+                >
+                  <svg className="w-6 h-6 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-4.586-4.586a2 2 0 0 0-2.828 0L3 21" />
+                  </svg>
+                  <span>{t('sidepanel.imageEmptyHint')}</span>
+                  <span className="text-[calc(var(--ll-u)*11)] text-gray-400">
+                    {t('sidepanel.imageEmptySubhint')}
+                  </span>
+                </button>
+              )}
+
               <div className="flex items-center justify-between gap-2 px-4 py-2 min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[calc(var(--ll-u)*10)] text-gray-400">{t('sidepanel.chars', { count: sourceText.length })}</span>
-                  {sourceText && (
-                    <button
-                      onClick={() => {
-                        setSourceText('');
-                        setTranslation('');
-                        setError(null);
-                        textareaRef.current?.focus();
-                      }}
-                      className="text-[calc(var(--ll-u)*10)] text-gray-400 hover:text-red-400 transition-colors"
-                    >
-                      {t('sidepanel.clear')}
-                    </button>
+                  {inputMode === 'text' ? (
+                    <>
+                      <span className="text-[calc(var(--ll-u)*10)] text-gray-400">{t('sidepanel.chars', { count: sourceText.length })}</span>
+                      {sourceText && (
+                        <button
+                          onClick={() => {
+                            // Same contract as clearing an image: the result
+                            // and any in-flight stream belong to the source
+                            // that is disappearing.
+                            resetResult();
+                            setSourceError(null);
+                            setSourceText('');
+                            textareaRef.current?.focus();
+                          }}
+                          className="text-[calc(var(--ll-u)*10)] text-gray-400 hover:text-red-400 transition-colors"
+                        >
+                          {t('sidepanel.clear')}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    image && (
+                      <>
+                        <span className="text-[calc(var(--ll-u)*10)] text-gray-400 truncate">
+                          {image.name}
+                          {image.width ? ` · ${image.width}×${image.height}` : ''}
+                        </span>
+                        <button
+                          onClick={clearImage}
+                          className="shrink-0 text-[calc(var(--ll-u)*10)] text-gray-400 hover:text-red-400 transition-colors"
+                        >
+                          {/* Same label as the text-mode clear: both discard the
+                              current source and leave an empty input. */}
+                          {t('sidepanel.clear')}
+                        </button>
+                      </>
+                    )
                   )}
                 </div>
                 <button
                   onClick={handleTranslate}
-                  disabled={loading || !sourceText.trim() || !langsReady}
+                  disabled={
+                    loading ||
+                    imageLoading ||
+                    !langsReady ||
+                    inputMode === 'image' ||
+                    !sourceText.trim()
+                  }
                   className="ll-btn-primary ll-btn-sm shrink-0"
                 >
                   {loading ? (
@@ -464,6 +876,21 @@ export function App() {
           </button>
         </div>
       </div>
+
+      {/* Drag highlight — the whole panel accepts a file, not just the drop zone. */}
+      {dragging && (
+        <div className="side-drop-overlay" aria-hidden="true">
+          <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M12 15V3" />
+          </svg>
+          <span>{t('sidepanel.dropHint')}</span>
+          <span className="text-[calc(var(--ll-u)*11)] font-normal text-indigo-500">
+            {t('sidepanel.dropHintText')}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
