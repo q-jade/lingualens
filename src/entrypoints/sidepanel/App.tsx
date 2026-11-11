@@ -51,6 +51,14 @@ const TEXT_FILE_EXTENSION = /\.(txt|md|markdown|json|csv|tsv|log|srt|vtt|ya?ml|x
 const IMAGE_FILE_EXTENSION = /\.(png|jpe?g|gif|webp|bmp|avif|svg)$/i;
 
 /**
+ * How long a source-load failure stays on screen. A failed load leaves the
+ * PREVIOUS source untouched, so a permanent banner would sit over a perfectly
+ * usable text box or image and read as "this input is broken" — the failure
+ * belongs to the attempt, not to what is currently loaded.
+ */
+const SOURCE_ERROR_MS = 5000;
+
+/**
  * Whether a dropped file is one this panel can consume. A drag from a web page
  * can carry BOTH a URL and a synthetic "DownloadURL" file; the URL is preferred
  * when the file itself is not usable (see the drop handler).
@@ -151,6 +159,17 @@ export function App() {
   useEffect(() => {
     if (inputMode === 'text') textareaRef.current?.focus();
   }, [inputMode]);
+
+  // Source-load failures are transient (see SOURCE_ERROR_MS). Every load path
+  // clears the message when it starts, so this timer is for the cases where NO
+  // further load follows — a drop that resolved to neither a file nor a URL
+  // (the last branch of onDrop). Without it that one message would sit above a
+  // still-valid text box or image indefinitely.
+  useEffect(() => {
+    if (!sourceError) return;
+    const timer = setTimeout(() => setSourceError(null), SOURCE_ERROR_MS);
+    return () => clearTimeout(timer);
+  }, [sourceError]);
 
   const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -785,7 +804,20 @@ export function App() {
                   {t('sidepanel.openFile')}
                 </button>
               </div>
-              {sourceError && <div className="ll-error px-4 py-2 text-xs">{sourceError}</div>}
+              {sourceError && (
+                <div className="ll-error px-4 py-2 text-xs flex items-start gap-2" role="status">
+                  <span className="flex-1 min-w-0">{sourceError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSourceError(null)}
+                    className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                    title={t('options.dismiss')}
+                    aria-label={t('options.dismiss')}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
