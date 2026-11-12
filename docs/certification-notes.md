@@ -4,4 +4,4 @@ Local: Ollama http://localhost:11434 — `ollama pull gemma3:4b` (multimodal, co
 
 Cloud: any cloud preset (LLM or translation API) with your own API key.
 
-Test on https: selection (float UI / Alt+T), image (select or right-click an image — vision model), full page (Alt+Shift+T), popup, side panel. No remote code.
+Test on https: selection (float UI / Alt+T), image (select, right-click, or paste/drop in side panel — vision model), full page (Alt+Shift+T), popup, side panel. No remote code.

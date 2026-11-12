@@ -8,7 +8,8 @@ Recommended testing method (no API key required, works entirely offline):
 4. Install LinguaLens — Settings opens automatically; enable the Ollama provider, set its model to `gemma3:4b`, click "Verify", then "Save Settings"
 5. Open any https:// webpage and select text — click the floating LinguaLens icon to translate
 6. Image translation: select an image (or right-click it) and click the trigger / "Translate Image" menu item — the panel shows the image with the text inside it translated
-7. Right-click the page and choose "Translate This Page" for full-page bilingual translation
+7. Side panel image: open the side panel, switch to Image, and paste, drop, or open a local image — the translated text appears and streams in
+8. Right-click the page and choose "Translate This Page" for full-page bilingual translation
 
 If Ollama is unavailable, the extension also supports any cloud preset — OpenAI-compatible LLM endpoints, DeepL, or Google Cloud Translation — using API keys provided by the tester. Each provider has a "Verify" button in Settings. Without a verified provider, translation shows "No active provider".
 

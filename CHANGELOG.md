@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.13.0] - 2026-11-12
+
+### Added
+
+- The side panel now switches between text and image input. Paste, drag, or open an image, and load text files the same way.
+- Image translation streams its result progressively in the selection panel and the side panel instead of waiting for the full response.
+
+### Fixed
+
+- Closing the selection panel now cancels the in-flight translation instead of letting it stream to completion.
+
 ## [0.12.0] - 2026-10-26
 
 ### Added
@@ -235,6 +246,7 @@ All notable changes to this project are documented in this file.
 - Providers: Ollama, LM Studio, OpenAI-compatible, OpenAI, DeepSeek, DeepL, Google Translate, custom HTTP API.
 - Provider fallback chain, translation cache, LLM prompt template, and disable-thinking option for LLM backends.
 
+[0.13.0]: https://github.com/q-jade/lingualens/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/q-jade/lingualens/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/q-jade/lingualens/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/q-jade/lingualens/compare/v0.9.0...v0.10.0
